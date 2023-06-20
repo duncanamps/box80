@@ -1,2 +1,16 @@
 *.dbg
 lib/
+g_searle/originals/
+g_searle/hexFiles/
+*.bin
+*.hex
+*.map
+*.lst
+*.log
+g_searle/transientAppsPackage/
+g_searle/windowsApp/
+g_searle/TASM.EXE
+g_searle/TASM.TXT
+g_searle/TASM_RELNOTES.TXT
+g_searle/TASM80.TAB
+*.BAT
