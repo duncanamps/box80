@@ -22,80 +22,80 @@
 ; General Equates
 ;------------------------------------------------------------------------------
 
-CR		EQU	0DH
-LF		EQU	0AH
-ESC		EQU	1BH
-CTRLC		EQU	03H
-CLS		EQU	0CH
+CR		.EQU	0DH
+LF		.EQU	0AH
+ESC		.EQU	1BH
+CTRLC		.EQU	03H
+CLS		.EQU	0CH
 
 ; CF registers
-CF_DATA		EQU	$10
-CF_FEATURES	EQU	$11
-CF_ERROR	EQU	$11
-CF_SECCOUNT	EQU	$12
-CF_SECTOR	EQU	$13
-CF_CYL_LOW	EQU	$14
-CF_CYL_HI	EQU	$15
-CF_HEAD		EQU	$16
-CF_STATUS	EQU	$17
-CF_COMMAND	EQU	$17
-CF_LBA0		EQU	$13
-CF_LBA1		EQU	$14
-CF_LBA2		EQU	$15
-CF_LBA3		EQU	$16
+CF_DATA		.EQU	$10
+CF_FEATURES	.EQU	$11
+CF_ERROR	.EQU	$11
+CF_SECCOUNT	.EQU	$12
+CF_SECTOR	.EQU	$13
+CF_CYL_LOW	.EQU	$14
+CF_CYL_HI	.EQU	$15
+CF_HEAD		.EQU	$16
+CF_STATUS	.EQU	$17
+CF_COMMAND	.EQU	$17
+CF_LBA0		.EQU	$13
+CF_LBA1		.EQU	$14
+CF_LBA2		.EQU	$15
+CF_LBA3		.EQU	$16
 
 ;CF Features
-CF_8BIT		EQU	1
-CF_NOCACHE	EQU	082H
+CF_8BIT		.EQU	1
+CF_NOCACHE	.EQU	082H
 ;CF Commands
-CF_READ_SEC	EQU	020H
-CF_WRITE_SEC	EQU	030H
-CF_SET_FEAT	EQU 	0EFH
+CF_READ_SEC	.EQU	020H
+CF_WRITE_SEC	.EQU	030H
+CF_SET_FEAT	.EQU 	0EFH
 
 
-loadAddr	EQU	0D000h	; CP/M load address
-numSecs		EQU	24	; Number of 512 sectors to be loaded
+loadAddr	.EQU	0D000h	; CP/M load address
+numSecs		.EQU	24	; Number of 512 sectors to be loaded
 
 
 ;BASIC cold and warm entry points
-BASCLD		EQU	$2000
-BASWRM		EQU	$2003
+BASCLD		.EQU	$2000
+BASWRM		.EQU	$2003
 
-SER_BUFSIZE	EQU	40H
-SER_FULLSIZE	EQU	30H
-SER_EMPTYSIZE	EQU	5
+SER_BUFSIZE	.EQU	40H
+SER_FULLSIZE	.EQU	30H
+SER_EMPTYSIZE	.EQU	5
 
-RTS_HIGH	EQU	0E8H
-RTS_LOW		EQU	0EAH
+RTS_HIGH	.EQU	0E8H
+RTS_LOW		.EQU	0EAH
 
-SIOA_D		EQU	$00
-SIOA_C		EQU	$02
-SIOB_D		EQU	$01
-SIOB_C		EQU	$03
+SIOA_D		.EQU	$00
+SIOA_C		.EQU	$02
+SIOB_D		.EQU	$01
+SIOB_C		.EQU	$03
 
-		ORG	$4000
-serABuf		DS	SER_BUFSIZE
-serAInPtr	DS	2
-serARdPtr	DS	2
-serABufUsed	DS	1
-serBBuf		DS	SER_BUFSIZE
-serBInPtr	DS	2
-serBRdPtr	DS	2
-serBBufUsed	DS	1
+		.ORG	$4000
+serABuf		.ds	SER_BUFSIZE
+serAInPtr	.ds	2
+serARdPtr	.ds	2
+serABufUsed	.ds	1
+serBBuf		.ds	SER_BUFSIZE
+serBInPtr	.ds	2
+serBRdPtr	.ds	2
+serBBufUsed	.ds	1
 
-primaryIO	DS	1
-secNo		DS	1
-dmaAddr		DS	2
+primaryIO	.ds	1
+secNo		.ds	1
+dmaAddr		.ds	2
 
-stackSpace	DS	32
-STACK   	EQU    $	; Stack top
+stackSpace	.ds	32
+STACK   	.EQU    $	; Stack top
 
 
 ;------------------------------------------------------------------------------
 ;                         START OF MONITOR ROM
 ;------------------------------------------------------------------------------
 
-MON		ORG	$0000		; MONITOR ROM RESET VECTOR
+MON		.ORG	$0000		; MONITOR ROM RESET VECTOR
 ;------------------------------------------------------------------------------
 ; Reset
 ;------------------------------------------------------------------------------
@@ -132,8 +132,8 @@ RST18		JP	CKINCHAR
 ; SIO Vector = 0x60
 ;------------------------------------------------------------------------------
 
-		ORG	$0060
-		DW	serialInt
+		.ORG	$0060
+		.DW	serialInt
 
 
 ;------------------------------------------------------------------------------
@@ -747,14 +747,14 @@ CPMLOAD
 		JP  Z,CPMLOAD2
 		RET
 CPMTXT
-		DB	$0D,$0A
-		DB	"Boot CP/M?"
-		DB	$00
+		.BYTE	$0D,$0A
+		.TEXT	"Boot CP/M?"
+		.BYTE	$00
 
 CPMTXT2
-		DB	$0D,$0A
-		DB	"Loading CP/M..."
-		DB	$0D,$0A,$00
+		.BYTE	$0D,$0A
+		.TEXT	"Loading CP/M..."
+		.BYTE	$0D,$0A,$00
 
 CPMLOAD2
     		LD HL,CPMTXT2
@@ -868,43 +868,43 @@ cfWait1:
 
 ;------------------------------------------------------------------------------
 
-SIGNON	DB	"Z80 SBC Boot ROM 1.1"
-		DB	" by G. Searle"
-		DB	$0D,$0A
-		DB	"Type ? for options"
-		DB	$0D,$0A,$00
+SIGNON	.BYTE	"Z80 SBC Boot ROM 1.1"
+		.BYTE	" by G. Searle"
+		.BYTE	$0D,$0A
+		.BYTE	"Type ? for options"
+		.BYTE	$0D,$0A,$00
 
 BASTXT
-		DB	$0D,$0A
-		DB	"Cold or Warm ?"
-		DB	$0D,$0A,$00
+		.BYTE	$0D,$0A
+		.TEXT	"Cold or Warm ?"
+		.BYTE	$0D,$0A,$00
 
-CKSUMERR	DB	"Checksum error"
-		DB	$0D,$0A,$00
+CKSUMERR	.BYTE	"Checksum error"
+		.BYTE	$0D,$0A,$00
 
 INITTXT  
-		DB	$0C
-		DB	"Press [SPACE] to activate console"
-		DB	$0D,$0A, $00
+		.BYTE	$0C
+		.TEXT	"Press [SPACE] to activate console"
+		.BYTE	$0D,$0A, $00
 
 LDETXT  
-		DB	"Load complete."
-		DB	$0D,$0A, $00
+		.TEXT	"Load complete."
+		.BYTE	$0D,$0A, $00
 
 
 HLPTXT
-		DB	$0D,$0A
-		DB	"R           - Reset"
-		DB	$0D,$0A
-		DB	"BC or BW    - ROM BASIC Cold or Warm"
-		DB	$0D,$0A
-		DB	"X           - Boot CP/M (load $D000-$FFFF from disk)"
-		DB	$0D,$0A
-		DB	":nnnnnn...  - Load Intel-Hex file record"
-		DB	$0D,$0A
-        	DB   $00
+		.BYTE	$0D,$0A
+		.TEXT	"R           - Reset"
+		.BYTE	$0D,$0A
+		.TEXT	"BC or BW    - ROM BASIC Cold or Warm"
+		.BYTE	$0D,$0A
+		.TEXT	"X           - Boot CP/M (load $D000-$FFFF from disk)"
+		.BYTE	$0D,$0A
+		.TEXT	":nnnnnn...  - Load Intel-Hex file record"
+		.BYTE	$0D,$0A
+        	.BYTE   $00
 
 ;------------------------------------------------------------------------------
 
-FINIS		END	
+FINIS		.END	
 

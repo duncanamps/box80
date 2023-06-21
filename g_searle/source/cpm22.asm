@@ -1,3 +1,5 @@
+// DM modified 21/06/2023
+// HALT changed to XHALT as HALT is a Z80 keyword
 ;**************************************************************
 ;*
 ;*             C P / M   version   2 . 2
@@ -363,7 +365,7 @@ VERIFY:	LD	DE,PATTRN1	;these are the serial number bytes.
 	LD	B,6		;6 bytes each.
 VERIFY1:LD	A,(DE)
 	CP	(HL)
-	JP	NZ,HALT		;jump to halt routine.
+	JP	NZ,XHALT		;jump to halt routine.
 	INC	DE
 	INC	HL
 	DEC	B
@@ -670,7 +672,7 @@ CMDADR:	.DW	DIRECT,ERASE,TYPE,SAVE
 ;
 ;   Halt the system. Reason for this is unknown at present.
 ;
-HALT:	LD	HL,76F3H	;'DI HLT' instructions.
+XHALT:	LD	HL,76F3H	;'DI HLT' instructions.
 	LD	(CBASE),HL
 	LD	HL,CBASE
 	JP	(HL)

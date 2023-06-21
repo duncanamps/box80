@@ -5,7 +5,7 @@ unit uprocessor;
 interface
 
 uses
-  Classes, SysUtils;
+  Classes, SysUtils, usio;
 
 const
   FLAG_NEGATIVE  = $80;
@@ -24,6 +24,10 @@ const
   NOT_FLAG_PV        = (FLAG_PV         xor $FF);
   NOT_FLAG_SUBTRACT  = (FLAG_SUBTRACT   xor $FF);
   NOT_FLAG_CARRY     = (FLAG_CARRY      xor $FF);
+  SIOA_D = 0;
+  SIOA_C = 2;
+  SIOB_D = 1;
+  SIOB_C = 3;
 
 
 
@@ -77,15 +81,38 @@ implementation
 
 // Utilities
 
-procedure BumpPC; inline;
+procedure DecReg16(var _reg: word); inline;
 begin
-  if pc = $FFFF then
-    pc := 0
+  if _reg = $0000 then
+    _reg := $FFFF
   else
-    Inc(pc);
+    _reg := _reg - 1;
 end;
 
-procedure BumpPCrelative(_b: byte); inline;
+procedure IncReg16(var _reg: word); inline;
+begin
+  if _reg = $FFFF then
+    _reg := $0000
+  else
+    _reg := _reg + 1;
+end;
+
+procedure DecSP; inline;
+begin
+  DecReg16(sp);
+end;
+
+procedure IncSP; inline;
+begin
+  IncReg16(sp);
+end;
+
+procedure IncPC; inline;
+begin
+  IncReg16(pc);
+end;
+
+procedure SetPCrelative(_b: byte); inline;
 begin
   if (_b and $80) <> 0 then
     pc := pc + _b - 256
@@ -96,25 +123,25 @@ end;
 function Fetch8: Word; inline;
 begin
   Result := ramarray[PC];
-  BumpPC;
+  IncPC;
 end;
 
 function Fetch16: Word; inline;
 begin
   Result := ramarray[PC] + (ramarray[PC+1] shl 8);
-  BumpPC;
-  BumpPC;
+  IncPC;
+  IncPC;
 end;
 
 // Helper routines
 
-procedure ExecJRcond(_mask, _required: byte); inline;
+procedure ExecJRcond(_mask, _required: byte);
 var b:     byte;
 begin
   b := Fetch8;
   if (af and _mask) = _required then
     begin // Succeeded
-      BumpPCrelative(b);
+      SetPCrelative(b);
       Inc(t_states,12);
     end
   else
@@ -127,9 +154,9 @@ begin
   if (af and _mask) = _required then
     begin // Succeeded
       newpc := ramarray[sp];
-      Inc(sp);
+      IncSP;
       newpc := newpc or ramarray[sp] shl 8;
-      Inc(sp);
+      IncSP;
       pc := newpc;
       Inc(t_states,11);
     end
@@ -176,6 +203,18 @@ begin
   if _save then
     af := (af and $00FF) or (_a shl 8);
   Inc(t_states,_states);
+end;
+
+procedure ProcessPortOut(_port, _byte: byte);
+begin
+  case _port of
+    SIOA_D: SIO.DataA := _byte;        // Port 00
+    SIOB_D: SIO.DataB := _byte;        // Port 01
+    SIOA_C: SIO.ControlA := _byte;     // Port 02
+    SIOB_C: SIO.ControlB := _byte;     // Port 03
+    otherwise
+      raise Exception.Create(Format('Port $%2.2X not catered for',[_port]));
+  end;
 end;
 
 procedure SetXORflags; inline;
@@ -308,7 +347,7 @@ end;
 
 procedure ExecINCSP;
 begin
-  Inc(sp);
+  IncSP;
   Inc(t_states,6);
 end;
 
@@ -324,7 +363,7 @@ procedure ExecJR;
 var b: byte;
 begin
   b := Fetch8;
-  BumpPCrelative(b);
+  SetPCrelative(b);
   Inc(t_states,12);
 end;
 
@@ -504,45 +543,44 @@ end;
 procedure ExecOUTportA;
 var port: byte;
 begin
-  // @@@@@ DO PORT HANDLING FUNCTIONS
-  // e.g.  ProcessPortOut(port,af shr 8);
   port := Fetch8;
+  ProcessPortOut(port,af shr 8);
   Inc(t_states,11);
 end;
 
 procedure ExecPOPAF;
 begin
   af := ramarray[sp];
-  Inc(sp);
+  IncSP;
   af := af or (ramarray[sp] shl 8);
-  Inc(sp);
+  IncSP;
   Inc(t_states,10);
 end;
 
 procedure ExecPOPBC;
 begin
   bc := ramarray[sp];
-  Inc(sp);
+  IncSP;
   bc := bc or (ramarray[sp] shl 8);
-  Inc(sp);
+  IncSP;
   Inc(t_states,10);
 end;
 
 procedure ExecPOPDE;
 begin
   de := ramarray[sp];
-  Inc(sp);
+  IncSP;
   de := de or (ramarray[sp] shl 8);
-  Inc(sp);
+  IncSP;
   Inc(t_states,10);
 end;
 
 procedure ExecPOPHL;
 begin
   hl := ramarray[sp];
-  Inc(sp);
+  IncSP;
   hl := hl or (ramarray[sp] shl 8);
-  Inc(sp);
+  IncSP;
   Inc(t_states,10);
 end;
 
@@ -575,9 +613,9 @@ end;
 
 procedure ExecPUSHHL;
 begin
-  Dec(sp);
+  DecSP;
   ramarray[sp] := hl shr 8;
-  Dec(sp);
+  DecSP;
   ramarray[sp] := hl and $00ff;
   Inc(t_states,11);
 end;
@@ -586,9 +624,9 @@ procedure ExecRET;
 var newpc: word;
 begin
   newpc := ramarray[sp];
-  Inc(sp);
+  IncSP;
   newpc := newpc or ramarray[sp] shl 8;
-  Inc(sp);
+  IncSP;
   pc := newpc;
   Inc(t_states,10);
 end;
@@ -789,7 +827,7 @@ var proc: procedure;
 begin
   // Get byte to execute
   opcode := ramarray[pc];
-  BumpPC;
+  IncPC;
   proc := inst_cb[opcode];
   if proc <> nil then
     proc
@@ -842,7 +880,7 @@ var proc: procedure;
 begin
   // Get byte to execute
   opcode := ramarray[pc];
-  BumpPC;
+  IncPC;
   proc := inst_ed[opcode];
   if proc <> nil then
     proc
@@ -872,7 +910,7 @@ begin
   error_flag := [];
   // Get first byte to execute
   opcode := ramarray[pc];
-  BumpPC;
+  IncPC;
   proc := inst_std[opcode];
   if proc <> nil then
     proc

@@ -14,3 +14,11 @@ g_searle/TASM.TXT
 g_searle/TASM_RELNOTES.TXT
 g_searle/TASM80.TAB
 *.BAT
+box80.nev
+box80.tx2
+box80.tx3
+box80.txt
+profile.ini
+proflst.asc
+*.com
+docs/research/
