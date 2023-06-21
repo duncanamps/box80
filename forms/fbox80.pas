@@ -5,7 +5,8 @@ unit fbox80;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, uprocessor;
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
+  uprocessor;
 
 const
   MONITOR_BIN = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\g_searle\source\monitor.bin';
@@ -19,6 +20,7 @@ type
     btnInit: TButton;
     btnStep: TButton;
     btnRun: TButton;
+    btnStop: TButton;
     edtT: TEdit;
     edtuS: TEdit;
     edtA_: TEdit;
@@ -67,10 +69,13 @@ type
     Label8: TLabel;
     Label9: TLabel;
     labF_7: TLabel;
+    StatusBar1: TStatusBar;
     procedure btnInitClick(Sender: TObject);
     procedure btnRunClick(Sender: TObject);
     procedure btnStepClick(Sender: TObject);
+    procedure btnStopClick(Sender: TObject);
   private
+    CancelRequested: boolean;
     last_af:  Word;
     last_bc:  Word;
     last_de:  Word;
@@ -85,6 +90,8 @@ type
     last_sp:  Word;
     last_pc:  Word;
     procedure ShowRegisters;
+    procedure Status(const _msg: string);
+    procedure Status(const _fmt: string; const _args: array of const);
   public
 
   end;
@@ -100,6 +107,8 @@ implementation
 
 procedure TfrmBox80.btnInitClick(Sender: TObject);
 var strm: TFileStream;
+    b:    byte;
+    t:    integer;
 begin
   processor_init;
   // Load Grant Searle monitor ROM to $0000
@@ -111,20 +120,75 @@ begin
     FreeAndNil(strm);
   end;
   ShowRegisters;
+  t := 0;
+  for b in byte do
+    if Assigned(inst_std[b]) then
+      Inc(t);
+  Status('%d/256 instructions mapped (%5.1f%%)',[t,t*100.0/256.0]);
 end;
 
+{$DEFINE REAL_SPEED}
 procedure TfrmBox80.btnRunClick(Sender: TObject);
+{$IFDEF REAL_SPEED}
+const INST_BATCH = 100000;
+      DISP_BATCH = 500000;
+{$ELSE}
+const INST_BATCH = 50000000;
+      DISP_BATCH = 50000000;
+{$ENDIF}
 var saved_pc: word;
     good: boolean;
+    loop: integer;
+    instructions: int64;
+    start_time: TDateTime;
+    start_t:    int64;  // Starting T states
+    t_elapsed:  int64;  // T states since start
+    elapsed:    double; // Elapsed time in reality
+    exp_time:   double; // Expected time in seconds since start
 begin
-  good := True;
-  while good do
-    begin
-      saved_pc := pc;
-      good := processor_execute;
-    end;
-  MessageDlg('Error','Illegal instruction at ' + IntToHex(saved_pc),mtError,[mbOK],0);
-  ShowRegisters;
+  btnRun.Enabled := False;
+  btnStop.Enabled := True;
+  CancelRequested := False;
+  try
+    good := True;
+    loop := 0;
+    instructions := 0;
+    start_time := Now();
+    start_t := t_states;
+    while good do
+      begin
+        saved_pc := pc;
+        good := processor_execute;
+        Inc(instructions);
+        Inc(loop);
+        if loop > INST_BATCH then
+          begin
+            // Add 1mS worth of T states
+            t_elapsed := t_states - start_t;
+            exp_time := t_elapsed / 4.0 / cpu_speed;
+            repeat
+              elapsed := (Now() - start_time) * 86400.0;
+              if elapsed < exp_time then
+                Sleep(1);
+            until elapsed >= exp_time;
+            if loop > DISP_BATCH then
+              begin
+                loop := 0;
+                ShowRegisters;
+                Status('MHz = %8.3f, MIPS = %8.3f',[t_elapsed / elapsed / 4.0 / 1000000.0,instructions / elapsed / 1000000.0]);
+                Application.ProcessMessages;
+                if CancelRequested then
+                  good := False
+              end;
+          end;
+      end;
+    if efIllegal in error_flag then
+      MessageDlg('Error','Illegal instruction at ' + IntToHex(saved_pc),mtError,[mbOK],0);
+    ShowRegisters;
+  finally
+    btnStop.Enabled := False;
+    btnRun.Enabled := True;
+  end;
 end;
 
 procedure TfrmBox80.btnStepClick(Sender: TObject);
@@ -134,6 +198,12 @@ begin
   if not processor_execute then
     MessageDlg('Error','Illegal instruction at ' + IntToHex(saved_pc),mtError,[mbOK],0);
   ShowRegisters;
+end;
+
+procedure TfrmBox80.btnStopClick(Sender: TObject);
+begin
+  CancelRequested := True;
+  btnStop.Enabled := False;
 end;
 
 
@@ -222,7 +292,7 @@ begin
   edtAtPC.Text := s;
   // Update T and uS
   edtT.Text := IntToStr(t_states);
-  edtuS.Text := Format('%12.2f',[t_states / cpu_speed * 1000000.0]);
+  edtuS.Text := Format('%12.2f',[t_states / cpu_speed * 1000000.0 / 4.0]);
   // Update the "last" variables
   last_af  := af;
   last_bc  := bc;
@@ -237,6 +307,16 @@ begin
   last_iy  := iy;
   last_sp  := sp;
   last_pc  := pc;
+end;
+
+procedure TfrmBox80.Status(const _msg: string);
+begin
+  StatusBar1.SimpleText := _msg;
+end;
+
+procedure TfrmBox80.Status(const _fmt: string; const _args: array of const);
+begin
+  Status(Format(_fmt,_args));
 end;
 
 end.
