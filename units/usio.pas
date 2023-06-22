@@ -41,28 +41,38 @@ implementation
 
 function TSIO.GetDataA: byte;
 begin
+  Result := 0;
 end;
 
 function TSIO.GetDataB: byte;
 begin
+  Result := 0;
 end;
 
 procedure TSIO.SetControlA(_b: byte);
 begin
+  FControlA := _b;
 end;
 
 procedure TSIO.SetControlB(_b: byte);
 begin
+  FControlB := _b;
 end;
 
 procedure TSIO.SetDataA(_b: byte);
 begin
   FDataA := _b;
+  if ((FControlA and $07) = 0) and Assigned(FOnTransmitA) then
+    FOnTransmitA(_b);
+  FControlA := FControlA and ($07 xor $FF);
 end;
 
 procedure TSIO.SetDataB(_b: byte);
 begin
   FDataB := _b;
+  if ((FControlB and $07) = 0) and Assigned(FOnTransmitB) then
+    FOnTransmitB(_b);
+  FControlB := FControlB and ($07 xor $FF);
 end;
 
 initialization

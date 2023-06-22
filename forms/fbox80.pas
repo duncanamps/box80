@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  uprocessor;
+  uprocessor, uterminal;
 
 const
   MONITOR_BIN = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\g_searle\source\monitor.bin';
@@ -74,8 +74,11 @@ type
     procedure btnRunClick(Sender: TObject);
     procedure btnStepClick(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
     CancelRequested: boolean;
+    FTerminal: TTerminal;
     last_af:  Word;
     last_bc:  Word;
     last_de:  Word;
@@ -89,6 +92,7 @@ type
     last_iy:  Word;
     last_sp:  Word;
     last_pc:  Word;
+    procedure HandleSIOtransmitA(_b: byte);
     procedure ShowRegisters;
     procedure Status(const _msg: string);
     procedure Status(const _fmt: string; const _args: array of const);
@@ -102,6 +106,9 @@ var
 implementation
 
 {$R *.lfm}
+
+uses
+  usio;
 
 { TfrmBox80 }
 
@@ -131,16 +138,17 @@ end;
 procedure TfrmBox80.btnRunClick(Sender: TObject);
 {$IFDEF REAL_SPEED}
 const INST_BATCH = 100000;
-      DISP_BATCH = 500000;
+      DISP_CYCLE = 0.5 / 86400.0; // Seconds between display updates
 {$ELSE}
 const INST_BATCH = 50000000;
       DISP_BATCH = 50000000;
 {$ENDIF}
 var saved_pc: word;
     good: boolean;
-    loop: integer;
     instructions: int64;
+    instcount:    int64;
     start_time: TDateTime;
+    disp_last:  TDateTime;
     start_t:    int64;  // Starting T states
     t_elapsed:  int64;  // T states since start
     elapsed:    double; // Elapsed time in reality
@@ -151,31 +159,38 @@ begin
   CancelRequested := False;
   try
     good := True;
-    loop := 0;
     instructions := 0;
+    instcount := 0;
     start_time := Now();
+    disp_last := start_time;
     start_t := t_states;
     while good do
       begin
         saved_pc := pc;
         good := processor_execute;
         Inc(instructions);
-        Inc(loop);
-        if loop > INST_BATCH then
+        Inc(instcount);
+        if instcount > INST_BATCH then
           begin
             // Add 1mS worth of T states
+            instcount := 0;
             t_elapsed := t_states - start_t;
             exp_time := t_elapsed / 4.0 / cpu_speed;
+{$IFDEF REAL_SPEED}
             repeat
               elapsed := (Now() - start_time) * 86400.0;
               if elapsed < exp_time then
                 Sleep(1);
             until elapsed >= exp_time;
-            if loop > DISP_BATCH then
+{$ELSE}
+            elapsed := (Now() - start_time) * 86400.0;
+{$ENDIF}
+            if (Now() - disp_last) >= DISP_CYCLE then
               begin
-                loop := 0;
+                disp_last := disp_last + DISP_CYCLE;
                 ShowRegisters;
-                Status('MHz = %8.3f, MIPS = %8.3f',[t_elapsed / elapsed / 4.0 / 1000000.0,instructions / elapsed / 1000000.0]);
+                if elapsed > 0.0 then
+                  Status('MHz = %8.3f, MIPS = %8.3f',[t_elapsed / elapsed / 4.0 / 1000000.0 + 0.0005,instructions / elapsed / 1000000.0]);
                 Application.ProcessMessages;
                 if CancelRequested then
                   good := False
@@ -206,6 +221,31 @@ begin
   btnStop.Enabled := False;
 end;
 
+procedure TfrmBox80.FormCreate(Sender: TObject);
+begin
+  FTerminal := TTerminal.Create(Self,80,25);
+  FTerminal.Parent := Self;
+  FTerminal.Top := 64;
+  FTerminal.Left := 240;
+  FTerminal.Width := 814;
+  FTerminal.Height := 490;
+//  FTerminal.Align := alClient;
+  FTerminal.Color := TColor($00002800);
+  FTerminal.Font.Color := clLime;
+  FTerminal.Font.Name := 'Lucida Sans Typewriter';
+  FTerminal.Font.Size := 10;
+  sio.OnTransmitA := @HandleSIOtransmitA;
+end;
+
+procedure TfrmBox80.FormDestroy(Sender: TObject);
+begin
+  FreeAndNil(FTerminal);
+end;
+
+procedure TfrmBox80.HandleSIOtransmitA(_b: byte);
+begin
+  FTerminal.WriteChar(Chr(_b));
+end;
 
 procedure TfrmBox80.ShowRegisters;
 var i: integer;
@@ -265,6 +305,14 @@ begin
   ShowBit(labF2,af,last_af,2);
   ShowBit(labF1,af,last_af,1);
   ShowBit(labF0,af,last_af,0);
+  ShowBit(labF_7,af_,last_af_,7);
+  ShowBit(labF_6,af_,last_af_,6);
+  ShowBit(labF_5,af_,last_af_,5);
+  ShowBit(labF_4,af_,last_af_,4);
+  ShowBit(labF_3,af_,last_af_,3);
+  ShowBit(labF_2,af_,last_af_,2);
+  ShowBit(labF_1,af_,last_af_,1);
+  ShowBit(labF_0,af_,last_af_,0);
   ShowWord(edtBC,bc,last_bc);
   ShowWord(edtDE,de,last_de);
   ShowWord(edtHL,hl,last_hl);
@@ -291,8 +339,8 @@ begin
     end;
   edtAtPC.Text := s;
   // Update T and uS
-  edtT.Text := IntToStr(t_states);
-  edtuS.Text := Format('%12.2f',[t_states / cpu_speed * 1000000.0 / 4.0]);
+  edtT.Text := Format('%-12.0n',[double(t_states)]);
+  edtuS.Text := Format('%-12.2n',[t_states / cpu_speed * 1000000.0 / 4.0]);
   // Update the "last" variables
   last_af  := af;
   last_bc  := bc;

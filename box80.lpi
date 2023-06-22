@@ -40,6 +40,7 @@
           <Linking>
             <Debugging>
               <GenerateDebugInfo Value="False"/>
+              <DebugInfoType Value="dsDwarf3"/>
             </Debugging>
             <LinkSmart Value="True"/>
             <Options>
@@ -59,6 +60,9 @@
       <FormatVersion Value="2"/>
     </RunParams>
     <RequiredPackages>
+      <Item>
+        <PackageName Value="BGRABitmapPack"/>
+      </Item>
       <Item>
         <PackageName Value="LCL"/>
       </Item>
@@ -81,6 +85,10 @@
       </Unit>
       <Unit>
         <Filename Value="units\usio.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="units\uterminal.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
     </Units>

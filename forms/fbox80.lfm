@@ -2,11 +2,13 @@ object frmBox80: TfrmBox80
   Left = 411
   Height = 598
   Top = 220
-  Width = 897
+  Width = 1070
   Caption = 'frmBox80'
   ClientHeight = 598
-  ClientWidth = 897
+  ClientWidth = 1070
   DesignTimePPI = 120
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
   LCLVersion = '2.2.6.0'
   object btnInit: TButton
     Left = 24
@@ -552,7 +554,7 @@ object frmBox80: TfrmBox80
     Left = 0
     Height = 29
     Top = 569
-    Width = 897
+    Width = 1070
     Panels = <>
   end
   object btnStop: TButton

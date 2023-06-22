@@ -12,7 +12,7 @@
         <WindowIndex Value="-1"/>
         <TopLine Value="-1"/>
         <CursorPos X="-1" Y="-1"/>
-        <UsageCount Value="37"/>
+        <UsageCount Value="39"/>
       </Unit>
       <Unit>
         <Filename Value="forms\fbox80.pas"/>
@@ -20,20 +20,38 @@
         <ComponentName Value="frmBox80"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <TopLine Value="280"/>
-        <CursorPos Y="295"/>
-        <UsageCount Value="37"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="222"/>
+        <CursorPos Y="237"/>
+        <UsageCount Value="39"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="units\uprocessor.pas"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="197"/>
+        <CursorPos Y="213"/>
+        <UsageCount Value="39"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="units\usio.pas"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="40"/>
+        <CursorPos Y="64"/>
+        <UsageCount Value="23"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="units\uterminal.pas"/>
+        <IsPartOfProject Value="True"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="310"/>
-        <CursorPos X="4" Y="326"/>
-        <UsageCount Value="37"/>
+        <TopLine Value="314"/>
+        <CursorPos Y="330"/>
+        <UsageCount Value="21"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -66,139 +84,130 @@
         <CursorPos X="3" Y="33"/>
         <UsageCount Value="9"/>
       </Unit>
-      <Unit>
-        <Filename Value="units\usio.pas"/>
-        <IsPartOfProject Value="True"/>
-        <EditorIndex Value="2"/>
-        <TopLine Value="3"/>
-        <CursorPos X="24" Y="18"/>
-        <UsageCount Value="21"/>
-        <Loaded Value="True"/>
-      </Unit>
     </Units>
     <OtherDefines Count="1">
       <Define0 Value="PROFILE"/>
     </OtherDefines>
     <JumpHistory HistoryIndex="29">
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="214" TopLine="204"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="160" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="210" TopLine="204"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="161" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="213" TopLine="204"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="160" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="209" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="161" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="210" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="160" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="211" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="161" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="210" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="160" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="213" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="161" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="210" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="160" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="211" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="161" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="210" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="160" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="213" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="161" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="210" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="160" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="211" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="161" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="210" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="160" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="213" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="161" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="210" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="160" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="211" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="161" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="210" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="160" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="213" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="161" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="210" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="160" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="211" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="161" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="210" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="160" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="213" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="161" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="210" TopLine="203"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="164" Column="14" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="326" TopLine="312"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="330" TopLine="314"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="209" Column="12" TopLine="194"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="334" TopLine="314"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="213" TopLine="194"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="159" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="210" TopLine="194"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="160" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="326" TopLine="310"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="164" TopLine="143"/>
       </Position>
     </JumpHistory>
     <RunParams>
@@ -207,22 +216,6 @@
     </RunParams>
   </ProjectSession>
   <Debugging>
-    <BreakPoints>
-      <Item>
-        <Kind Value="bpkSource"/>
-        <WatchScope Value="wpsLocal"/>
-        <WatchKind Value="wpkWrite"/>
-        <Source Value="units\uprocessor.pas"/>
-        <Line Value="210"/>
-      </Item>
-      <Item>
-        <Kind Value="bpkSource"/>
-        <WatchScope Value="wpsLocal"/>
-        <WatchKind Value="wpkWrite"/>
-        <Source Value="units\uprocessor.pas"/>
-        <Line Value="326"/>
-      </Item>
-    </BreakPoints>
     <Watches>
       <Item>
         <Expression Value="af"/>
@@ -246,6 +239,9 @@
       </Item>
       <Item>
         <Expression Value="port"/>
+      </Item>
+      <Item>
+        <Expression Value="SIO"/>
       </Item>
     </Watches>
   </Debugging>
