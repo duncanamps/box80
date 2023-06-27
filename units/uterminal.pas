@@ -39,6 +39,7 @@ type
       FCursorCol:  integer;        // Cursor column position
       FCursorRow:  integer;        // Cursor row position
       FScreen:     TAOB;           // The screen memory
+      FCursorLit:   boolean;
       FCursorXAddr: PByte;
       FCursorYAddr: PByte;
       FScreenAddr:  PByte;
@@ -72,6 +73,7 @@ type
       procedure WriteString(_s: string);
       property  CursorCol: integer   read FCursorCol  write FCursorCol;
       property  CursorRow: integer   read FCursorRow  write FCursorRow;
+      property  CursorLit:   boolean read FCursorLit   write FCursorLit;
       property  Screen:    TAOB      read FScreen     write FScreen;
 {$ENDIF}
       property  Cols:      integer   read FCols       write FCols;
@@ -275,18 +277,21 @@ begin
       Canvas.TextOut(ColToX(0),RowToY(i),s);
     end;
   // Reverse the cursor
-  reversal := Color xor $0000FF00;
-  Canvas.CopyMode := cmSrcInvert;
-  try
-    Canvas.Brush.Color := reversal;
-    Canvas.FillRect(ColToX(FCursorCol),
-                    RowToY(FCursorRow),
-                    ColToX(FCursorCol+1)-1,
-                    RowToY(FCursorRow+1)-1
-                    );
-  finally
-    Canvas.CopyMode := cmSrcCopy;
-  end;
+  if FCursorLit then
+    begin
+      reversal := Color xor $0000FF00;
+      Canvas.CopyMode := cmSrcInvert;
+      try
+        Canvas.Brush.Color := reversal;
+        Canvas.FillRect(ColToX(FCursorCol),
+                        RowToY(FCursorRow),
+                        ColToX(FCursorCol+1)-1,
+                        RowToY(FCursorRow+1)-1
+                        );
+      finally
+        Canvas.CopyMode := cmSrcCopy;
+      end;
+    end;
   // Finally...
   inherited Paint;
 end;

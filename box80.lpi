@@ -24,7 +24,7 @@
           <Version Value="11"/>
           <PathDelim Value="\"/>
           <Target>
-            <Filename Value="box80"/>
+            <Filename Value="binaries\release\$(TargetOS)-$(TargetCPU)\box80"/>
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
@@ -97,7 +97,7 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <Target>
-      <Filename Value="box80"/>
+      <Filename Value="binaries\debug\$(TargetOS)-$(TargetCPU)\box80"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>

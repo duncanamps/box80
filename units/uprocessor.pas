@@ -676,7 +676,7 @@ var bit0: word;
 begin
   bit0 := (af and $0100);
   af := (af and $00FF) or ((af and $FE) shr 1) or (bit0 shl 7);
-  af := (af and ($FF00 or NOT_FLAG_CARRY)) or (bit0 shr 8); // Set C flag
+  af := (af and ($FF00 or (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT))) or (bit0 shr 8); // Set C flag if reqd and reset H, N
   Inc(t_states,4);
 end;
 
@@ -927,7 +927,7 @@ var i: word;
     n: byte;
 begin
   t_states := 0;
-  cpu_speed := 4000000;
+  cpu_speed := 4000000; // Default to 4MHz device
   int_enabled := True;
   int_mode := 0; // Interrupt mode 0 (IM0) like 8080
   pc := 0;
@@ -951,7 +951,7 @@ begin
       n := (b shr 4) xor (b and $0F);
       n := (n shr 2) xor (n and $03);
       n := (n shr 1) xor (n and $01);
-      parity_table[b] := n shl 2;
+      parity_table[b] := (n shl 2) xor FLAG_PV;
     end;
 
   for b in byte do inst_std[b] := nil;

@@ -6,10 +6,10 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  uprocessor, uterminal;
+  ExtCtrls, uprocessor, uterminal;
 
 const
-  MONITOR_BIN = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\g_searle\source\monitor.bin';
+  MONITOR_COM = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\monitor.bin';
 
 
 type
@@ -70,15 +70,18 @@ type
     Label9: TLabel;
     labF_7: TLabel;
     StatusBar1: TStatusBar;
+    Timer1: TTimer;
     procedure btnInitClick(Sender: TObject);
     procedure btnRunClick(Sender: TObject);
     procedure btnStepClick(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure Timer1Timer(Sender: TObject);
   private
     CancelRequested: boolean;
     FTerminal: TTerminal;
+    FTimerClicks: integer;
     last_af:  Word;
     last_bc:  Word;
     last_de:  Word;
@@ -119,7 +122,7 @@ var strm: TFileStream;
 begin
   processor_init;
   // Load Grant Searle monitor ROM to $0000
-  strm := TFileStream.Create(MONITOR_BIN,fmOpenRead);
+  strm := TFileStream.Create(MONITOR_COM,fmOpenRead);
   try
     // Attempt to read 32K
     strm.Read(ramarray[0],32768);
@@ -137,8 +140,10 @@ end;
 {$DEFINE REAL_SPEED}
 procedure TfrmBox80.btnRunClick(Sender: TObject);
 {$IFDEF REAL_SPEED}
-const INST_BATCH = 100000;
-      DISP_CYCLE = 0.5 / 86400.0; // Seconds between display updates
+const FPS = 20;                    // Frames per second for terminal refresh
+      INST_BATCH = 100000;
+      REFR_CYCLE = (1/FPS) / 86400.0; // Seconds between terminal refresh
+      DISP_CYCLE = 0.25 / 86400.0;    // Seconds between register updates
 {$ELSE}
 const INST_BATCH = 50000000;
       DISP_BATCH = 50000000;
@@ -149,6 +154,7 @@ var saved_pc: word;
     instcount:    int64;
     start_time: TDateTime;
     disp_last:  TDateTime;
+    refr_last:  TDateTime;
     start_t:    int64;  // Starting T states
     t_elapsed:  int64;  // T states since start
     elapsed:    double; // Elapsed time in reality
@@ -163,6 +169,7 @@ begin
     instcount := 0;
     start_time := Now();
     disp_last := start_time;
+    refr_last := start_time;
     start_t := t_states;
     while good do
       begin
@@ -191,6 +198,10 @@ begin
                 ShowRegisters;
                 if elapsed > 0.0 then
                   Status('MHz = %8.3f, MIPS = %8.3f',[t_elapsed / elapsed / 4.0 / 1000000.0 + 0.0005,instructions / elapsed / 1000000.0]);
+              end;
+            if (Now() - refr_last) >= REFR_CYCLE then
+              begin
+                refr_last := refr_last + REFR_CYCLE;
                 Application.ProcessMessages;
                 if CancelRequested then
                   good := False
@@ -234,6 +245,7 @@ begin
   FTerminal.Font.Color := clLime;
   FTerminal.Font.Name := 'Lucida Sans Typewriter';
   FTerminal.Font.Size := 10;
+  FTimerClicks := 0;
   sio.OnTransmitA := @HandleSIOtransmitA;
 end;
 
@@ -242,9 +254,23 @@ begin
   FreeAndNil(FTerminal);
 end;
 
+procedure TfrmBox80.Timer1Timer(Sender: TObject);
+begin
+  Inc(FTimerClicks);
+  if FTimerClicks >= 8 then
+    FTimerClicks := 0;
+  FTerminal.CursorLit := (FTimerClicks < 5);
+  if (FTimerClicks = 0) or (FTimerClicks = 5) then
+    begin
+      FTerminal.Invalidate;
+      Application.ProcessMessages;
+    end;
+end;
+
 procedure TfrmBox80.HandleSIOtransmitA(_b: byte);
 begin
   FTerminal.WriteChar(Chr(_b));
+  FTimerClicks := 0;
 end;
 
 procedure TfrmBox80.ShowRegisters;

@@ -567,4 +567,10 @@ object frmBox80: TfrmBox80
     OnClick = btnStopClick
     TabOrder = 20
   end
+  object Timer1: TTimer
+    Interval = 100
+    OnTimer = Timer1Timer
+    Left = 126
+    Top = 248
+  end
 end
