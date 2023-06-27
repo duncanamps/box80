@@ -132,9 +132,10 @@
       </Options>
     </Linking>
     <Other>
-      <CustomOptions Value="-dPROFILE"/>
-      <OtherDefines Count="1">
+      <CustomOptions Value="-dEXEC_TRACE"/>
+      <OtherDefines Count="2">
         <Define0 Value="PROFILE"/>
+        <Define1 Value="EXEC_TRACE"/>
       </OtherDefines>
     </Other>
   </CompilerOptions>

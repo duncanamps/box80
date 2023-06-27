@@ -28,17 +28,26 @@ const
   SIOA_C = 2;
   SIOB_D = 1;
   SIOB_C = 3;
-
+{$IFDEF EXEC_TRACE}
+  EXEC_TRACE_SIZE = 32;
+{$ENDIF}
 
 
 type
   TBreakpoint = (bpNone,bpTemporary,bpPermanent);
 
-  TErrorFlag = (efIllegal);
+  TErrorFlag = (efIllegal,efHalt);
   TErrorFlags = set of TErrorFlag;
 
   TPortInFunction = function(_portno: Word): byte of object;
   TPOrtOutProcedure = procedure(_portno: Word; _value: byte) of object;
+{$IFDEF EXEC_TRACE}
+  TExecTraceRec = record
+    af: Word;
+    pc: Word;
+  end;
+
+{$ENDIF}
 
 
 var
@@ -61,7 +70,9 @@ var
   pc:  word;
 
   int_enabled:   boolean;
+  int_flag:      boolean;
   int_mode:      byte;
+  int_vec:       byte;
   t_states:      int64;
   cpu_speed:     int64;  // In Hz
   error_flag:    TErrorFlags;
@@ -72,9 +83,14 @@ var
   inst_cb:  array[byte] of procedure;
   inst_ed:  array[byte] of procedure;
 
+{$IFDEF EXEC_TRACE}
+  exec_trace_log: array[0..EXEC_TRACE_SIZE-1] of TExecTraceRec;
+{$ENDIF}
 
-function  processor_execute: boolean;   // Execute one instruction
-procedure processor_init;               // Initialise COLD
+
+function  processor_execute: boolean;      // Execute one instruction
+procedure processor_init;                  // Initialise COLD
+procedure processor_interrupt(_vec:byte);  // Perform interrupt, _vector on bus
 
 
 implementation
@@ -135,6 +151,15 @@ end;
 
 // Helper routines
 
+procedure ExecJPcond(_mask, _required: byte);
+var addr: Word;
+begin
+  addr := Fetch16;
+  if (af and _mask) = _required then
+    pc := addr;
+  Inc(t_states,10);
+end;
+
 procedure ExecJRcond(_mask, _required: byte);
 var b:     byte;
 begin
@@ -180,7 +205,10 @@ var _a,_c: byte;
 begin
   _a := af shr 8;
   flags := af and $00FF;
-  _c := _a - _b;
+  if _b > _a then
+    _c := _a + $100 - _b
+  else
+    _c := _a - _b;
   flags := (flags and NOT_FLAG_NEGATIVE) or (_c and FLAG_NEGATIVE);
   if _c = 0 then
     flags := flags or FLAG_ZERO
@@ -201,17 +229,29 @@ begin
     flags := flags and NOT_FLAG_CARRY;
   af := (af and $FF00) or flags;
   if _save then
-    af := (af and $00FF) or (_a shl 8);
+    af := (af and $00FF) or (_c shl 8);
   Inc(t_states,_states);
+end;
+
+function ProcessPortIn(_port: byte): byte;
+begin
+  case _port of
+    SIOA_D: Result := SIO.ChannelA.Data;        // Port 00
+    SIOB_D: Result := SIO.ChannelB.Data;        // Port 01
+    SIOA_C: Result := SIO.ChannelA.Control;     // Port 02
+    SIOB_C: Result := SIO.ChannelB.Control;     // Port 03
+    otherwise
+      raise Exception.Create(Format('Port $%2.2X not catered for',[_port]));
+  end;
 end;
 
 procedure ProcessPortOut(_port, _byte: byte);
 begin
   case _port of
-    SIOA_D: SIO.DataA := _byte;        // Port 00
-    SIOB_D: SIO.DataB := _byte;        // Port 01
-    SIOA_C: SIO.ControlA := _byte;     // Port 02
-    SIOB_C: SIO.ControlB := _byte;     // Port 03
+    SIOA_D: SIO.ChannelA.Data := _byte;        // Port 00
+    SIOB_D: SIO.ChannelB.Data := _byte;        // Port 01
+    SIOA_C: SIO.ChannelA.Control := _byte;     // Port 02
+    SIOB_C: SIO.ChannelB.Control := _byte;     // Port 03
     otherwise
       raise Exception.Create(Format('Port $%2.2X not catered for',[_port]));
   end;
@@ -232,6 +272,13 @@ begin
 end;
 
 //=============================================================================
+
+procedure ExecANDimm;
+begin
+  af := af and ($00FF or (Fetch8 shl 8));
+  SetXORflags;
+  Inc(t_states,7);
+end;
 
 procedure ExecANDA;
 begin
@@ -306,6 +353,56 @@ begin
   ExecSub(Fetch8,7,False); // Subtract immediate from a, throw away results
 end;
 
+procedure ExecDECA;
+begin
+  af := (af and $00FF) or (((af and $ff00) - $0100) and $ff00);
+  Inc(t_states,4);
+end;
+
+procedure ExecDECB;
+begin
+  bc := (bc and $00FF) or (((bc and $ff00) - $0100) and $ff00);
+  Inc(t_states,4);
+end;
+
+procedure ExecDECC;
+begin
+  bc := (bc and $FF00) or (((bc and $00FF) - 1) and $00FF);
+  Inc(t_states,4);
+end;
+
+procedure ExecDECD;
+begin
+  de := (de and $00FF) or (((de and $ff00) - $0100) and $ff00);
+  Inc(t_states,4);
+end;
+
+procedure ExecDECE;
+begin
+  de := (de and $FF00) or (((de and $00FF) - 1) and $00FF);
+  Inc(t_states,4);
+end;
+
+procedure ExecDECH;
+begin
+  hl := (hl and $00FF) or (((hl and $ff00) - $0100) and $ff00);
+  Inc(t_states,4);
+end;
+
+procedure ExecDECL;
+begin
+  hl := (hl and $FF00) or (((hl and $00FF) - 1) and $00FF);
+  Inc(t_states,4);
+end;
+
+procedure ExecDECM;
+begin
+{$RANGECHECKS OFF}
+  Dec(ramarray[hl]);
+{$RANGECHECKS ON}
+  Inc(t_states,11);
+end;
+
 procedure ExecDI;
 begin
   int_enabled := False;
@@ -318,12 +415,69 @@ begin
   Inc(t_states,4);
 end;
 
+procedure ExecHALT;
+begin
+  error_flag := error_flag + [efHalt];
+  Inc(t_states,4);
+end;
+
 procedure ExecINAport;
 var port: byte;
 begin
   // @@@@@ DO PORT HANDLING FUNCTIONS
   // e.g.  ProcessPortOut(port,af shr 8);
   port := Fetch8;
+  af := (af and $00FF) or (ProcessPortIn(port) shl 8);
+  Inc(t_states,11);
+end;
+
+procedure ExecINCA;
+begin
+  af := (af and $00FF) or (((af and $ff00) + $0100) and $ff00);
+  Inc(t_states,4);
+end;
+
+procedure ExecINCB;
+begin
+  bc := (bc and $00FF) or (((bc and $ff00) + $0100) and $ff00);
+  Inc(t_states,4);
+end;
+
+procedure ExecINCC;
+begin
+  bc := (bc and $FF00) or (((bc and $00FF) + 1) and $00FF);
+  Inc(t_states,4);
+end;
+
+procedure ExecINCD;
+begin
+  de := (de and $00FF) or (((de and $ff00) + $0100) and $ff00);
+  Inc(t_states,4);
+end;
+
+procedure ExecINCE;
+begin
+  de := (de and $FF00) or (((de and $00FF) + 1) and $00FF);
+  Inc(t_states,4);
+end;
+
+procedure ExecINCH;
+begin
+  hl := (hl and $00FF) or (((hl and $ff00) + $0100) and $ff00);
+  Inc(t_states,4);
+end;
+
+procedure ExecINCL;
+begin
+  hl := (hl and $FF00) or (((hl and $00FF) + 1) and $00FF);
+  Inc(t_states,4);
+end;
+
+procedure ExecINCM;
+begin
+{$RANGECHECKS OFF}
+  Inc(ramarray[hl]);
+{$RANGECHECKS ON}
   Inc(t_states,11);
 end;
 
@@ -357,6 +511,46 @@ begin
   addr := Fetch16;
   pc := addr;
   Inc(t_states,10);
+end;
+
+procedure ExecJPC;
+begin
+  ExecJPcond(FLAG_CARRY,FLAG_CARRY);
+end;
+
+procedure ExecJPM;
+begin
+  ExecJPcond(FLAG_NEGATIVE,FLAG_NEGATIVE);
+end;
+
+procedure ExecJPNC;
+begin
+  ExecJPcond(FLAG_CARRY,0);
+end;
+
+procedure ExecJPNZ;
+begin
+  ExecJPcond(FLAG_ZERO,0);
+end;
+
+procedure ExecJPP;
+begin
+  ExecJPcond(FLAG_NEGATIVE,0);
+end;
+
+procedure ExecJPPE;
+begin
+  ExecJPcond(FLAG_PV,FLAG_PV);
+end;
+
+procedure ExecJPPO;
+begin
+  ExecJPcond(FLAG_PV,0);
+end;
+
+procedure ExecJPZ;
+begin
+  ExecJPcond(FLAG_ZERO,FLAG_ZERO);
 end;
 
 procedure ExecJR;
@@ -418,6 +612,42 @@ begin
   Inc(t_states,7);
 end;
 
+procedure ExecLDAB;
+begin
+  af := (af and $00FF) or (bc and $FF00);
+  Inc(t_states,7);
+end;
+
+procedure ExecLDAC;
+begin
+  af := (af and $00FF) or ((bc and $00FF) shl 8);
+  Inc(t_states,7);
+end;
+
+procedure ExecLDAD;
+begin
+  af := (af and $00FF) or (de and $FF00);
+  Inc(t_states,7);
+end;
+
+procedure ExecLDAE;
+begin
+  af := (af and $00FF) or ((de and $00FF) shl 8);
+  Inc(t_states,7);
+end;
+
+procedure ExecLDAH;
+begin
+  af := (af and $00FF) or (hl and $FF00);
+  Inc(t_states,7);
+end;
+
+procedure ExecLDAL;
+begin
+  af := (af and $00FF) or ((hl and $00FF) shl 8);
+  Inc(t_states,7);
+end;
+
 procedure ExecLDAM;
 begin
   af := (af and $00FF) or (ramarray[hl] shl 8);
@@ -466,6 +696,14 @@ begin
   Inc(t_states,7);
 end;
 
+procedure ExecLDHLaddr;
+var addr: Word;
+begin
+  addr := Fetch16;
+  hl := ramarray[addr] + (ramarray[addr+1] shl 8);
+  Inc(t_states,16);
+end;
+
 procedure ExecLDHLimm;
 begin
   hl := Fetch16;
@@ -475,6 +713,48 @@ end;
 procedure ExecLDLimm;
 begin
   hl := (hl and $FF00) or Fetch8;
+  Inc(t_states,7);
+end;
+
+procedure ExecLDMA;
+begin
+  ramarray[hl] := (af shr 8);
+  Inc(t_states,7);
+end;
+
+procedure ExecLDMB;
+begin
+  ramarray[hl] := (bc shr 8);
+  Inc(t_states,7);
+end;
+
+procedure ExecLDMC;
+begin
+  ramarray[hl] := (bc and $00FF);
+  Inc(t_states,7);
+end;
+
+procedure ExecLDMD;
+begin
+  ramarray[hl] := (de shr 8);
+  Inc(t_states,7);
+end;
+
+procedure ExecLDME;
+begin
+  ramarray[hl] := (de and $00FF);
+  Inc(t_states,7);
+end;
+
+procedure ExecLDMH;
+begin
+  ramarray[hl] := (hl shr 8);
+  Inc(t_states,7);
+end;
+
+procedure ExecLDML;
+begin
+  ramarray[hl] := (hl and $00FF);
   Inc(t_states,7);
 end;
 
@@ -900,22 +1180,60 @@ begin
   Inc(t_states,9);
 end;
 
+procedure ExecEdRETI;
+var newpc: word;
+begin
+  newpc := ramarray[sp];
+  IncSP;
+  newpc := newpc or ramarray[sp] shl 8;
+  IncSP;
+  pc := newpc;
+  Inc(t_states,14);
+end;
+
 // Processor execute 1 instruction. If the instruction is a CPIR LDIR etc.,
 // one cycle will be executed. Returns False if the instruction could not
 // be executed
 
 function processor_execute: boolean;
-var proc: procedure;
+var proc:   procedure;
+    addr:   Word;
+    vector: Word;
+{$IFDEF EXEC_TRACE}
+    i:      integer;
+{$ENDIF}
 begin
-  error_flag := [];
-  // Get first byte to execute
-  opcode := ramarray[pc];
-  IncPC;
-  proc := inst_std[opcode];
-  if proc <> nil then
-    proc
+   error_flag := [];
+{$IFDEF EXEC_TRACE}
+  for i := EXEC_TRACE_SIZE-2 downto 0 do
+    exec_trace_log[i+1] := exec_trace_log[i];
+  exec_trace_log[0].af := af;
+  exec_trace_log[0].pc := pc;
+{$ENDIF}
+  // Check if interrupt waiting
+  if int_flag then
+    begin
+      int_flag := False; // Reset the flag!
+      vector := (ir and $FF00) or (int_vec and $7E);
+      addr := ramarray[vector] or (ramarray[vector+1] shl 8);
+      Dec(sp);
+      ramarray[sp] := pc shr 8;
+      Dec(sp);
+      ramarray[sp] := pc and $00FF;
+      pc := addr;
+      Inc(t_states,17); // @@@@@ Find out t states for processing interrupt
+    end
   else
-    error_flag := error_flag + [efIllegal];
+    begin
+      // Get first byte to execute
+      opcode := ramarray[pc];
+      IncPC;
+      proc := inst_std[opcode];
+      if proc <> nil then
+        proc
+      else
+        error_flag := error_flag + [efIllegal];
+    end;
   Result := (error_flag = []);
 end;
 
@@ -960,29 +1278,60 @@ begin
   // Set up standard instructions
   inst_std[$01] := @ExecLDBCimm;
   inst_std[$03] := @ExecINCBC;
+  inst_std[$04] := @ExecINCB;
+  inst_std[$05] := @ExecDECB;
   inst_std[$06] := @ExecLDBimm;
+  inst_std[$0C] := @ExecINCC;
+  inst_std[$0D] := @ExecDECC;
   inst_std[$0E] := @ExecLDCimm;
   inst_std[$0F] := @ExecRRCA;
   inst_std[$11] := @ExecLDDEimm;
   inst_std[$13] := @ExecINCDE;
+  inst_std[$14] := @ExecINCD;
+  inst_std[$15] := @ExecDECD;
   inst_std[$16] := @ExecLDDimm;
   inst_std[$18] := @ExecJR;
+  inst_std[$1C] := @ExecINCE;
+  inst_std[$1D] := @ExecDECE;
   inst_std[$1E] := @ExecLDEimm;
   inst_std[$20] := @ExecJRNZ;
   inst_std[$21] := @ExecLDHLimm;
   inst_std[$22] := @ExecLDaddrHL;
   inst_std[$23] := @ExecINCHL;
+  inst_std[$24] := @ExecINCH;
+  inst_std[$25] := @ExecDECH;
   inst_std[$26] := @ExecLDHimm;
   inst_std[$28] := @ExecJRZ;
+  inst_std[$2A] := @ExecLDHLaddr;
+  inst_std[$2C] := @ExecINCL;
+  inst_std[$2D] := @ExecDECL;
   inst_std[$2E] := @ExecLDLimm;
   inst_std[$30] := @ExecJRNC;
   inst_std[$31] := @ExecLDSPimm;
   inst_std[$32] := @ExecLDaddrA;
   inst_std[$33] := @ExecINCSP;
+  inst_std[$34] := @ExecINCM;
+  inst_std[$35] := @ExecDECM;
   inst_std[$38] := @ExecJRC;
   inst_std[$3A] := @ExecLDAaddr;
+  inst_std[$3C] := @ExecINCA;
+  inst_std[$3D] := @ExecDECA;
   inst_std[$3E] := @ExecLDAimm;
   inst_std[$C3] := @ExecJPabs;
+  inst_std[$70] := @ExecLDMB;
+  inst_std[$71] := @ExecLDMC;
+  inst_std[$72] := @ExecLDMD;
+  inst_std[$73] := @ExecLDME;
+  inst_std[$74] := @ExecLDMH;
+  inst_std[$75] := @ExecLDML;
+  inst_std[$76] := @ExecHALT;
+  inst_std[$77] := @ExecLDMA;
+  inst_std[$78] := @ExecLDAB;
+  inst_std[$79] := @ExecLDAC;
+  inst_std[$7A] := @ExecLDAD;
+  inst_std[$7B] := @ExecLDAE;
+  inst_std[$7C] := @ExecLDAH;
+  inst_std[$7D] := @ExecLDAL;
   inst_std[$7E] := @ExecLDAM;
   inst_std[$90] := @ExecSUBB;
   inst_std[$91] := @ExecSUBC;
@@ -1018,34 +1367,43 @@ begin
   inst_std[$B7] := @ExecORA;
   inst_std[$C0] := @ExecRETNZ;
   inst_std[$C1] := @ExecPOPBC;
+  inst_std[$C2] := @ExecJPNZ;
   inst_std[$C5] := @ExecPUSHBC;
   inst_std[$C7] := @ExecRST00;
   inst_std[$C8] := @ExecRETZ;
   inst_std[$C9] := @ExecRET;
+  inst_std[$CA] := @ExecJPZ;
   inst_std[$CB] := @ExecCb;
   inst_std[$CD] := @ExecCALLabs;
   inst_std[$CF] := @ExecRST08;
   inst_std[$D0] := @ExecRETNC;
   inst_std[$D1] := @ExecPOPDE;
+  inst_std[$D2] := @ExecJPNC;
   inst_std[$D3] := @ExecOUTportA;
   inst_std[$D5] := @ExecPUSHDE;
   inst_std[$D7] := @ExecRST10;
   inst_std[$D8] := @ExecRETC;
+  inst_std[$DA] := @ExecJPC;
   inst_std[$DB] := @ExecINAport;
   inst_std[$DF] := @ExecRST18;
   inst_std[$E0] := @ExecRETPO;
   inst_std[$E1] := @ExecPOPHL;
+  inst_std[$E2] := @ExecJPPO;
   inst_std[$E5] := @ExecPUSHHL;
+  inst_std[$E6] := @ExecANDimm;
   inst_std[$E7] := @ExecRST20;
   inst_std[$E8] := @ExecRETPE;
+  inst_std[$EA] := @ExecJPPE;
   inst_std[$ED] := @ExecEd;
   inst_std[$EF] := @ExecRST28;
   inst_std[$F0] := @ExecRETP;
   inst_std[$F1] := @ExecPOPAF;
+  inst_std[$F2] := @ExecJPP;
   inst_std[$F3] := @ExecDI;
   inst_std[$F5] := @ExecPUSHAF;
   inst_std[$F7] := @ExecRST30;
   inst_std[$F8] := @ExecRETM;
+  inst_std[$FA] := @ExecJPM;
   inst_std[$FB] := @ExecEI;
   inst_std[$FE] := @ExecCPimm;
   inst_std[$FF] := @ExecRST38;
@@ -1053,7 +1411,14 @@ begin
   for b := $40 to $7F do inst_cb[b] := @ExecCbBITreg;
   // Set up ED instructions
   inst_ed[$47] := @ExecEdLDIA;
+  inst_ed[$4D] := @ExecEdRETI;
   inst_ed[$5E] := @ExecEdIM2;
+end;
+
+procedure processor_interrupt(_vec:byte);
+begin
+  int_vec := _vec;
+  int_flag := True; // Flag the interrupt
 end;
 
 end.

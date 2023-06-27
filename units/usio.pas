@@ -11,35 +11,45 @@ type
   TSIOInterruptProc = procedure(_b: byte) of object;
   TSIOTransmitProc = procedure(_b: byte) of object;
 
+  TSIOchanneldes = (scdA,scdB); // SIO channel designator
+
+  TSIO = class; // Preliminary designation
+
+  TSIOchannel = class(TObject)
+    private
+      FDesignator: TSIOchanneldes;
+//    FControl:    byte;
+      FData:       byte;
+      FOnTransmit: TSIOTransmitProc;
+      FParent:     TSIO;
+      FReceived:   byte;
+      FRegRead:    array[0..2] of byte;
+      FRegWrite:   array[0..7] of byte;
+      function GetControl: byte;
+      function GetData: byte;
+      procedure SetControl(_b: byte);
+      procedure SetData(_b: byte);
+      procedure SetReceived(_b: byte);
+    public
+      constructor Create(_parent: TSIO; _designator: TSIOchanneldes);
+      property Control: byte read GetControl write SetControl;
+      property Data: byte    read GetData    write SetData;
+      property OnTransmit: TSIOTransmitProc  write FOnTransmit;
+      property Received: byte read FReceived write SetReceived;
+  end;
+
   TSIO = class(TObject)
     private
-      FControlA:  byte;
-      FControlB:  byte;
-      FDataA:     byte;
-      FDataB:     byte;
-      FReceivedA: byte;
-      FReceivedB: byte;
+      FChannelA:  TSIOchannel;
+      FChannelB:  TSIOchannel;
       FOnInterrupt: TSIOInterruptProc;
-      FOnTransmitA: TSIOTransmitProc;
-      FOnTransmitB: TSIOTransmitProc;
-      function GetDataA: byte;
-      function GetDataB: byte;
-      procedure SetControlA(_b: byte);
-      procedure SetControlB(_b: byte);
-      procedure SetDataA(_b: byte);
-      procedure SetDataB(_b: byte);
-      procedure SetReceivedA(_b: byte);
-      procedure SetReceivedB(_b: byte);
     public
-      property ControlA: byte write SetControlA;
-      property ControlB: byte write SetControlB;
-      property DataA: byte    read GetDataA   write SetDataA;
-      property DataB: byte    read GetDataB   write SetDataB;
+      constructor Create;
+      destructor Destroy; override;
+      procedure TriggerInterrupt;
+      property ChannelA: TSIOchannel read FChannelA write FChannelA;
+      property ChannelB: TSIOchannel read FChannelB write FChannelB;
       property OnInterrupt: TSIOInterruptProc write FOnInterrupt;
-      property OnTransmitA: TSIOTransmitProc write FOnTransmitA;
-      property OnTransmitB: TSIOTransmitProc write FOnTransmitB;
-      property ReceivedA: byte read FReceivedA write SetReceivedA;
-      property ReceivedB: byte read FReceivedB write SetReceivedB;
   end;
 
 var
@@ -48,54 +58,89 @@ var
 
 implementation
 
-function TSIO.GetDataA: byte;
+uses
+  uprocessor;
+
+
+//-----------------------------------------------------------------------------
+//
+//  TSIOchannel code
+//
+//-----------------------------------------------------------------------------
+
+constructor TSIOchannel.Create(_parent: TSIO; _designator: TSIOchanneldes);
 begin
-  Result := 0;
+  FParent     := _parent;
+  FDesignator := _designator;
+  // @@@@@ Perform any register initialisation here
 end;
 
-function TSIO.GetDataB: byte;
+function TSIOchannel.GetData: byte;
 begin
-  Result := 0;
+  Result := FReceived;
+  FRegRead[0] := FRegRead[0] and $7E; // Mask received char available bit
 end;
 
-procedure TSIO.SetControlA(_b: byte);
+function TSIOchannel.GetControl: byte;
+var index: integer;
 begin
-  FControlA := _b;
+  index := FRegWrite[0] and $07; // Get the index to read from
+  if (index > 2) then
+    raise Exception.Create('Attempt to read from unimplemented SIO register');
+  Result := FRegRead[index];
+  if (index > 0) then
+    FRegWrite[0] := FRegWrite[0] and $F8; // Set index back to 0 for next cmd
 end;
 
-procedure TSIO.SetControlB(_b: byte);
+procedure TSIOchannel.SetControl(_b: byte);
+var index: integer;
 begin
-  FControlB := _b;
+  index := FRegWrite[0] and $07; // Get the index to write to
+  FRegWrite[index] := _b;
+  if (index > 0) then
+    FRegWrite[0] := FRegWrite[0] and $F8; // Set index back to 0 for next cmd
 end;
 
-procedure TSIO.SetDataA(_b: byte);
+procedure TSIOchannel.SetData(_b: byte);
 begin
-  FDataA := _b;
-  if ((FControlA and $07) = 0) and Assigned(FOnTransmitA) then
-    FOnTransmitA(_b);
-  FControlA := FControlA and ($07 xor $FF);
+  FData := _b;
+  if ((FRegWrite[0] and $07) = 0) and Assigned(FOnTransmit) then
+    FOnTransmit(_b);
 end;
 
-procedure TSIO.SetDataB(_b: byte);
+procedure TSIOchannel.SetReceived(_b: byte);
 begin
-  FDataB := _b;
-  if ((FControlB and $07) = 0) and Assigned(FOnTransmitB) then
-    FOnTransmitB(_b);
-  FControlB := FControlB and ($07 xor $FF);
+  FReceived := _b;
+  FRegRead[0] := FRegRead[0] or $01; // Set received char available bit
+  // Finally trigger interrupt
+  FParent.TriggerInterrupt;
 end;
 
-procedure TSIO.SetReceivedA(_b: byte);
+
+//-----------------------------------------------------------------------------
+//
+//  TSIO code
+//
+//-----------------------------------------------------------------------------
+
+constructor TSIO.Create;
 begin
-  FReceivedA := _b;
-  if Assigned(FOnInterrupt) then
-    FOnInterrupt($6E);
+  inherited Create;
+  FChannelA := TSIOchannel.Create(Self,scdA);
+  FChannelB := TSIOchannel.Create(Self,scdB);
 end;
 
-procedure TSIO.SetReceivedB(_b: byte);
+destructor TSIO.Destroy;
 begin
-  FReceivedB := _b;
-  if Assigned(FOnInterrupt) then
-    FOnInterrupt($6E);
+  FreeAndNil(FChannelB);
+  FreeAndNil(FChannelA);
+  inherited Destroy;
+end;
+
+procedure TSIO.TriggerInterrupt;
+begin
+  // @@@@@ Trigger the interrupt here
+  processor_interrupt(FChannelB.FRegWrite[2]);
 end;
 
 initialization

@@ -212,6 +212,8 @@ begin
       end;
     if efIllegal in error_flag then
       MessageDlg('Error','Illegal instruction at ' + IntToHex(saved_pc),mtError,[mbOK],0);
+    if efHalt in error_flag then
+      MessageDlg('Information','Processor halted at ' + IntToHex(saved_pc),mtInformation,[mbOK],0);
     ShowRegisters;
   finally
     btnStop.Enabled := False;
@@ -249,7 +251,7 @@ begin
   FTerminal.Font.Name := 'Lucida Sans Typewriter';
   FTerminal.Font.Size := 10;
   FTimerClicks := 0;
-  sio.OnTransmitA := @HandleSIOtransmitA;
+  sio.ChannelA.OnTransmit := @HandleSIOtransmitA;
 end;
 
 procedure TfrmBox80.FormDestroy(Sender: TObject);
@@ -261,7 +263,7 @@ procedure TfrmBox80.FormKeyPress(Sender: TObject; var Key: char);
 begin
   // Form keypress routine
   // Put the key in the simulator SIO and trigger an interrupt
-  SIO.ReceivedA := Ord(Key);
+  SIO.ChannelA.Received := Ord(Key);
   Key := #0; // Deal with key
   frmBox80.SetFocus;
 end;
