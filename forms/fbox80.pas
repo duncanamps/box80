@@ -77,6 +77,7 @@ type
     procedure btnStopClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure FormKeyPress(Sender: TObject; var Key: char);
     procedure Timer1Timer(Sender: TObject);
   private
     CancelRequested: boolean;
@@ -160,6 +161,7 @@ var saved_pc: word;
     elapsed:    double; // Elapsed time in reality
     exp_time:   double; // Expected time in seconds since start
 begin
+  btnInit.Enabled := False;
   btnRun.Enabled := False;
   btnStop.Enabled := True;
   CancelRequested := False;
@@ -214,6 +216,7 @@ begin
   finally
     btnStop.Enabled := False;
     btnRun.Enabled := True;
+    btnInit.Enabled := True;
   end;
 end;
 
@@ -252,6 +255,15 @@ end;
 procedure TfrmBox80.FormDestroy(Sender: TObject);
 begin
   FreeAndNil(FTerminal);
+end;
+
+procedure TfrmBox80.FormKeyPress(Sender: TObject; var Key: char);
+begin
+  // Form keypress routine
+  // Put the key in the simulator SIO and trigger an interrupt
+  SIO.ReceivedA := Ord(Key);
+  Key := #0; // Deal with key
+  frmBox80.SetFocus;
 end;
 
 procedure TfrmBox80.Timer1Timer(Sender: TObject);

@@ -6,10 +6,6 @@ interface
 
 uses
   Classes, SysUtils, ExtCtrls, Controls,
-{$IFDEF USE_SCREEN_MEM}
-  bgrabitmappack,
-  BGRABitmapTypes, BGRABitmap,
-{$ENDIF}
   graphics;
 
 const
@@ -25,17 +21,6 @@ type
       FCharHeight: integer;
       FCharWidth:  integer;
       FCols:       integer;        // Number of columns
-{$IFDEF USE_SCREEN_MEM}
-      FBitmap:     TBitmap;
-      FBitmapRev:  TBitmap;
-      FCursorLit:   boolean;
-      FCursorXAddr: PByte;
-      FCursorYAddr: PByte;
-      FScreenAddr:  PByte;
-      FSavedScreen: TAOB;
-      FSavedX:      Byte;
-      FSavedY:      Byte;
-{$ELSE}
       FCursorCol:  integer;        // Cursor column position
       FCursorRow:  integer;        // Cursor row position
       FScreen:     TAOB;           // The screen memory
@@ -46,7 +31,6 @@ type
       FSavedScreen: TAOB;
       FSavedX:      Byte;
       FSavedY:      Byte;
-{$ENDIF}
       FMargin:     integer;        // Margin in pixels around the screen edge
       FRows:       integer;        // Number of rows
       function  ColToX(_col: integer): integer;
@@ -57,12 +41,6 @@ type
       destructor Destroy; override;
       procedure RefreshScreen;
       function  ScreenChanged: boolean;
-{$IFDEF USE_SCREEN_MEM}
-      property CursorLit:   boolean read FCursorLit   write FCursorLit;
-      property CursorXAddr: PByte   read FCursorXAddr write FCursorXAddr;
-      property CursorYAddr: PByte   read FCursorYAddr write FCursorYAddr;
-      property ScreenAddr:  PByte   read FScreenAddr  write FScreenAddr;
-{$ELSE}
       procedure CmdBS;        // Character #8
       procedure CmdHT;        // Character #9
       procedure CmdLF;        // Character #10
@@ -75,7 +53,6 @@ type
       property  CursorRow: integer   read FCursorRow  write FCursorRow;
       property  CursorLit:   boolean read FCursorLit   write FCursorLit;
       property  Screen:    TAOB      read FScreen     write FScreen;
-{$ENDIF}
       property  Cols:      integer   read FCols       write FCols;
       property  Rows:      integer   read FRows       write FRows;
   end;
@@ -87,18 +64,8 @@ var i: integer;
     b: byte;
 begin
   inherited Create(AOwner);
-{$IFDEF USE_SCREEN_MEM}
-  FBitmap := TBitmap.Create;
-  FBitmap.LoadFromResourceName(HInstance,'CHARGEN_X2');
-  FBitmapRev := TBitmap.Create;
-  FBitmapRev.LoadFromResourceName(HInstance,'CHARGEN_X2_REV');
-  SetLength(FSavedScreen,_cols * _rows);
-  FSavedX := $FF;
-  FSavedY := $FF;
-{$ELSE}
   FCursorCol := 0;
   FCursorRow := 0;
-{$ENDIF}
   FCols := _cols;
   FRows := _rows;
   FMargin := 6;
@@ -106,26 +73,19 @@ begin
     raise Exception.Create('Illegal number of columns when creating terminal');
   if (FRows < 1) or (FRows > MAX_TERMINAL_ROWS) then
     raise Exception.Create('Illegal number of rows when creating terminal');
-{$IFNDEF USE_SCREEN_MEM}
   SetLength(FScreen,FRows*FCols);
   for i := 0 to Length(FScreen)-1 do
     begin
       b := Random(95)+32;
       FScreen[i] := b;
     end;
-{$ENDIF}
 end;
 
 destructor TTerminal.Destroy;
 begin
-{$IFDEF USE_SCREEN_MEM}
-  FBitmapRev.Free;
-  FBitmap.Free;
-{$ENDIF}
   inherited Destroy;
 end;
 
-{$IFNDEF USE_SCREEN_MEM}
 procedure TTerminal.CmdBS;
 begin
   if (FCursorRow > 0) or (FCursorCol > 0) then
@@ -182,80 +142,12 @@ begin
   for j := 0 to FCols-1 do
     FScreen[(FRows-1)*FCols+j] := Ord(' ');
 end;
-{$ENDIF}
 
 function TTerminal.ColToX(_col: integer): integer;
 begin
   ColToX := FCharWidth * _col + FMargin;
 end;
 
-{$IFDEF USE_SCREEN_MEM}
-procedure TTerminal.Paint;
-var i,j: integer;
-    x,y: integer;
-    s: string;
-    reversal: TColor;
-    b:  TBitmap;
-    bg: TBGRABitmap;
-    stretched: TBGRABitmap;
-    p: PByte;
-    idx: integer;
-    srcrect, dstrect: TRect;
-    localscreen: TAOB;
-begin
-  SetLength(localscreen,80*25);
-  b := TBitmap.Create;
-  b.Width := 80*16;
-  b.Height := 25*16;
-  // Grab screen first
-  p := FScreenAddr;
-  for i := 0 to 80*25-1 do
-    begin
-      localscreen[i] := p^;
-      FSavedScreen[i] := p^;  // And save
-      Inc(p);
-    end;
-  FSavedX := FCursorXAddr^;
-  FSavedY := FCursorYAddr^;
-  bg := TBGRABitmap.Create(80*16,25*16);
-  try
-    p := FScreenAddr;
-    for y := 0 to 24 do
-      begin
-        for x := 0 to 79 do
-          begin
-            idx := p^;
-            srcrect.Top  := (idx div 16) * 16;
-            srcrect.Left := (idx mod 16) * 16;
-            dstrect.Top := y * 16;
-            dstrect.Left := x * 16;
-            srcrect.Width := 16;
-            dstrect.Width := 16;
-            srcrect.Height := 16;
-            dstrect.Height := 16;
-            if (FCursorLit) and
-               (FCursorXAddr^ = x) and
-               (FCursorYAddr^ = y) then
-              b.Canvas.CopyRect(dstrect,FBitmapRev.Canvas,srcrect)
-            else
-              b.Canvas.CopyRect(dstrect,FBitmap.Canvas,srcrect);
-            Inc(p);
-          end;
-      end;
-    Canvas.Brush.Color := Color;
-    Canvas.FillRect(Rect(0,0,Width,Height));
-    bg.Canvas.CopyRect(Rect(0,0,80*16,25*16),b.Canvas,Rect(0,0,80*16,25*16));
-    stretched := bg.Resample(Width-2*FMargin,Height-2*FMargin) as TBGRABitmap;
-    stretched.Draw(Canvas,FMargin,FMargin);
-    stretched.Free;
-  finally
-    bg.Free;
-    b.Free;
-  end;
-  // Finally...
-  inherited Paint;
-end;
-{$ELSE}
 procedure TTerminal.Paint;
 var i,j: integer;
     s: string;
@@ -295,7 +187,6 @@ begin
   // Finally...
   inherited Paint;
 end;
-{$ENDIF}
 
 procedure TTerminal.RefreshScreen;
 begin
@@ -329,7 +220,6 @@ begin
         end;
 end;
 
-{$IFNDEF USE_SCREEN_MEM}
 procedure TTerminal.WriteChar(_ch: char);
 begin
   case _ch of
@@ -358,7 +248,6 @@ begin
   for i := 1 to Length(_s) do
     WriteChar(_s[i]);
 end;
-{$ENDIF}
 
 
 end.

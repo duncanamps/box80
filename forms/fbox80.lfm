@@ -7,8 +7,10 @@ object frmBox80: TfrmBox80
   ClientHeight = 598
   ClientWidth = 1070
   DesignTimePPI = 120
+  KeyPreview = True
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  OnKeyPress = FormKeyPress
   LCLVersion = '2.2.6.0'
   object btnInit: TButton
     Left = 24
