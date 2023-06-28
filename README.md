@@ -29,6 +29,6 @@ Box80 is licensed under the GNU GPL Licence V3 or later.
 
 ### Contact
 
-The author is Duncan Munro
-Twitter: @duncanamps
-Email: duncan@duncanamps.com
+The author is Duncan Munro  
+Twitter: @duncanamps  
+Email: duncan@duncanamps.com  
