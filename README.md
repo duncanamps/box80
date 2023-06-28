@@ -1,12 +1,12 @@
 # box80
 Z80 Virtual Machine - this is very much a work in progress and is purely a learning exercise for the author.
 
-### Synopsis
 
-Box80 is a multi-platform virtual machine designed to execute Z80 code in a 64K code space. The intended usage is for running CP/M 2.2.
+### Synopsis
+Box80 is a multi-platform virtual machine designed to execute Z80 code in a 64K code space. The intended usage is for running CP/M 2.2 and debugging assembly language apps developed for that operating system.
+
 
 ### Development status
-
 What's working:
 * Some of the Z80 instructions
 * The terminal can output characters, clear the screen, etc.
@@ -18,6 +18,17 @@ What's not working
 * Almost all of the extended (CB FD etc.) instructions are missing
 * The SIO is a very basic implementation, it will send and receive and let you know if a character is waiting; that's about it..
 
-### Development environment
 
+### Development environment
 The development environment is Lazarus/FPC version 2.x onwards. This is a multi-platform PASCAL IDE which operates under Windows, Linux, MacOS, etc.
+
+
+### Licence
+Box80 is licensed under the GNU GPL Licence V3 or later.
+
+
+### Contact
+
+The author is Duncan Munro
+Twitter: @duncanamps
+Email: duncan@duncanamps.com
