@@ -680,6 +680,7 @@ object frmBox80: TfrmBox80
       Category = 'Debug'
       Caption = 'Reset'
       Hint = 'Perform a cold reset of the machine'
+      OnExecute = actDebugResetExecute
     end
     object actDebugCPU40: TAction
       Category = 'Debug'

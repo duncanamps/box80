@@ -114,6 +114,7 @@ type
     procedure actDebugCPU333Execute(Sender: TObject);
     procedure actDebugCPU40Execute(Sender: TObject);
     procedure actDebugCPU80Execute(Sender: TObject);
+    procedure actDebugResetExecute(Sender: TObject);
     procedure actDebugRunExecute(Sender: TObject);
     procedure actDebugStopExecute(Sender: TObject);
     procedure actFileExitExecute(Sender: TObject);
@@ -184,6 +185,17 @@ end;
 procedure TfrmBox80.actDebugCPU80Execute(Sender: TObject);
 begin
   FProcessor.CPUspeed := 8000000;
+end;
+
+procedure TfrmBox80.actDebugResetExecute(Sender: TObject);
+var saved_state: TProcessorState;
+begin
+  saved_state := FProcessor.ProcessorState;
+  FProcessor.ProcessorState := psPaused;
+  FProcessor.Init;
+  // @@@@@ Load ROM files here if needed
+  if saved_state = psRunning then
+    FProcessor.ProcessorState := saved_state;
 end;
 
 procedure TfrmBox80.actDebugCPU25Execute(Sender: TObject);
@@ -336,6 +348,10 @@ begin
     begin
       ProcStateUpdate;
       ShowRegisters;
+      if efIllegal in FProcessor.ErrorFlag then
+        MessageDlg('Error','Illegal instruction at ' + IntToHex(FProcessor.SavedPC),mtError,[mbOK],0);
+      if efHalt in FProcessor.ErrorFlag then
+        MessageDlg('Information','Processor halted at ' + IntToHex(FProcessor.SavedPC),mtInformation,[mbOK],0);
     end
   else if localProcStatus = psRunning then
     ShowRegisters;
