@@ -240,6 +240,7 @@ begin
             end;
         end;
   end;
+  Invalidate;
 end;
 
 procedure TTerminal.WriteString(_s: string);

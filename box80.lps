@@ -12,7 +12,7 @@
         <WindowIndex Value="-1"/>
         <TopLine Value="-1"/>
         <CursorPos X="-1" Y="-1"/>
-        <UsageCount Value="63"/>
+        <UsageCount Value="64"/>
       </Unit>
       <Unit>
         <Filename Value="forms\fbox80.pas"/>
@@ -20,9 +20,9 @@
         <ComponentName Value="frmBox80"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <TopLine Value="421"/>
-        <CursorPos X="90" Y="448"/>
-        <UsageCount Value="63"/>
+        <TopLine Value="244"/>
+        <CursorPos X="3" Y="246"/>
+        <UsageCount Value="64"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit>
@@ -31,27 +31,27 @@
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="4"/>
-        <TopLine Value="1032"/>
-        <CursorPos X="23" Y="1443"/>
-        <UsageCount Value="63"/>
+        <TopLine Value="1321"/>
+        <CursorPos Y="1337"/>
+        <UsageCount Value="64"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="units\usio.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="5"/>
-        <TopLine Value="42"/>
-        <CursorPos Y="56"/>
-        <UsageCount Value="47"/>
+        <TopLine Value="82"/>
+        <CursorPos Y="101"/>
+        <UsageCount Value="48"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="units\uterminal.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="2"/>
-        <TopLine Value="6"/>
-        <CursorPos X="50" Y="17"/>
-        <UsageCount Value="45"/>
+        <TopLine Value="222"/>
+        <CursorPos X="14" Y="243"/>
+        <UsageCount Value="46"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -61,9 +61,9 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <EditorIndex Value="3"/>
-        <TopLine Value="22"/>
-        <CursorPos X="18" Y="37"/>
-        <UsageCount Value="23"/>
+        <TopLine Value="47"/>
+        <CursorPos X="29" Y="74"/>
+        <UsageCount Value="24"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit>
@@ -107,19 +107,19 @@
       </Unit>
       <Unit>
         <Filename Value="C:\lazarus\lcl\include\customform.inc"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="2037"/>
-        <CursorPos Y="2053"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="365"/>
+        <CursorPos Y="381"/>
         <UsageCount Value="10"/>
+        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="C:\lazarus\lcl\customtimer.pas"/>
         <UnitName Value="CustomTimer"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="134"/>
         <CursorPos Y="155"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="C:\lazarus\lcl\interfaces\win32\win32callback.inc"/>
@@ -136,123 +136,122 @@
     <JumpHistory HistoryIndex="29">
       <Position>
         <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="321" TopLine="295"/>
+        <Caret Line="297" TopLine="280"/>
+      </Position>
+      <Position>
+        <Filename Value="forms\fterminal.pas"/>
+        <Caret Line="53" TopLine="27"/>
+      </Position>
+      <Position>
+        <Filename Value="forms\fterminal.pas"/>
+        <Caret Line="54" TopLine="27"/>
+      </Position>
+      <Position>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="224" TopLine="208"/>
+      </Position>
+      <Position>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="225" TopLine="208"/>
+      </Position>
+      <Position>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="232" TopLine="208"/>
+      </Position>
+      <Position>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="234" TopLine="208"/>
+      </Position>
+      <Position>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="235" TopLine="209"/>
+      </Position>
+      <Position>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="236" TopLine="210"/>
+      </Position>
+      <Position>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="243" TopLine="223"/>
+      </Position>
+      <Position>
+        <Filename Value="forms\fterminal.pas"/>
+        <Caret Line="55" TopLine="27"/>
       </Position>
       <Position>
         <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="322" TopLine="296"/>
+        <Caret Line="302" TopLine="280"/>
       </Position>
       <Position>
         <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="323" TopLine="297"/>
+        <Caret Line="363" Column="36" TopLine="348"/>
       </Position>
       <Position>
         <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="324" TopLine="298"/>
+        <Caret Line="344" TopLine="333"/>
       </Position>
       <Position>
         <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="325" TopLine="299"/>
+        <Caret Line="153" Column="24" TopLine="150"/>
+      </Position>
+      <Position>
+        <Filename Value="C:\lazarus\lcl\include\customform.inc"/>
+        <Caret Line="381" TopLine="365"/>
+      </Position>
+      <Position>
+        <Filename Value="forms\fterminal.pas"/>
+        <Caret Line="44" Column="15" TopLine="13"/>
       </Position>
       <Position>
         <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="346" TopLine="331"/>
+        <Caret Line="362" TopLine="334"/>
       </Position>
       <Position>
         <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="286" TopLine="270"/>
-      </Position>
-      <Position>
-        <Filename Value="C:\lazarus\lcl\customtimer.pas"/>
-        <Caret Line="180" TopLine="164"/>
-      </Position>
-      <Position>
-        <Filename Value="C:\lazarus\lcl\customtimer.pas"/>
-        <Caret Line="150" TopLine="134"/>
-      </Position>
-      <Position>
-        <Filename Value="C:\lazarus\lcl\customtimer.pas"/>
-        <Caret Line="155" TopLine="134"/>
       </Position>
       <Position>
         <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="287" Column="7" TopLine="270"/>
+        <Caret Line="105" Column="27" TopLine="80"/>
+      </Position>
+      <Position>
+        <Filename Value="forms\fterminal.pas"/>
+        <Caret Line="58" TopLine="33"/>
       </Position>
       <Position>
         <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="289" Column="11" TopLine="277"/>
+        <Caret Line="279" TopLine="152"/>
       </Position>
       <Position>
         <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="340" TopLine="309"/>
+        <Caret Line="266" TopLine="249"/>
       </Position>
       <Position>
-        <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="291" TopLine="274"/>
+        <Filename Value="forms\fterminal.pas"/>
+        <Caret Line="24" Column="53" TopLine="8"/>
       </Position>
       <Position>
-        <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="312" TopLine="296"/>
+        <Filename Value="forms\fterminal.pas"/>
+        <Caret Line="26" Column="53" TopLine="8"/>
       </Position>
       <Position>
-        <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="151" TopLine="135"/>
+        <Filename Value="forms\fterminal.pas"/>
+        <Caret Line="68" TopLine="46"/>
       </Position>
       <Position>
         <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="1443" Column="24" TopLine="1442"/>
+        <Caret Line="1337" TopLine="1321"/>
       </Position>
       <Position>
-        <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="312" TopLine="296"/>
+        <Filename Value="forms\fterminal.pas"/>
+        <Caret Line="74" Column="29" TopLine="47"/>
       </Position>
       <Position>
-        <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="151" TopLine="135"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="50" Column="17" TopLine="35"/>
       </Position>
       <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="1443" Column="25" TopLine="1442"/>
-      </Position>
-      <Position>
-        <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="312" TopLine="295"/>
-      </Position>
-      <Position>
-        <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="151" TopLine="135"/>
-      </Position>
-      <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="1466" Column="74" TopLine="1442"/>
-      </Position>
-      <Position>
-        <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="312" TopLine="296"/>
-      </Position>
-      <Position>
-        <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="151" TopLine="135"/>
-      </Position>
-      <Position>
-        <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="312" TopLine="296"/>
-      </Position>
-      <Position>
-        <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="151" TopLine="135"/>
-      </Position>
-      <Position>
-        <Filename Value="forms\fbox80.pas"/>
-        <Caret Line="312" TopLine="296"/>
-      </Position>
-      <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="1466" Column="70" TopLine="1442"/>
-      </Position>
-      <Position>
-        <Filename Value="units\uprocessor.pas"/>
-        <Caret Line="296" Column="16" TopLine="281"/>
+        <Filename Value="units\uterminal.pas"/>
+        <Caret Line="243" Column="14" TopLine="222"/>
       </Position>
     </JumpHistory>
     <RunParams>

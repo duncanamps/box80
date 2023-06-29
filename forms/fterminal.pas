@@ -5,19 +5,25 @@ unit fterminal;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, uterminal;
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, uterminal,
+  uprocessor;
 
 type
 
   { TfrmTerminal }
 
   TfrmTerminal = class(TForm)
+    Timer1: TTimer;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure FormKeyPress(Sender: TObject; var Key: char);
+    procedure Timer1Timer(Sender: TObject);
   private
+    FProcessor: TProcessor;
     FTerminal: TTerminal;
   public
-
+    procedure WriteChar(_ch: char);
+    property Processor: TProcessor write FProcessor;
   end;
 
 var
@@ -47,6 +53,25 @@ end;
 procedure TfrmTerminal.FormDestroy(Sender: TObject);
 begin
   FreeAndNil(FTerminal);
+end;
+
+procedure TfrmTerminal.FormKeyPress(Sender: TObject; var Key: char);
+begin
+  // Form keypress routine
+  // Put the key in the simulator SIO and trigger an interrupt
+  if Assigned(FProcessor) then
+    FProcessor.ChannelReceiveA(Ord(key));
+end;
+
+procedure TfrmTerminal.Timer1Timer(Sender: TObject);
+begin
+  FTerminal.CursorLit := not FTerminal.CursorLit;
+  FTerminal.Invalidate;
+end;
+
+procedure TfrmTerminal.WriteChar(_ch: char);
+begin
+  FTerminal.WriteChar(_ch);
 end;
 
 end.

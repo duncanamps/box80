@@ -128,6 +128,8 @@ implementation
 
 {$R *.lfm}
 
+uses
+  fterminal;
 
 { TfrmBox80 }
 
@@ -148,6 +150,7 @@ end;
 
 procedure TfrmBox80.actDebugRunExecute(Sender: TObject);
 begin
+  frmTerminal.SetFocus;
   FProcessor.ExecuteRun;
 end;
 
@@ -240,7 +243,7 @@ end;
 
 procedure TfrmBox80.FormActivate(Sender: TObject);
 begin
-
+  frmTerminal.Processor := FProcessor;
 end;
 
 procedure TfrmBox80.FormCreate(Sender: TObject);
@@ -273,10 +276,6 @@ end;
 
 procedure TfrmBox80.FormKeyPress(Sender: TObject; var Key: char);
 begin
-  // Form keypress routine
-  // Put the key in the simulator SIO and trigger an interrupt
-  FProcessor.ChannelReceiveA(Ord(key));
-  frmBox80.SetFocus;
 end;
 
 procedure TfrmBox80.Timer1Timer(Sender: TObject);
@@ -292,6 +291,7 @@ end;
 
 procedure TfrmBox80.HandleSIOtransmitA(_b: byte);
 begin
+  frmTerminal.WriteChar(Chr(_b));
   {
   FTerminal.WriteChar(Chr(_b));
   FTimerClicks := 0;
@@ -346,6 +346,15 @@ begin
         actDebugStop.Enabled     := False;
         labStatus.Caption := 'FAULT';
         labStatus.Color := clRed;
+      end;
+    psBreak:
+      begin
+        actDebugStepInto.Enabled := True;
+        actDebugStepOver.Enabled := True;
+        actDebugRun.Enabled      := True;
+        actDebugStop.Enabled     := False;
+        labStatus.Caption := 'Break';
+        labStatus.Color := clMaroon;
       end;
   end;
 end;

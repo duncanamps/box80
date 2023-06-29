@@ -3,11 +3,20 @@ object frmTerminal: TfrmTerminal
   Height = 550
   Top = 225
   Width = 850
+  BorderIcons = []
+  BorderStyle = bsSingle
   Caption = 'Terminal'
   DesignTimePPI = 120
   KeyPreview = True
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  OnKeyPress = FormKeyPress
   LCLVersion = '2.2.6.0'
   Visible = True
+  object Timer1: TTimer
+    Interval = 340
+    OnTimer = Timer1Timer
+    Left = 320
+    Top = 57
+  end
 end
