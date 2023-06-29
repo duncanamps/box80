@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  ExtCtrls,
+  ExtCtrls, Menus, ActnList,
 {$ifdef unix}
   cthreads,
   cmem, // the c memory manager is on some systems much faster for multi-threading
@@ -22,10 +22,16 @@ type
   { TfrmBox80 }
 
   TfrmBox80 = class(TForm)
-    btnInit: TButton;
-    btnStep: TButton;
+    actFileExit: TAction;
+    actDebugStepInto: TAction;
+    actDebugStepOver: TAction;
+    actDebugRun: TAction;
+    actDebugStop: TAction;
+    ActionList1: TActionList;
+    btnStepInto: TButton;
     btnRun: TButton;
     btnStop: TButton;
+    btnStepOver: TButton;
     edtT: TEdit;
     edtuS: TEdit;
     edtA_: TEdit;
@@ -50,6 +56,7 @@ type
     Label14: TLabel;
     Label15: TLabel;
     Label16: TLabel;
+    labStatus: TLabel;
     labF6: TLabel;
     labF5: TLabel;
     labF4: TLabel;
@@ -74,12 +81,25 @@ type
     Label8: TLabel;
     Label9: TLabel;
     labF_7: TLabel;
+    MainMenu1: TMainMenu;
+    miDebugStepInto: TMenuItem;
+    miDebugStepOver: TMenuItem;
+    miDebugRun: TMenuItem;
+    miDebugStop: TMenuItem;
+    miDebugSep1: TMenuItem;
+    miFileExit: TMenuItem;
+    miDebug: TMenuItem;
+    miFile: TMenuItem;
     StatusBar1: TStatusBar;
     Timer1: TTimer;
+    procedure actDebugRunExecute(Sender: TObject);
+    procedure actDebugStopExecute(Sender: TObject);
+    procedure actFileExitExecute(Sender: TObject);
     procedure btnInitClick(Sender: TObject);
     procedure btnRunClick(Sender: TObject);
-    procedure btnStepClick(Sender: TObject);
+    procedure btnStepIntoClick(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
+    procedure FormActivate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormKeyPress(Sender: TObject; var Key: char);
@@ -87,10 +107,13 @@ type
   private
     CancelRequested: boolean;
     FProcessor: TProcessor;
-    FTerminal: TTerminal;
     FTimerClicks: integer;
     last: TRegisterSet;
+    localNeedsUpdate: boolean;
+    localProcStatus: TProcessorState;
     procedure HandleSIOtransmitA(_b: byte);
+    procedure ProcStateChange(_ps: TProcessorState);
+    procedure ProcStateUpdate;
     procedure ShowRegisters;
     procedure Status(const _msg: string);
     procedure Status(const _fmt: string; const _args: array of const);
@@ -111,16 +134,21 @@ implementation
 procedure TfrmBox80.btnInitClick(Sender: TObject);
 var strm: TFileStream;
 begin
-  FProcessor.Init;
-  // Load Grant Searle monitor ROM to $0000
-  strm := TFileStream.Create(MONITOR_COM,fmOpenRead);
-  try
-    // Attempt to read 32K
-    FProcessor.ReadFromStream(strm,0,32768);
-  finally
-    FreeAndNil(strm);
-  end;
-  ShowRegisters;
+end;
+
+procedure TfrmBox80.actFileExitExecute(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TfrmBox80.actDebugStopExecute(Sender: TObject);
+begin
+  FProcessor.ExecuteStop;
+end;
+
+procedure TfrmBox80.actDebugRunExecute(Sender: TObject);
+begin
+  FProcessor.ExecuteRun;
 end;
 
 {$DEFINE REAL_SPEED}
@@ -146,9 +174,6 @@ var saved_pc: word;
     elapsed:    double; // Elapsed time in reality
     exp_time:   double; // Expected time in seconds since start
 begin
-  btnInit.Enabled := False;
-  btnRun.Enabled := False;
-  btnStop.Enabled := True;
   CancelRequested := False;
   try
     good := True;
@@ -161,7 +186,7 @@ begin
     while good do
       begin
         saved_pc := FProcessor.PC;
-        good := FProcessor.ExecuteInto;
+//        good := FProcessor.ExecuteOneInst;
         Inc(instructions);
         Inc(instcount);
         if instcount > INST_BATCH then
@@ -201,49 +226,49 @@ begin
       MessageDlg('Information','Processor halted at ' + IntToHex(saved_pc),mtInformation,[mbOK],0);
     ShowRegisters;
   finally
-    btnStop.Enabled := False;
-    btnRun.Enabled := True;
-    btnInit.Enabled := True;
   end;
 end;
 
-procedure TfrmBox80.btnStepClick(Sender: TObject);
-var saved_pc: word;
+procedure TfrmBox80.btnStepIntoClick(Sender: TObject);
 begin
-  saved_pc := FProcessor.PC;
-  if not FProcessor.ExecuteInto then
-    MessageDlg('Error','Illegal instruction at ' + IntToHex(saved_pc),mtError,[mbOK],0);
-  ShowRegisters;
 end;
 
 procedure TfrmBox80.btnStopClick(Sender: TObject);
 begin
   CancelRequested := True;
-  btnStop.Enabled := False;
+end;
+
+procedure TfrmBox80.FormActivate(Sender: TObject);
+begin
+
 end;
 
 procedure TfrmBox80.FormCreate(Sender: TObject);
+var strm: TFileStream;
 begin
-  FTerminal := TTerminal.Create(Self,80,25);
-  FTerminal.Parent := Self;
-  FTerminal.Top := 64;
-  FTerminal.Left := 240;
-  FTerminal.Width := 814;
-  FTerminal.Height := 490;
-//  FTerminal.Align := alClient;
-  FTerminal.Color := TColor($00002800);
-  FTerminal.Font.Color := clLime;
-  FTerminal.Font.Name := 'Lucida Sans Typewriter';
-  FTerminal.Font.Size := 10;
   FTimerClicks := 0;
   FProcessor := TProcessor.Create;
+  FProcessor.OnStateChange := @ProcStateChange;
   FProcessor.OnTransmitA := @HandleSIOtransmitA;
+  FProcessor.Init;
+  strm := TFileStream.Create(MONITOR_COM,fmOpenRead);
+  try
+    // Attempt to read 32K
+    FProcessor.ReadFromStream(strm,0,32768);
+  finally
+    FreeAndNil(strm);
+  end;
+  FProcessor.ProcessorState := psPaused;
+  FProcessor.Suspended := False;
+  Timer1.Enabled := True;
+  ShowRegisters;
+  ProcStateUpdate;
 end;
 
 procedure TfrmBox80.FormDestroy(Sender: TObject);
 begin
-  FreeAndNil(FProcessor);
-  FreeAndNil(FTerminal);
+  Timer1.Enabled := False;
+  FProcessor.Terminate;   // Will delete its own instance
 end;
 
 procedure TfrmBox80.FormKeyPress(Sender: TObject; var Key: char);
@@ -256,21 +281,73 @@ end;
 
 procedure TfrmBox80.Timer1Timer(Sender: TObject);
 begin
-  Inc(FTimerClicks);
-  if FTimerClicks >= 8 then
-    FTimerClicks := 0;
-  FTerminal.CursorLit := (FTimerClicks < 5);
-  if (FTimerClicks = 0) or (FTimerClicks = 5) then
+  if localNeedsUpdate then
     begin
-      FTerminal.Invalidate;
-      Application.ProcessMessages;
-    end;
+      ProcStateUpdate;
+      ShowRegisters;
+    end
+  else if localProcStatus = psRunning then
+    ShowRegisters;
 end;
 
 procedure TfrmBox80.HandleSIOtransmitA(_b: byte);
 begin
+  {
   FTerminal.WriteChar(Chr(_b));
   FTimerClicks := 0;
+  }
+end;
+
+procedure TfrmBox80.ProcStateChange(_ps: TProcessorState);
+begin
+  if _ps <> localProcStatus then
+    begin
+      localProcStatus := _ps;
+      localNeedsUpdate := True;
+    end;
+end;
+
+procedure TfrmBox80.ProcStateUpdate;
+begin
+  localNeedsUpdate := False;
+  case localProcStatus of
+    psNone:
+      begin
+        actDebugStepInto.Enabled := False;
+        actDebugStepOver.Enabled := False;
+        actDebugRun.Enabled      := False;
+        actDebugStop.Enabled     := False;
+        labStatus.Caption := 'Not Started';
+        labStatus.Color := clSilver;
+      end;
+    psPaused:
+      begin
+        actDebugStepInto.Enabled := True;
+        actDebugStepOver.Enabled := True;
+        actDebugRun.Enabled      := True;
+        actDebugStop.Enabled     := False;
+        labStatus.Caption := 'PAUSED';
+        labStatus.Color := clOlive;
+      end;
+    psRunning:
+      begin
+        actDebugStepInto.Enabled := False;
+        actDebugStepOver.Enabled := False;
+        actDebugRun.Enabled      := False;
+        actDebugStop.Enabled     := True;
+        labStatus.Caption := 'Running';
+        labStatus.Color := clGreen;
+      end;
+    psFault:
+      begin
+        actDebugStepInto.Enabled := True;
+        actDebugStepOver.Enabled := True;
+        actDebugRun.Enabled      := True;
+        actDebugStop.Enabled     := False;
+        labStatus.Caption := 'FAULT';
+        labStatus.Color := clRed;
+      end;
+  end;
 end;
 
 procedure TfrmBox80.ShowRegisters;
@@ -368,7 +445,7 @@ begin
   edtAtPC.Text := s;
   // Update T and uS
   edtT.Text := Format('%-12.0n',[double(FProcessor.TStates)]);
-  edtuS.Text := Format('%-12.2n',[FProcessor.TStates / FProcessor.CpuSpeed * 1000000.0 / 4.0]);
+  edtuS.Text := Format('%-12.2n',[FProcessor.TStates / FProcessor.CpuSpeed * 1000000.0]);
   // Update the "last" variables
   last := rs;
 end;

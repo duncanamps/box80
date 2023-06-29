@@ -45,6 +45,7 @@ type
   TPortInFunction = function(_portno: Word): byte of object;
   TPortOutProcedure = procedure(_portno: Word; _value: byte) of object;
 
+
   TSIOtransmitProc = procedure(_value: byte) of object;
 
   TRAMarray = array[Word] of byte;
@@ -65,7 +66,11 @@ type
 
   TExecProc = procedure of object;
 
-  TProcessor = class(TObject)
+  TProcessorState = (psNone,psPaused,psRunning,psFault,psBreak);
+
+  TStateChangeProc = procedure(_newstate: TProcessorState) of object;
+
+  TProcessor = class(TThread)
     private
       regset:       TRegisterSet;
       ramarray:     TRAMarray;
@@ -82,6 +87,9 @@ type
       cpu_speed:    int64;  // In Hz
       error_flag:   TErrorFlags;
       opcode:       byte;
+      FProcessorState:  TProcessorState;
+      run_start_time:   TDateTime;
+      run_start_cycles: int64;
       // Pointers 16 bit dest
       pregAF:  PWord;
       pregBC:  PWord;
@@ -119,6 +127,7 @@ type
       pregIntM: PByte;
       SIO:      TSIO;
       FOnTransmitA: TSIOtransmitProc;
+      FOnStateChange: TStateChangeProc;
       // Procs / funcs
       procedure ExecANDA; inline;
       procedure ExecANDB; inline;
@@ -270,19 +279,26 @@ type
       procedure PushWord(_word: Word); inline;
       procedure SetOnTransmitA(_proc: TSIOtransmitProc);
       procedure SetPCrelative(_b: byte); inline;
+      procedure SetProcessorState(_ps: TProcessorState);
       procedure SetXORflags; inline;
+    protected
+      procedure Execute; override;
     public
       constructor Create;
       destructor Destroy; override;
       procedure ChannelReceiveA(_byte: byte);
-      function  ExecuteInto: boolean;     // Execute one instruction
+      function  ExecuteOneInst: boolean;     // Execute one instruction
 //    function  ExecuteOver: boolean;     // Execute over the next instruction
+      procedure ExecuteRun;
+      procedure ExecuteStop;              // Stop processor if it's running
       procedure Init;                     // Initialise COLD
       procedure ReadFromStream(_strm: TStream; _start, _length: integer);
       property CPUspeed: int64 read cpu_speed;
       property ErrorFlag: TErrorFlags read error_flag;
+      property OnStateChange: TStateChangeProc read FOnStateChange write FOnStateChange;
       property OnTransmitA: TSIOtransmitProc read FOnTransmitA write SetOnTransmitA;
       property PC: Word read regset.registers[regPC];
+      property ProcessorState: TProcessorState read FProcessorState write SetProcessorState;
       property RAM: TRAMarray read ramarray;
       property RegisterSet: TRegisterSet read GetRegisterSet;
       property TStates: int64 read t_states write t_states;
@@ -302,7 +318,9 @@ implementation
 
 constructor TProcessor.Create;
 begin
-  inherited Create;
+  inherited Create(True);
+  FreeOnTerminate := True;
+  FProcessorState := psNone;
   // Set up pointers to 16 bit registers
   pregAF  := @regset.registers[regAF];
   pregBC  := @regset.registers[regBC];
@@ -1284,6 +1302,13 @@ begin
   pregPC^ := newpc;
 end;
 
+procedure TProcessor.SetProcessorState(_ps: TProcessorState);
+begin
+  if Assigned(FOnStateChange) then
+    FOnStateChange(_ps);
+  FProcessorState := _ps;
+end;
+
 procedure TProcessor.SetOnTransmitA(_proc: TSIOtransmitProc);
 begin
   SIO.ChannelA.OnTransmit := _proc;
@@ -1407,11 +1432,46 @@ begin
   Inc(t_states,14);
 end;
 
-// Processor execute 1 instruction. If the instruction is a CPIR LDIR etc.,
-// one cycle will be executed. Returns False if the instruction could not
-// be executed
 
-function TProcessor.ExecuteInto: boolean;
+//-----------------------------------------------------------------------------
+//
+// Processor main execution loop
+//
+//-----------------------------------------------------------------------------
+
+procedure TProcessor.Execute;
+const CHECK_EVERY = 10000; // Check execution every n instructions
+var elapsed_time:   double; // Number of seconds elapsed since run started
+    simulated_time: double; // Number of simulated seconds elapsed since run started
+    check:          integer;
+    i:              integer;
+begin
+  check := 0;
+  while (not Terminated) do
+    begin
+      case FProcessorState of
+        psNone:    Sleep(10);
+        psPaused:  Sleep(10);
+        psRunning:
+          begin
+            i := 0;
+            while (i < CHECK_EVERY) and (FProcessorState = psRunning) do
+              begin
+                ExecuteOneInst;
+                Inc(i);
+              end;
+            // Check timing and see if we need to insert a sleep()
+            check := 0;
+            elapsed_time := 86400.0 * (Now() - run_start_time);
+            simulated_time := (TStates - run_start_cycles) / CpuSpeed;
+            if simulated_time > elapsed_time then
+              sleep(Trunc((simulated_time-elapsed_time)*1000.0+0.5));
+          end;
+      end;
+    end;
+end;
+
+function TProcessor.ExecuteOneInst: boolean;
 var proc:   TExecProc;
     addr:   Word;
     vector: Word;
@@ -1449,6 +1509,23 @@ begin
   Result := (error_flag = []);
 end;
 
+procedure TProcessor.ExecuteRun;
+begin
+  if ProcessorState <> psRunning then
+    begin
+      error_flag := [];
+      run_start_time   := Now();
+      run_start_cycles := TStates;
+      ProcessorState := psRunning;
+    end;
+end;
+
+procedure TProcessor.ExecuteStop;
+begin
+  if ProcessorState = psRunning then
+    ProcessorState := psPaused;
+end;
+
 // Cold boot or hard reset
 
 procedure TProcessor.Init;
@@ -1458,7 +1535,7 @@ var i: word;
     ri: TRegIndex;
 begin
   t_states := 0;
-  cpu_speed := 400000000; // Default to 4MHz device
+  cpu_speed := 4000000; // Default to 4MHz device
   pregIntE^ := 1;       // Enable interrupts
   pregIntM^ := 0;       // Interrupt mode 0 (IM0) like 8080
   for ri in TRegIndex do

@@ -10,7 +10,7 @@ uses
   athreads,
   {$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, fbox80, uprocessor, usio, uterminal
+  Forms, fbox80, uprocessor, usio, uterminal, fterminal
   { you can add units after this };
 
 {$R *.res}
@@ -20,6 +20,7 @@ begin
   Application.Scaled:=True;
   Application.Initialize;
   Application.CreateForm(TfrmBox80, frmBox80);
+  Application.CreateForm(TfrmTerminal, frmTerminal);
   Application.Run;
 end.
 

@@ -1,0 +1,13 @@
+object frmTerminal: TfrmTerminal
+  Left = 721
+  Height = 550
+  Top = 225
+  Width = 850
+  Caption = 'Terminal'
+  DesignTimePPI = 120
+  KeyPreview = True
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  LCLVersion = '2.2.6.0'
+  Visible = True
+end
