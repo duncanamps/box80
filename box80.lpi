@@ -49,6 +49,13 @@
               </Win32>
             </Options>
           </Linking>
+          <Other>
+            <CustomOptions Value="-dPROFILE"/>
+            <OtherDefines Count="2">
+              <Define0 Value="PROFILE"/>
+              <Define1 Value="EXEC_TRACE"/>
+            </OtherDefines>
+          </Other>
         </CompilerOptions>
       </Item>
     </BuildModes>
@@ -132,7 +139,6 @@
       </Options>
     </Linking>
     <Other>
-      <CustomOptions Value="-dEXEC_TRACE"/>
       <OtherDefines Count="2">
         <Define0 Value="PROFILE"/>
         <Define1 Value="EXEC_TRACE"/>

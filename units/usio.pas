@@ -52,14 +52,7 @@ type
       property OnInterrupt: TSIOInterruptProc write FOnInterrupt;
   end;
 
-var
-  SIO: TSIO;
-
-
 implementation
-
-uses
-  uprocessor;
 
 
 //-----------------------------------------------------------------------------
@@ -140,14 +133,9 @@ end;
 procedure TSIO.TriggerInterrupt;
 begin
   // @@@@@ Trigger the interrupt here
-  processor_interrupt(FChannelB.FRegWrite[2]);
+  if Assigned(FOnInterrupt) then
+    FOnInterrupt(FChannelB.FRegWrite[2]);
 end;
-
-initialization
-  SIO := TSIO.Create;
-
-finalization
-  FreeAndNil(SIO);
 
 end.
 

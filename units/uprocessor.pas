@@ -1,7 +1,7 @@
 unit uprocessor;
 
 {$mode ObjFPC}{$H+}
-
+{$WARN 6058 off : Call to subroutine "$1" marked as inline is not inlined}
 interface
 
 uses
@@ -34,137 +34,628 @@ const
 
 
 type
+  PByte = ^Byte;
+  PWord = ^Word;
+
   TBreakpoint = (bpNone,bpTemporary,bpPermanent);
 
   TErrorFlag = (efIllegal,efHalt);
   TErrorFlags = set of TErrorFlag;
 
   TPortInFunction = function(_portno: Word): byte of object;
-  TPOrtOutProcedure = procedure(_portno: Word; _value: byte) of object;
-{$IFDEF EXEC_TRACE}
-  TExecTraceRec = record
-    af: Word;
-    pc: Word;
+  TPortOutProcedure = procedure(_portno: Word; _value: byte) of object;
+
+  TSIOtransmitProc = procedure(_value: byte) of object;
+
+  TRAMarray = array[Word] of byte;
+
+  TRegIndex = (regAF,regBC,regDE,regHL,regAF_,regBC_,regDE_,regHL_,regIR,
+               regIX,regIY,regSP,regPC);
+
+  {
+  TReg8Index = (regA,regB,regC,regD,regE,regH,regL,regF,regI,regR,
+                regIXH,regIXL,regIYH,regIYR,regSPH,regSPL,regPCH,regPCL);
+  }
+
+  TRegisterSet = record
+    registers:     array[TRegIndex] of Word;
+    int_enabled:   byte;
+    int_mode:      byte;
   end;
 
-{$ENDIF}
+  TExecProc = procedure of object;
+
+  TProcessor = class(TObject)
+    private
+      regset:       TRegisterSet;
+      ramarray:     TRAMarray;
+      bparray:      array[Word] of TBreakPoint;
+      portinarray:  array[Word] of TPortInFunction;
+      portoutarray: array[Word] of TPortOutProcedure;
+      parity_table: array[byte] of byte;
+      inst_std:     array[byte] of TExecProc;
+      inst_cb:      array[byte] of TExecProc;
+      inst_ed:      array[byte] of TExecProc;
+      int_flag:     boolean;
+      int_vec:      byte;
+      t_states:     int64;
+      cpu_speed:    int64;  // In Hz
+      error_flag:   TErrorFlags;
+      opcode:       byte;
+      // Pointers 16 bit dest
+      pregAF:  PWord;
+      pregBC:  PWord;
+      pregDE:  PWord;
+      pregHL:  PWord;
+      pregAF_: PWord;
+      pregBC_: PWord;
+      pregDE_: PWord;
+      pregHL_: PWord;
+      pregIR:  PWord;
+      pregIX:  PWord;
+      pregIY:  PWord;
+      pregSP:  PWord;
+      pregPC:  PWord;
+      // Pointers 8 bit dest
+      pregA:   PByte;
+      pregB:   PByte;
+      pregC:   PByte;
+      pregD:   PByte;
+      pregE:   PByte;
+      pregH:   PByte;
+      pregL:   PByte;
+      pregF:   PByte;
+      pregI:   PByte;
+      pregR:   PByte;
+      pregIXH: PByte;
+      pregIXL: PByte;
+      pregIYH: PByte;
+      pregIYL: PByte;
+      pregSPH: PByte;
+      pregSPL: PByte;
+      pregPCH: PByte;
+      pregPCL: PByte;
+      pregIntE: PByte;
+      pregIntM: PByte;
+      SIO:      TSIO;
+      FOnTransmitA: TSIOtransmitProc;
+      // Procs / funcs
+      procedure ExecANDA; inline;
+      procedure ExecANDB; inline;
+      procedure ExecANDC; inline;
+      procedure ExecANDD; inline;
+      procedure ExecANDE; inline;
+      procedure ExecANDH; inline;
+      procedure ExecANDL; inline;
+      procedure ExecANDM; inline;
+      procedure ExecANDimm; inline;
+      procedure ExecCALLabs; inline;
+      procedure ExecCb; inline;
+      procedure ExecCbBITreg; inline;
+      procedure ExecCPimm; inline;
+      procedure ExecDECA; inline;
+      procedure ExecDECB; inline;
+      procedure ExecDECC; inline;
+      procedure ExecDECD; inline;
+      procedure ExecDECE; inline;
+      procedure ExecDECH; inline;
+      procedure ExecDECL; inline;
+      procedure ExecDECM; inline;
+      procedure ExecDI; inline;
+      procedure ExecEd; inline;
+      procedure ExecEdIM2; inline;
+      procedure ExecEdLDIA; inline;
+      procedure ExecEdRETI; inline;
+      procedure ExecEI; inline;
+      procedure ExecHALT; inline;
+      procedure ExecINAport; inline;
+      procedure ExecINCA; inline;
+      procedure ExecINCB; inline;
+      procedure ExecINCBC; inline;
+      procedure ExecINCC; inline;
+      procedure ExecINCD; inline;
+      procedure ExecINCDE; inline;
+      procedure ExecINCE; inline;
+      procedure ExecINCH; inline;
+      procedure ExecINCHL; inline;
+      procedure ExecINCL; inline;
+      procedure ExecINCM; inline;
+      procedure ExecINCSP; inline;
+      procedure ExecJPC; inline;
+      procedure ExecJPcond(_mask, _required: byte); inline;
+      procedure ExecJPM; inline;
+      procedure ExecJPNC; inline;
+      procedure ExecJPNZ; inline;
+      procedure ExecJPP;
+      procedure ExecJPPE; inline;
+      procedure ExecJPPO; inline;
+      procedure ExecJPZ; inline;
+      procedure ExecJPabs; inline;
+      procedure ExecJR; inline;
+      procedure ExecJRC; inline;
+      procedure ExecJRcond(_mask, _required: byte); inline;
+      procedure ExecJRNC; inline;
+      procedure ExecJRNZ; inline;
+      procedure ExecJRZ; inline;
+      procedure ExecLDAB; inline;
+      procedure ExecLDAC; inline;
+      procedure ExecLDAD; inline;
+      procedure ExecLDAE; inline;
+      procedure ExecLDAH; inline;
+      procedure ExecLDAL; inline;
+      procedure ExecLDAM; inline;
+      procedure ExecLDAaddr; inline;
+      procedure ExecLDAimm; inline;
+      procedure ExecLDBCimm; inline;
+      procedure ExecLDBimm; inline;
+      procedure ExecLDCimm; inline;
+      procedure ExecLDDEimm; inline;
+      procedure ExecLDDimm; inline;
+      procedure ExecLDEimm; inline;
+      procedure ExecLDHLaddr; inline;
+      procedure ExecLDHLimm; inline;
+      procedure ExecLDHimm; inline;
+      procedure ExecLDLimm; inline;
+      procedure ExecLDMA; inline;
+      procedure ExecLDMB; inline;
+      procedure ExecLDMC; inline;
+      procedure ExecLDMD; inline;
+      procedure ExecLDME; inline;
+      procedure ExecLDMH; inline;
+      procedure ExecLDML; inline;
+      procedure ExecLDSPimm; inline;
+      procedure ExecLDaddrA; inline;
+      procedure ExecLDaddrHL; inline;
+      procedure ExecORA; inline;
+      procedure ExecORB; inline;
+      procedure ExecORC; inline;
+      procedure ExecORD; inline;
+      procedure ExecORE; inline;
+      procedure ExecORH; inline;
+      procedure ExecORL; inline;
+      procedure ExecORM; inline;
+      procedure ExecOUTportA; inline;
+      procedure ExecPOPAF; inline;
+      procedure ExecPOPBC; inline;
+      procedure ExecPOPDE; inline;
+      procedure ExecPOPHL; inline;
+      procedure ExecPUSHAF; inline;
+      procedure ExecPUSHBC; inline;
+      procedure ExecPUSHDE; inline;
+      procedure ExecPUSHHL; inline;
+      procedure ExecRET; inline;
+      procedure ExecRETC; inline;
+      procedure ExecRETM; inline;
+      procedure ExecRETNC; inline;
+      procedure ExecRETNZ; inline;
+      procedure ExecRETP; inline;
+      procedure ExecRETPE; inline;
+      procedure ExecRETPO; inline;
+      procedure ExecRETZ; inline;
+      procedure ExecRRCA; inline;
+      procedure ExecRST00; inline;
+      procedure ExecRST08; inline;
+      procedure ExecRST10; inline;
+      procedure ExecRST18; inline;
+      procedure ExecRST20; inline;
+      procedure ExecRST28; inline;
+      procedure ExecRST30; inline;
+      procedure ExecRST38; inline;
+      procedure ExecSUBA; inline;
+      procedure ExecSUBB; inline;
+      procedure ExecSUBC; inline;
+      procedure ExecSUBD; inline;
+      procedure ExecSUBE; inline;
+      procedure ExecSUBH; inline;
+      procedure ExecSUBL; inline;
+      procedure ExecSUBM; inline;
+      procedure ExecXORA; inline;
+      procedure ExecXORB; inline;
+      procedure ExecXORC; inline;
+      procedure ExecXORD; inline;
+      procedure ExecXORE; inline;
+      procedure ExecXORH; inline;
+      procedure ExecXORL; inline;
+      procedure ExecXORM; inline;
+      procedure ExecRETcond(_mask, _required: byte); inline;
+      procedure ExecRST(_addr: byte); inline;
+      procedure ExecSub(_b: byte; _states: integer; _save: boolean = True); inline;
+      function  Fetch8: byte; inline;
+      function  Fetch16: Word; inline;
+      function  GetRegisterSet: TRegisterSet;
+      procedure Interrupt(_vec: byte);    // Perform interrupt, use vector
+      function  PopWord: Word; inline;
+      function  ProcessPortIn(_port: byte): byte;
+      procedure ProcessPortOut(_port, _byte: byte);
+      procedure PushWord(_word: Word); inline;
+      procedure SetOnTransmitA(_proc: TSIOtransmitProc);
+      procedure SetPCrelative(_b: byte); inline;
+      procedure SetXORflags; inline;
+    public
+      constructor Create;
+      destructor Destroy; override;
+      procedure ChannelReceiveA(_byte: byte);
+      function  ExecuteInto: boolean;     // Execute one instruction
+//    function  ExecuteOver: boolean;     // Execute over the next instruction
+      procedure Init;                     // Initialise COLD
+      procedure ReadFromStream(_strm: TStream; _start, _length: integer);
+      property CPUspeed: int64 read cpu_speed;
+      property ErrorFlag: TErrorFlags read error_flag;
+      property OnTransmitA: TSIOtransmitProc read FOnTransmitA write SetOnTransmitA;
+      property PC: Word read regset.registers[regPC];
+      property RAM: TRAMarray read ramarray;
+      property RegisterSet: TRegisterSet read GetRegisterSet;
+      property TStates: int64 read t_states write t_states;
+  end;
 
 
-var
-  ramarray:     array[Word] of byte;
-  bparray:      array[Word] of TBreakPoint;
-  portinarray:  array[Word] of TPortInFunction;
-  portoutarray: array[Word] of TPortOutProcedure;
-  af:  word;
-  bc:  word;
-  de:  word;
-  hl:  word;
-  af_: word;
-  bc_: word;
-  de_: word;
-  hl_: word;
-  ir:  word;
-  ix:  word;
-  iy:  word;
-  sp:  word;
-  pc:  word;
 
-  int_enabled:   boolean;
-  int_flag:      boolean;
-  int_mode:      byte;
-  int_vec:       byte;
-  t_states:      int64;
-  cpu_speed:     int64;  // In Hz
-  error_flag:    TErrorFlags;
-  opcode:        byte;
 
-  parity_table: array[byte] of byte;
-  inst_std: array[byte] of procedure;
-  inst_cb:  array[byte] of procedure;
-  inst_ed:  array[byte] of procedure;
 
 {$IFDEF EXEC_TRACE}
-  exec_trace_log: array[0..EXEC_TRACE_SIZE-1] of TExecTraceRec;
+var
+  exec_trace_log: array[0..EXEC_TRACE_SIZE-1] of TRegisterSet;
 {$ENDIF}
-
-
-function  processor_execute: boolean;      // Execute one instruction
-procedure processor_init;                  // Initialise COLD
-procedure processor_interrupt(_vec:byte);  // Perform interrupt, _vector on bus
 
 
 implementation
 
-// Utilities
-
-procedure DecReg16(var _reg: word); inline;
+constructor TProcessor.Create;
 begin
-  if _reg = $0000 then
-    _reg := $FFFF
-  else
-    _reg := _reg - 1;
+  inherited Create;
+  // Set up pointers to 16 bit registers
+  pregAF  := @regset.registers[regAF];
+  pregBC  := @regset.registers[regBC];
+  pregDE  := @regset.registers[regDE];
+  pregHL  := @regset.registers[regHL];
+  pregAF_ := @regset.registers[regAF_];
+  pregBC_ := @regset.registers[regBC_];
+  pregDE_ := @regset.registers[regDE_];
+  pregHL_ := @regset.registers[regHL_];
+  pregIR  := @regset.registers[regIR];
+  pregIX  := @regset.registers[regIX];
+  pregIY  := @regset.registers[regIY];
+  pregSP  := @regset.registers[regSP];
+  pregPC  := @regset.registers[regPC];
+  // Set up pointers to 8 bit registers
+  pregA   := PByte(@regset.registers[regAF]) + 1;
+  pregB   := PByte(@regset.registers[regBC]) + 1;
+  pregC   := PByte(@regset.registers[regBC]);
+  pregD   := PByte(@regset.registers[regDE]) + 1;
+  pregE   := PByte(@regset.registers[regDE]);
+  pregH   := PByte(@regset.registers[regHL]) + 1;
+  pregL   := PByte(@regset.registers[regHL]);
+  pregF   := PByte(@regset.registers[regAF]);
+  pregI   := PByte(@regset.registers[regIR]) + 1;
+  pregR   := PByte(@regset.registers[regIR]);
+  pregIXH := PByte(@regset.registers[regIX]) + 1;
+  pregIXL := PByte(@regset.registers[regIX]);
+  pregIYH := PByte(@regset.registers[regIY]) + 1;
+  pregIYL := PByte(@regset.registers[regIY]);
+  pregSPH := PByte(@regset.registers[regSP]) + 1;
+  pregSPL := PByte(@regset.registers[regSP]);
+  pregPCH := PByte(@regset.registers[regPC]) + 1;
+  pregPCL := PByte(@regset.registers[regPC]);
+  pregIntE := @regset.int_enabled;
+  pregIntM := @regset.int_mode;
+  // Set up SIO
+  SIO := TSIO.Create;
+  SIO.OnInterrupt := @Interrupt;
 end;
 
-procedure IncReg16(var _reg: word); inline;
+destructor TProcessor.Destroy;
 begin
-  if _reg = $FFFF then
-    _reg := $0000
-  else
-    _reg := _reg + 1;
+  FreeAndNil(SIO);
+  inherited Destroy;
 end;
 
-procedure DecSP; inline;
+{$RANGECHECKS OFF}  // Range checking is off so we can roll over registers
+
+procedure TProcessor.ChannelReceiveA(_byte: byte);
 begin
-  DecReg16(sp);
+  SIO.ChannelA.Received := _byte;
 end;
 
-procedure IncSP; inline;
+procedure TProcessor.ExecANDimm; inline;
 begin
-  IncReg16(sp);
+  pregA^ := pregA^ and Fetch8;
+  SetXORflags;
+  Inc(t_states,7);
 end;
 
-procedure IncPC; inline;
+procedure TProcessor.ExecANDA; inline;
 begin
-  IncReg16(pc);
+  pregA^ := pregA^ and pregA^;
+  SetXORflags;
+  Inc(t_states,4);
 end;
 
-procedure SetPCrelative(_b: byte); inline;
+procedure TProcessor.ExecANDB;
 begin
-  if (_b and $80) <> 0 then
-    pc := pc + _b - 256
-  else
-    pc := pc + _b;
+  pregA^ := pregA^ and pregB^;
+  SetXORflags;
+  Inc(t_states,4);
 end;
 
-function Fetch8: Word; inline;
+procedure TProcessor.ExecANDC;
 begin
-  Result := ramarray[PC];
-  IncPC;
+  pregA^ := pregA^ and pregC^;
+  SetXORflags;
+  Inc(t_states,4);
 end;
 
-function Fetch16: Word; inline;
+procedure TProcessor.ExecANDD;
 begin
-  Result := ramarray[PC] + (ramarray[PC+1] shl 8);
-  IncPC;
-  IncPC;
+  pregA^ := pregA^ and pregD^;
+  SetXORflags;
+  Inc(t_states,4);
 end;
 
-// Helper routines
+procedure TProcessor.ExecANDE;
+begin
+  pregA^ := pregA^ and pregE^;
+  SetXORflags;
+  Inc(t_states,4);
+end;
 
-procedure ExecJPcond(_mask, _required: byte);
+procedure TProcessor.ExecANDH;
+begin
+  pregA^ := pregA^ and pregH^;
+  SetXORflags;
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecANDL;
+begin
+  pregA^ := pregA^ and pregL^;
+  SetXORflags;
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecANDM;
+begin
+  pregA^ := pregA^ and ramarray[pregHL^];
+  SetXORflags;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecCALLabs; inline;
 var addr: Word;
 begin
   addr := Fetch16;
-  if (af and _mask) = _required then
-    pc := addr;
+  PushWord(pregPC^);
+  pregPC^ := addr;
+  Inc(t_states,17);
+end;
+
+procedure TProcessor.ExecCPimm; inline;
+begin
+  ExecSub(Fetch8,7,False); // Subtract immediate from a, throw away results
+end;
+
+procedure TProcessor.ExecDECA; inline;
+begin
+  Dec(pregA^);
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecDECB; inline;
+begin
+  Dec(pregB^);
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecDECC; inline;
+begin
+  Dec(pregC^);
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecDECD; inline;
+begin
+  Dec(pregD^);
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecDECE; inline;
+begin
+  Dec(pregE^);
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecDECH; inline;
+begin
+  Dec(pregH^);
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecDECL; inline;
+begin
+  Dec(pregL^);
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecDECM; inline;
+begin
+  Dec(ramarray[pregHL^]);
+  Inc(t_states,11);
+end;
+
+procedure TProcessor.ExecDI; inline;
+begin
+  pregIntE^ := 0;
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecEI; inline;
+begin
+  pregIntE^ := 1;
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecHALT; inline;
+begin
+  error_flag := error_flag + [efHalt];
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecINAport; inline;
+var port: byte;
+begin
+  // @@@@@ DO PORT HANDLING FUNCTIONS
+  // e.g.  ProcessPortOut(port,af shr 8);
+  port := Fetch8;
+  pregA^ := ProcessPortIn(port);
+  Inc(t_states,11);
+end;
+
+procedure TProcessor.ExecINCA; inline;
+begin
+  Inc(pregA^);
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecINCB; inline;
+begin
+  Inc(pregB^);
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecINCC; inline;
+begin
+  Inc(pregC^);
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecINCD; inline;
+begin
+  Inc(pregD^);
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecINCE; inline;
+begin
+  Inc(pregE^);
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecINCH; inline;
+begin
+  Inc(pregH^);
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecINCL; inline;
+begin
+  Inc(pregL^);
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecINCM; inline;
+begin
+  Inc(ramarray[pregHL^]);
+  Inc(t_states,11);
+end;
+
+procedure TProcessor.ExecINCBC; inline;
+begin
+  Inc(pregBC^);
+  Inc(t_states,6);
+end;
+
+procedure TProcessor.ExecINCDE; inline;
+begin
+  Inc(pregDE^);
+  Inc(t_states,6);
+end;
+
+procedure TProcessor.ExecINCHL; inline;
+begin
+  Inc(pregHL^);
+  Inc(t_states,6);
+end;
+
+procedure TProcessor.ExecINCSP; inline;
+begin
+  Inc(pregSP^);
+  Inc(t_states,6);
+end;
+
+procedure TProcessor.ExecJPabs; inline;
+var addr: Word;
+begin
+  addr := Fetch16;
+  pregPC^ := addr;
   Inc(t_states,10);
 end;
 
-procedure ExecJRcond(_mask, _required: byte);
-var b:     byte;
+procedure TProcessor.ExecJPC; inline;
+begin
+  ExecJPcond(FLAG_CARRY,FLAG_CARRY);
+end;
+
+procedure TProcessor.ExecJPcond(_mask, _required: byte); inline;
+var addr: Word;
+begin
+  addr := Fetch16;
+  if pregF^ and _mask = _required then
+    pregPC^ := addr;
+  Inc(t_states,10);
+end;
+
+procedure TProcessor.ExecJPM; inline;
+begin
+  ExecJPcond(FLAG_NEGATIVE,FLAG_NEGATIVE);
+end;
+
+procedure TProcessor.ExecJPNC; inline;
+begin
+  ExecJPcond(FLAG_CARRY,0);
+end;
+
+procedure TProcessor.ExecJPNZ; inline;
+begin
+  ExecJPcond(FLAG_ZERO,0);
+end;
+
+procedure TProcessor.ExecJPP;
+begin
+  ExecJPcond(FLAG_NEGATIVE,0);
+end;
+
+procedure TProcessor.ExecJPPE; inline;
+begin
+  ExecJPcond(FLAG_PV,FLAG_PV);
+end;
+
+procedure TProcessor.ExecJPPO; inline;
+begin
+  ExecJPcond(FLAG_PV,0);
+end;
+
+procedure TProcessor.ExecJPZ; inline;
+begin
+  ExecJPcond(FLAG_ZERO,FLAG_ZERO);
+end;
+
+procedure TProcessor.ExecJR; inline;
+var b: byte;
 begin
   b := Fetch8;
-  if (af and _mask) = _required then
+  SetPCrelative(b);
+  Inc(t_states,12);
+end;
+
+procedure TProcessor.ExecJRC; inline;
+begin
+  ExecJRcond(FLAG_CARRY,FLAG_CARRY);
+end;
+
+procedure TProcessor.ExecJRcond(_mask, _required: byte); inline;
+var b: byte;
+begin
+  b := Fetch8;
+  if pregF^ and _mask = _required then
     begin // Succeeded
       SetPCrelative(b);
       Inc(t_states,12);
@@ -173,38 +664,438 @@ begin
     Inc(t_states,7); // Failed
 end;
 
-procedure ExecRETcond(_mask, _required: byte); inline;
-var newpc: word;
+procedure TProcessor.ExecJRNC; inline;
 begin
-  if (af and _mask) = _required then
+  ExecJRcond(FLAG_CARRY,0);
+end;
+
+procedure TProcessor.ExecJRNZ; inline;
+begin
+  ExecJRcond(FLAG_ZERO,0);
+end;
+
+procedure TProcessor.ExecJRZ; inline;
+begin
+  ExecJRcond(FLAG_ZERO,FLAG_ZERO);
+end;
+
+procedure TProcessor.ExecLDaddrA; inline;
+var addr: Word;
+begin
+  addr := Fetch16;
+  ramarray[addr] := pregA^;
+  Inc(t_states,13);
+end;
+
+procedure TProcessor.ExecLDaddrHL; inline;
+var addr: Word;
+    paddr: PWord;
+begin
+  addr := Fetch16;
+  paddr := PWord(@ramarray[addr]);
+  paddr^ := pregHL^;
+  Inc(t_states,16);
+end;
+
+procedure TProcessor.ExecLDAaddr; inline;
+var addr: Word;
+begin
+  addr := Fetch16;
+  pregA^ := ramarray[addr];
+  Inc(t_states,13);
+end;
+
+procedure TProcessor.ExecLDAimm; inline;
+begin
+  pregA^ := Fetch8;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDAB; inline;
+begin
+  pregA^ := pregB^;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDAC; inline;
+begin
+  pregA^ := pregC^;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDAD; inline;
+begin
+  pregA^ := pregD^;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDAE; inline;
+begin
+  pregA^ := pregE^;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDAH; inline;
+begin
+  pregA^ := pregH^;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDAL; inline;
+begin
+  pregA^ := pregL^;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDAM; inline;
+begin
+  pregA^ := ramarray[pregHL^];
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDBimm; inline;
+begin
+  pregB^ := Fetch8;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDBCimm; inline;
+begin
+  pregBC^ := Fetch16;
+  Inc(t_states,10);
+end;
+
+procedure TProcessor.ExecLDCimm; inline;
+begin
+  pregC^ := Fetch8;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDDimm; inline;
+begin
+  pregD^ := Fetch8;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDDEimm; inline;
+begin
+  pregDE^ := Fetch16;
+  Inc(t_states,10);
+end;
+
+procedure TProcessor.ExecLDEimm; inline;
+begin
+  pregE^ := Fetch8;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDHimm; inline;
+begin
+  pregH^ := Fetch8;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDHLaddr; inline;
+var addr: Word;
+    paddr: PWord;
+begin
+  addr := Fetch16;
+  paddr := PWord(@ramarray[addr]);
+  pregHL^ := paddr^;
+  Inc(t_states,16);
+end;
+
+procedure TProcessor.ExecLDHLimm; inline;
+begin
+  pregHL^ := Fetch16;
+  Inc(t_states,10);
+end;
+
+procedure TProcessor.ExecLDLimm; inline;
+begin
+  pregL^ := Fetch8;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDMA; inline;
+begin
+  ramarray[pregHL^] := pregA^;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDMB; inline;
+begin
+  ramarray[pregHL^] := pregB^;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDMC; inline;
+begin
+  ramarray[pregHL^] := pregC^;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDMD; inline;
+begin
+  ramarray[pregHL^] := pregD^;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDME; inline;
+begin
+  ramarray[pregHL^] := pregE^;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDMH; inline;
+begin
+  ramarray[pregHL^] := pregH^;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDML; inline;
+begin
+  ramarray[pregHL^] := pregL^;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDSPimm; inline;
+begin
+  pregSP^ := Fetch16;
+  Inc(t_states,10);
+end;
+
+procedure TProcessor.ExecORA; inline;
+begin
+  pregA^ := pregA^ or pregA^;
+  SetXORflags;
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecORB; inline;
+begin
+  pregA^ := pregA^ or pregB^;
+  SetXORflags;
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecORC; inline;
+begin
+  pregA^ := pregA^ or pregC^;
+  SetXORflags;
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecORD; inline;
+begin
+  pregA^ := pregA^ or pregD^;
+  SetXORflags;
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecORE; inline;
+begin
+  pregA^ := pregA^ or pregE^;
+  SetXORflags;
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecORH; inline;
+begin
+  pregA^ := pregA^ or pregH^;
+  SetXORflags;
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecORL; inline;
+begin
+  pregA^ := pregA^ or pregL^;
+  SetXORflags;
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecORM; inline;
+begin
+  pregA^ := pregA^ or ramarray[pregHL^];
+  SetXORflags;
+  Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecOUTportA; inline;
+var port: byte;
+begin
+  port := Fetch8;
+  ProcessPortOut(port,pregA^);
+  Inc(t_states,11);
+end;
+
+procedure TProcessor.ExecPOPAF; inline;
+begin
+  pregAF^ := PopWord;
+  Inc(t_states,10);
+end;
+
+procedure TProcessor.ExecPOPBC; inline;
+begin
+  pregBC^ := PopWord;
+  Inc(t_states,10);
+end;
+
+procedure TProcessor.ExecPOPDE; inline;
+begin
+  pregDE^ := PopWord;
+  Inc(t_states,10);
+end;
+
+procedure TProcessor.ExecPOPHL; inline;
+begin
+  pregHL^ := PopWord;
+  Inc(t_states,10);
+end;
+
+procedure TProcessor.ExecPUSHAF; inline;
+begin
+  PushWord(pregAF^);
+  Inc(t_states,11);
+end;
+
+procedure TProcessor.ExecPUSHBC; inline;
+begin
+  PushWord(pregBC^);
+  Inc(t_states,11);
+end;
+
+procedure TProcessor.ExecPUSHDE; inline;
+begin
+  PushWord(pregDE^);
+  Inc(t_states,11);
+end;
+
+procedure TProcessor.ExecPUSHHL; inline;
+begin
+  PushWord(pregHL^);
+  Inc(t_states,11);
+end;
+
+procedure TProcessor.ExecRETcond(_mask, _required: byte); inline;
+begin
+  if pregF^ and _mask = _required then
     begin // Succeeded
-      newpc := ramarray[sp];
-      IncSP;
-      newpc := newpc or ramarray[sp] shl 8;
-      IncSP;
-      pc := newpc;
+      pregPC^ := PopWord;
       Inc(t_states,11);
     end
   else
     Inc(t_states,5); // Failed
 end;
 
-procedure ExecRST(_addr: byte); inline;
+procedure TProcessor.ExecRST(_addr: byte); inline;
 begin
-  Dec(sp);
-  ramarray[sp] := pc shr 8;
-  Dec(sp);
-  ramarray[sp] := pc and $00FF;
-  pc := _addr;
+  PushWord(pregPC^);
+  pregPC^ := _addr;
   Inc(t_states,11);
 end;
 
-procedure ExecSub(_b: byte; _states: integer; _save: boolean = True);
+procedure TProcessor.ExecRET; inline;
+begin
+  pregPC^ := PopWord;
+  Inc(t_states,10);
+end;
+
+procedure TProcessor.ExecRETC; inline;
+begin
+  ExecRETcond(FLAG_CARRY,FLAG_CARRY);
+end;
+
+procedure TProcessor.ExecRETM; inline;
+begin
+  ExecRETcond(FLAG_NEGATIVE,FLAG_NEGATIVE);
+end;
+
+procedure TProcessor.ExecRETNC; inline;
+begin
+  ExecRETcond(FLAG_CARRY,0);
+end;
+
+procedure TProcessor.ExecRETP; inline;
+begin
+  ExecRETcond(FLAG_NEGATIVE,0);
+end;
+
+procedure TProcessor.ExecRETPE; inline;
+begin
+  ExecRETcond(FLAG_PV,FLAG_PV);
+end;
+
+procedure TProcessor.ExecRETPO; inline;
+begin
+  ExecRETcond(FLAG_PV,0);
+end;
+
+procedure TProcessor.ExecRETNZ; inline;
+begin
+  ExecRETcond(FLAG_ZERO,0);
+end;
+
+procedure TProcessor.ExecRETZ; inline;
+begin
+  ExecRETcond(FLAG_ZERO,FLAG_ZERO);
+end;
+
+procedure TProcessor.ExecRRCA; inline;
+var bit0: byte;
+begin
+  bit0 := pregA^ and $01;
+  pregA^ := (pregA^ shr 1) or (bit0 shl 7);
+  pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset H, N
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecRST00; inline;
+begin
+  ExecRST($00);
+end;
+
+procedure TProcessor.ExecRST08; inline;
+begin
+  ExecRST($08);
+end;
+
+procedure TProcessor.ExecRST10; inline;
+begin
+  ExecRST($10);
+end;
+
+procedure TProcessor.ExecRST18; inline;
+begin
+  ExecRST($18);
+end;
+
+procedure TProcessor.ExecRST20; inline;
+begin
+  ExecRST($20);
+end;
+
+procedure TProcessor.ExecRST28; inline;
+begin
+  ExecRST($28);
+end;
+
+procedure TProcessor.ExecRST30; inline;
+begin
+  ExecRST($30);
+end;
+
+procedure TProcessor.ExecRST38; inline;
+begin
+  ExecRST($38);
+end;
+
+procedure TProcessor.ExecSub(_b: byte; _states: integer; _save: boolean = True); inline;
 var _a,_c: byte;
     flags: byte;
 begin
-  _a := af shr 8;
-  flags := af and $00FF;
+  _a    := pregA^;
+  flags := pregF^;
   if _b > _a then
     _c := _a + $100 - _b
   else
@@ -227,25 +1118,137 @@ begin
     flags := flags or FLAG_CARRY
   else
     flags := flags and NOT_FLAG_CARRY;
-  af := (af and $FF00) or flags;
+  pregF^ := flags;
   if _save then
-    af := (af and $00FF) or (_c shl 8);
+    pregA^ := _c;
   Inc(t_states,_states);
 end;
 
-function ProcessPortIn(_port: byte): byte;
+procedure TProcessor.ExecSUBA; inline;
 begin
-  case _port of
-    SIOA_D: Result := SIO.ChannelA.Data;        // Port 00
-    SIOB_D: Result := SIO.ChannelB.Data;        // Port 01
-    SIOA_C: Result := SIO.ChannelA.Control;     // Port 02
-    SIOB_C: Result := SIO.ChannelB.Control;     // Port 03
-    otherwise
-      raise Exception.Create(Format('Port $%2.2X not catered for',[_port]));
-  end;
+  ExecSub(pregA^,4);
 end;
 
-procedure ProcessPortOut(_port, _byte: byte);
+procedure TProcessor.ExecSUBB; inline;
+begin
+  ExecSub(pregB^,4);
+end;
+
+procedure TProcessor.ExecSUBC; inline;
+begin
+  ExecSub(pregC^,4);
+end;
+
+procedure TProcessor.ExecSUBD; inline;
+begin
+  ExecSub(pregD^,4);
+end;
+
+procedure TProcessor.ExecSUBE; inline;
+begin
+  ExecSub(pregE^,4);
+end;
+
+procedure TProcessor.ExecSUBH; inline;
+begin
+  ExecSub(pregH^,4);
+end;
+
+procedure TProcessor.ExecSUBL; inline;
+begin
+  ExecSub(pregL^,4);
+end;
+
+procedure TProcessor.ExecSUBM; inline;
+begin
+  ExecSub(ramarray[pregHL^],7);
+end;
+
+procedure TProcessor.ExecXORA; inline;
+begin
+  pregA^ := pregA^ xor pregA^;
+  SetXORflags;
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecXORB; inline;
+begin
+  pregA^ := pregA^ xor pregB^;
+  SetXORflags;
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecXORC; inline;
+begin
+  pregA^ := pregA^ xor pregC^;
+  SetXORflags;
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecXORD; inline;
+begin
+  pregA^ := pregA^ xor pregD^;
+  SetXORflags;
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecXORE; inline;
+begin
+  pregA^ := pregA^ xor pregE^;
+  SetXORflags;
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecXORH; inline;
+begin
+  pregA^ := pregA^ xor pregH^;
+  SetXORflags;
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecXORL; inline;
+begin
+  pregA^ := pregA^ xor pregL^;
+  SetXORflags;
+  Inc(t_states,4);
+end;
+
+procedure TProcessor.ExecXORM; inline;
+begin
+  pregA^ := pregA^ xor ramarray[pregHL^];;
+  SetXORflags;
+  Inc(t_states,7);
+end;
+
+function TProcessor.Fetch8: byte; inline;
+begin
+  Result := ramarray[pregPC^];
+  Inc(pregPC^);
+end;
+
+function TProcessor.Fetch16: Word; inline;
+var _pc: Word;
+begin
+  _pc := pregPC^;
+  Result := ramarray[_pc] + (ramarray[_pc+1] shl 8);
+  Inc(pregPC^);
+  Inc(pregPC^);
+end;
+
+function TProcessor.GetRegisterSet: TRegisterSet;
+begin
+  Result := regset;
+end;
+
+function TProcessor.PopWord: Word; inline;
+begin
+  Result := ramarray[pregSP^];
+  Inc(pregSP^);
+  Result := Result or (ramarray[pregSP^] shl 8);
+  Inc(pregSP^);
+end;
+
+procedure TProcessor.ProcessPortOut(_port, _byte: byte);
 begin
   case _port of
     SIOA_D: SIO.ChannelA.Data := _byte;        // Port 00
@@ -257,844 +1260,61 @@ begin
   end;
 end;
 
-procedure SetXORflags; inline;
+procedure TProcessor.PushWord(_word: Word); inline;
+begin
+  Dec(pregSP^);
+  ramarray[pregSP^] := _word shr 8;
+  Dec(pregSP^);
+  ramarray[pregSP^] := _word and $00FF;
+end;
+
+procedure TProcessor.ReadFromStream(_strm: TStream; _start, _length: integer);
+begin
+  _strm.Read(ramarray[_start],_length);
+end;
+
+procedure TProcessor.SetPCrelative(_b: byte); inline;
+var newpc: Word;
+begin
+  newpc := pregPC^;  // Start off with current PC
+  if (_b and $80) <> 0 then
+    newpc := newpc + _b - $100
+  else
+    newpc := newpc + _b;
+  pregPC^ := newpc;
+end;
+
+procedure TProcessor.SetOnTransmitA(_proc: TSIOtransmitProc);
+begin
+  SIO.ChannelA.OnTransmit := _proc;
+end;
+
+procedure TProcessor.SetXORflags; inline;
 var flags: byte;
 begin
-  flags := af and (NOT_FLAG_HALFCARRY and NOT_FLAG_NEGATIVE and NOT_FLAG_CARRY); // Reset H/N/C
-  flags := (flags and $7F) or ((af shr 8) and FLAG_NEGATIVE); // Bit 7 is neg flag
-  if (af and $FF00) = 0 then
+  flags := pregF^ and (NOT_FLAG_HALFCARRY and NOT_FLAG_NEGATIVE and NOT_FLAG_CARRY); // Reset H/N/C
+  flags := (flags and $7F) or (pregA^ and FLAG_NEGATIVE); // Bit 7 is neg flag
+  if pregA^ = 0 then
     flags := flags or FLAG_ZERO
   else
     flags := flags and NOT_FLAG_ZERO;      // Bit 6 is zero flag
   flags := flags and NOT_FLAG_PV;        // Kill parity flag for now
-  flags := flags or parity_table[af shr 8];
-  af := (af and $FF00) or flags;
+  flags := flags or parity_table[pregA^];
+  pregF^ := flags;
 end;
 
-//=============================================================================
-
-procedure ExecANDimm;
-begin
-  af := af and ($00FF or (Fetch8 shl 8));
-  SetXORflags;
-  Inc(t_states,7);
-end;
-
-procedure ExecANDA;
-begin
-  af := af and ($00FF or (af and $FF00));
-  SetXORflags;
-  Inc(t_states,4);
-end;
-
-procedure ExecANDB;
-begin
-  af := af and ($00FF or (bc and $FF00));
-  SetXORflags;
-  Inc(t_states,4);
-end;
-
-procedure ExecANDC;
-begin
-  af := af and ($00FF or ((bc and $00FF) shl 8));
-  SetXORflags;
-  Inc(t_states,4);
-end;
-
-procedure ExecANDD;
-begin
-  af := af and ($00FF or (de and $FF00));
-  SetXORflags;
-  Inc(t_states,4);
-end;
-
-procedure ExecANDE;
-begin
-  af := af and ($00FF or ((de and $00FF) shl 8));
-  SetXORflags;
-  Inc(t_states,4);
-end;
-
-procedure ExecANDH;
-begin
-  af := af and ($00FF or (hl and $FF00));
-  SetXORflags;
-  Inc(t_states,4);
-end;
-
-procedure ExecANDL;
-begin
-  af := af and ($00FF or ((hl and $00FF) shl 8));
-  SetXORflags;
-  Inc(t_states,4);
-end;
-
-procedure ExecANDM;
-begin
-  af := af and ($00FF or (ramarray[hl] shl 8));
-  SetXORflags;
-  Inc(t_states,7);
-end;
-
-procedure ExecCALLabs;
-var addr: Word;
-begin
-  addr := Fetch16;
-  Dec(sp);
-  ramarray[sp] := pc shr 8;
-  Dec(sp);
-  ramarray[sp] := pc and $00FF;
-  pc := addr;
-  Inc(t_states,17);
-end;
-
-procedure ExecCPimm;
-begin
-  ExecSub(Fetch8,7,False); // Subtract immediate from a, throw away results
-end;
-
-procedure ExecDECA;
-begin
-  af := (af and $00FF) or (((af and $ff00) - $0100) and $ff00);
-  Inc(t_states,4);
-end;
-
-procedure ExecDECB;
-begin
-  bc := (bc and $00FF) or (((bc and $ff00) - $0100) and $ff00);
-  Inc(t_states,4);
-end;
-
-procedure ExecDECC;
-begin
-  bc := (bc and $FF00) or (((bc and $00FF) - 1) and $00FF);
-  Inc(t_states,4);
-end;
-
-procedure ExecDECD;
-begin
-  de := (de and $00FF) or (((de and $ff00) - $0100) and $ff00);
-  Inc(t_states,4);
-end;
-
-procedure ExecDECE;
-begin
-  de := (de and $FF00) or (((de and $00FF) - 1) and $00FF);
-  Inc(t_states,4);
-end;
-
-procedure ExecDECH;
-begin
-  hl := (hl and $00FF) or (((hl and $ff00) - $0100) and $ff00);
-  Inc(t_states,4);
-end;
-
-procedure ExecDECL;
-begin
-  hl := (hl and $FF00) or (((hl and $00FF) - 1) and $00FF);
-  Inc(t_states,4);
-end;
-
-procedure ExecDECM;
-begin
-{$RANGECHECKS OFF}
-  Dec(ramarray[hl]);
-{$RANGECHECKS ON}
-  Inc(t_states,11);
-end;
-
-procedure ExecDI;
-begin
-  int_enabled := False;
-  Inc(t_states,4);
-end;
-
-procedure ExecEI;
-begin
-  int_enabled := True;
-  Inc(t_states,4);
-end;
-
-procedure ExecHALT;
-begin
-  error_flag := error_flag + [efHalt];
-  Inc(t_states,4);
-end;
-
-procedure ExecINAport;
-var port: byte;
-begin
-  // @@@@@ DO PORT HANDLING FUNCTIONS
-  // e.g.  ProcessPortOut(port,af shr 8);
-  port := Fetch8;
-  af := (af and $00FF) or (ProcessPortIn(port) shl 8);
-  Inc(t_states,11);
-end;
-
-procedure ExecINCA;
-begin
-  af := (af and $00FF) or (((af and $ff00) + $0100) and $ff00);
-  Inc(t_states,4);
-end;
-
-procedure ExecINCB;
-begin
-  bc := (bc and $00FF) or (((bc and $ff00) + $0100) and $ff00);
-  Inc(t_states,4);
-end;
-
-procedure ExecINCC;
-begin
-  bc := (bc and $FF00) or (((bc and $00FF) + 1) and $00FF);
-  Inc(t_states,4);
-end;
-
-procedure ExecINCD;
-begin
-  de := (de and $00FF) or (((de and $ff00) + $0100) and $ff00);
-  Inc(t_states,4);
-end;
-
-procedure ExecINCE;
-begin
-  de := (de and $FF00) or (((de and $00FF) + 1) and $00FF);
-  Inc(t_states,4);
-end;
-
-procedure ExecINCH;
-begin
-  hl := (hl and $00FF) or (((hl and $ff00) + $0100) and $ff00);
-  Inc(t_states,4);
-end;
-
-procedure ExecINCL;
-begin
-  hl := (hl and $FF00) or (((hl and $00FF) + 1) and $00FF);
-  Inc(t_states,4);
-end;
-
-procedure ExecINCM;
-begin
-{$RANGECHECKS OFF}
-  Inc(ramarray[hl]);
-{$RANGECHECKS ON}
-  Inc(t_states,11);
-end;
-
-procedure ExecINCBC;
-begin
-  Inc(bc);
-  Inc(t_states,6);
-end;
-
-procedure ExecINCDE;
-begin
-  Inc(de);
-  Inc(t_states,6);
-end;
-
-procedure ExecINCHL;
-begin
-  Inc(hl);
-  Inc(t_states,6);
-end;
-
-procedure ExecINCSP;
-begin
-  IncSP;
-  Inc(t_states,6);
-end;
-
-procedure ExecJPabs;
-var addr: Word;
-begin
-  addr := Fetch16;
-  pc := addr;
-  Inc(t_states,10);
-end;
-
-procedure ExecJPC;
-begin
-  ExecJPcond(FLAG_CARRY,FLAG_CARRY);
-end;
-
-procedure ExecJPM;
-begin
-  ExecJPcond(FLAG_NEGATIVE,FLAG_NEGATIVE);
-end;
-
-procedure ExecJPNC;
-begin
-  ExecJPcond(FLAG_CARRY,0);
-end;
-
-procedure ExecJPNZ;
-begin
-  ExecJPcond(FLAG_ZERO,0);
-end;
-
-procedure ExecJPP;
-begin
-  ExecJPcond(FLAG_NEGATIVE,0);
-end;
-
-procedure ExecJPPE;
-begin
-  ExecJPcond(FLAG_PV,FLAG_PV);
-end;
-
-procedure ExecJPPO;
-begin
-  ExecJPcond(FLAG_PV,0);
-end;
-
-procedure ExecJPZ;
-begin
-  ExecJPcond(FLAG_ZERO,FLAG_ZERO);
-end;
-
-procedure ExecJR;
-var b: byte;
-begin
-  b := Fetch8;
-  SetPCrelative(b);
-  Inc(t_states,12);
-end;
-
-procedure ExecJRC;
-begin
-  ExecJRcond(FLAG_CARRY,FLAG_CARRY);
-end;
-
-procedure ExecJRNC;
-begin
-  ExecJRcond(FLAG_CARRY,0);
-end;
-
-procedure ExecJRNZ;
-begin
-  ExecJRcond(FLAG_ZERO,0);
-end;
-
-procedure ExecJRZ;
-begin
-  ExecJRcond(FLAG_ZERO,FLAG_ZERO);
-end;
-
-procedure ExecLDaddrA;
-var addr: Word;
-begin
-  addr := Fetch16;
-  ramarray[addr] := af shr 8;
-  Inc(t_states,13);
-end;
-
-procedure ExecLDaddrHL;
-var addr: Word;
-begin
-  addr := Fetch16;
-  ramarray[addr]   := hl and $FF;
-  ramarray[addr+1] := hl shr 8;
-  Inc(t_states,16);
-end;
-
-procedure ExecLDAaddr;
-var addr: Word;
-begin
-  addr := Fetch16;
-  af := (af and $00FF) or (ramarray[addr] shl 8);
-  Inc(t_states,13);
-end;
-
-procedure ExecLDAimm;
-begin
-  af := (af and $00FF) or (Fetch8 shl 8);
-  Inc(t_states,7);
-end;
-
-procedure ExecLDAB;
-begin
-  af := (af and $00FF) or (bc and $FF00);
-  Inc(t_states,7);
-end;
-
-procedure ExecLDAC;
-begin
-  af := (af and $00FF) or ((bc and $00FF) shl 8);
-  Inc(t_states,7);
-end;
-
-procedure ExecLDAD;
-begin
-  af := (af and $00FF) or (de and $FF00);
-  Inc(t_states,7);
-end;
-
-procedure ExecLDAE;
-begin
-  af := (af and $00FF) or ((de and $00FF) shl 8);
-  Inc(t_states,7);
-end;
-
-procedure ExecLDAH;
-begin
-  af := (af and $00FF) or (hl and $FF00);
-  Inc(t_states,7);
-end;
-
-procedure ExecLDAL;
-begin
-  af := (af and $00FF) or ((hl and $00FF) shl 8);
-  Inc(t_states,7);
-end;
-
-procedure ExecLDAM;
-begin
-  af := (af and $00FF) or (ramarray[hl] shl 8);
-  Inc(t_states,7);
-end;
-
-procedure ExecLDBimm;
-begin
-  bc := (bc and $00FF) or (Fetch8 shl 8);
-  Inc(t_states,7);
-end;
-
-procedure ExecLDBCimm;
-begin
-  bc := Fetch16;
-  Inc(t_states,10);
-end;
-
-procedure ExecLDCimm;
-begin
-  bc := (bc and $FF00) or Fetch8;
-  Inc(t_states,7);
-end;
-
-procedure ExecLDDimm;
-begin
-  de := (de and $00FF) or (Fetch8 shl 8);
-  Inc(t_states,7);
-end;
-
-procedure ExecLDDEimm;
-begin
-  de := Fetch16;
-  Inc(t_states,10);
-end;
-
-procedure ExecLDEimm;
-begin
-  de := (de and $FF00) or Fetch8;
-  Inc(t_states,7);
-end;
-
-procedure ExecLDHimm;
-begin
-  hl := (hl and $00FF) or (Fetch8 shl 8);
-  Inc(t_states,7);
-end;
-
-procedure ExecLDHLaddr;
-var addr: Word;
-begin
-  addr := Fetch16;
-  hl := ramarray[addr] + (ramarray[addr+1] shl 8);
-  Inc(t_states,16);
-end;
-
-procedure ExecLDHLimm;
-begin
-  hl := Fetch16;
-  Inc(t_states,10);
-end;
-
-procedure ExecLDLimm;
-begin
-  hl := (hl and $FF00) or Fetch8;
-  Inc(t_states,7);
-end;
-
-procedure ExecLDMA;
-begin
-  ramarray[hl] := (af shr 8);
-  Inc(t_states,7);
-end;
-
-procedure ExecLDMB;
-begin
-  ramarray[hl] := (bc shr 8);
-  Inc(t_states,7);
-end;
-
-procedure ExecLDMC;
-begin
-  ramarray[hl] := (bc and $00FF);
-  Inc(t_states,7);
-end;
-
-procedure ExecLDMD;
-begin
-  ramarray[hl] := (de shr 8);
-  Inc(t_states,7);
-end;
-
-procedure ExecLDME;
-begin
-  ramarray[hl] := (de and $00FF);
-  Inc(t_states,7);
-end;
-
-procedure ExecLDMH;
-begin
-  ramarray[hl] := (hl shr 8);
-  Inc(t_states,7);
-end;
-
-procedure ExecLDML;
-begin
-  ramarray[hl] := (hl and $00FF);
-  Inc(t_states,7);
-end;
-
-procedure ExecLDSPimm;
-begin
-  sp := Fetch16;
-  Inc(t_states,10);
-end;
-
-procedure ExecORA;
-begin
-  af := af or (af and $FF00);
-  SetXORflags;
-  Inc(t_states,4);
-end;
-
-procedure ExecORB;
-begin
-  af := af or (bc and $FF00);
-  SetXORflags;
-  Inc(t_states,4);
-end;
-
-procedure ExecORC;
-begin
-  af := af or ((bc and $00FF) shl 8);
-  SetXORflags;
-  Inc(t_states,4);
-end;
-
-procedure ExecORD;
-begin
-  af := af or (de and $FF00);
-  SetXORflags;
-  Inc(t_states,4);
-end;
-
-procedure ExecORE;
-begin
-  af := af or ((de and $00FF) shl 8);
-  SetXORflags;
-  Inc(t_states,4);
-end;
-
-procedure ExecORH;
-begin
-  af := af or (hl and $FF00);
-  SetXORflags;
-  Inc(t_states,4);
-end;
-
-procedure ExecORL;
-begin
-  af := af or ((hl and $00FF) shl 8);
-  SetXORflags;
-  Inc(t_states,4);
-end;
-
-procedure ExecORM;
-begin
-  af := af or (ramarray[hl] shl 8);
-  SetXORflags;
-  Inc(t_states,7);
-end;
-
-procedure ExecOUTportA;
-var port: byte;
-begin
-  port := Fetch8;
-  ProcessPortOut(port,af shr 8);
-  Inc(t_states,11);
-end;
-
-procedure ExecPOPAF;
-begin
-  af := ramarray[sp];
-  IncSP;
-  af := af or (ramarray[sp] shl 8);
-  IncSP;
-  Inc(t_states,10);
-end;
-
-procedure ExecPOPBC;
-begin
-  bc := ramarray[sp];
-  IncSP;
-  bc := bc or (ramarray[sp] shl 8);
-  IncSP;
-  Inc(t_states,10);
-end;
-
-procedure ExecPOPDE;
-begin
-  de := ramarray[sp];
-  IncSP;
-  de := de or (ramarray[sp] shl 8);
-  IncSP;
-  Inc(t_states,10);
-end;
-
-procedure ExecPOPHL;
-begin
-  hl := ramarray[sp];
-  IncSP;
-  hl := hl or (ramarray[sp] shl 8);
-  IncSP;
-  Inc(t_states,10);
-end;
-
-procedure ExecPUSHAF;
-begin
-  Dec(sp);
-  ramarray[sp] := af shr 8;
-  Dec(sp);
-  ramarray[sp] := af and $00ff;
-  Inc(t_states,11);
-end;
-
-procedure ExecPUSHBC;
-begin
-  Dec(sp);
-  ramarray[sp] := bc shr 8;
-  Dec(sp);
-  ramarray[sp] := bc and $00ff;
-  Inc(t_states,11);
-end;
-
-procedure ExecPUSHDE;
-begin
-  Dec(sp);
-  ramarray[sp] := de shr 8;
-  Dec(sp);
-  ramarray[sp] := de and $00ff;
-  Inc(t_states,11);
-end;
-
-procedure ExecPUSHHL;
-begin
-  DecSP;
-  ramarray[sp] := hl shr 8;
-  DecSP;
-  ramarray[sp] := hl and $00ff;
-  Inc(t_states,11);
-end;
-
-procedure ExecRET;
-var newpc: word;
-begin
-  newpc := ramarray[sp];
-  IncSP;
-  newpc := newpc or ramarray[sp] shl 8;
-  IncSP;
-  pc := newpc;
-  Inc(t_states,10);
-end;
-
-procedure ExecRETC;
-begin
-  ExecRETcond(FLAG_CARRY,FLAG_CARRY);
-end;
-
-procedure ExecRETM;
-begin
-  ExecRETcond(FLAG_NEGATIVE,FLAG_NEGATIVE);
-end;
-
-procedure ExecRETNC;
-begin
-  ExecRETcond(FLAG_CARRY,0);
-end;
-
-procedure ExecRETP;
-begin
-  ExecRETcond(FLAG_NEGATIVE,0);
-end;
-
-procedure ExecRETPE;
-begin
-  ExecRETcond(FLAG_PV,FLAG_PV);
-end;
-
-procedure ExecRETPO;
-begin
-  ExecRETcond(FLAG_PV,0);
-end;
-
-procedure ExecRETNZ;
-begin
-  ExecRETcond(FLAG_ZERO,0);
-end;
-
-procedure ExecRETZ;
-begin
-  ExecRETcond(FLAG_ZERO,FLAG_ZERO);
-end;
-
-procedure ExecRRCA;
-var bit0: word;
-begin
-  bit0 := (af and $0100);
-  af := (af and $00FF) or ((af and $FE) shr 1) or (bit0 shl 7);
-  af := (af and ($FF00 or (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT))) or (bit0 shr 8); // Set C flag if reqd and reset H, N
-  Inc(t_states,4);
-end;
-
-procedure ExecRST00;
-begin
-  ExecRST($00);
-end;
-
-procedure ExecRST08;
-begin
-  ExecRST($08);
-end;
-
-procedure ExecRST10;
-begin
-  ExecRST($10);
-end;
-
-procedure ExecRST18;
-begin
-  ExecRST($18);
-end;
-
-procedure ExecRST20;
-begin
-  ExecRST($20);
-end;
-
-procedure ExecRST28;
-begin
-  ExecRST($28);
-end;
-
-procedure ExecRST30;
-begin
-  ExecRST($30);
-end;
-
-procedure ExecRST38;
-begin
-  ExecRST($38);
-end;
-
-procedure ExecSUBA;
-begin
-  ExecSub(af shr 8,4);
-end;
-
-procedure ExecSUBB;
-begin
-  ExecSub(bc shr 8,4);
-end;
-
-procedure ExecSUBC;
-begin
-  ExecSub(bc and $00FF,4);
-end;
-
-procedure ExecSUBD;
-begin
-  ExecSub(de shr 8,4);
-end;
-
-procedure ExecSUBE;
-begin
-  ExecSub(de and $00FF,4);
-end;
-
-procedure ExecSUBH;
-begin
-  ExecSub(hl shr 8,4);
-end;
-
-procedure ExecSUBL;
-begin
-  ExecSub(hl and $00FF,4);
-end;
-
-procedure ExecSUBM;
-begin
-  ExecSub(ramarray[hl],7);
-end;
-
-procedure ExecXORA;
-begin
-  af := af xor (af and $FF00);
-  SetXORflags;
-  Inc(t_states,4);
-end;
-
-procedure ExecXORB;
-begin
-  af := af xor (bc and $FF00);
-  SetXORflags;
-  Inc(t_states,4);
-end;
-
-procedure ExecXORC;
-begin
-  af := af xor ((bc and $00FF) shl 8);
-  SetXORflags;
-  Inc(t_states,4);
-end;
-
-procedure ExecXORD;
-begin
-  af := af xor (de and $FF00);
-  SetXORflags;
-  Inc(t_states,4);
-end;
-
-procedure ExecXORE;
-begin
-  af := af xor ((de and $00FF) shl 8);
-  SetXORflags;
-  Inc(t_states,4);
-end;
-
-procedure ExecXORH;
-begin
-  af := af xor (hl and $FF00);
-  SetXORflags;
-  Inc(t_states,4);
-end;
-
-procedure ExecXORL;
+function TProcessor.ProcessPortIn(_port: byte): byte;
 begin
-  af := af xor ((hl and $00FF) shl 8);
-  SetXORflags;
-  Inc(t_states,4);
+  case _port of
+    SIOA_D: Result := SIO.ChannelA.Data;        // Port 00
+    SIOB_D: Result := SIO.ChannelB.Data;        // Port 01
+    SIOA_C: Result := SIO.ChannelA.Control;     // Port 02
+    SIOB_C: Result := SIO.ChannelB.Control;     // Port 03
+    otherwise
+      raise Exception.Create(Format('Port $%2.2X not catered for',[_port]));
+  end;
 end;
 
-procedure ExecXORM;
-begin
-  af := af xor (ramarray[hl] shl 8);
-  SetXORflags;
-  Inc(t_states,7);
-end;
 
 //=============================================================================
 //
@@ -1102,12 +1322,12 @@ end;
 //
 //=============================================================================
 
-procedure ExecCb;
-var proc: procedure;
+procedure TProcessor.ExecCb; inline;
+var proc: TExecProc;
 begin
   // Get byte to execute
-  opcode := ramarray[pc];
-  IncPC;
+  opcode := ramarray[pregPC^];
+  Inc(pregPC^);
   proc := inst_cb[opcode];
   if proc <> nil then
     proc
@@ -1115,7 +1335,7 @@ begin
     error_flag := error_flag + [efIllegal];
 end;
 
-procedure ExecCbBITreg;
+procedure TProcessor.ExecCbBITreg; inline;
 var _src: byte;
     _mask: byte;
     _reg: byte;
@@ -1124,24 +1344,25 @@ var _src: byte;
 begin
   _reg := (opcode shr 3) and $07;
   _bit := opcode and $07;
+  _src := 0;
   case _reg of
-    0: _src := bc shr 8;
-    1: _src := bc and $00FF;
-    2: _src := de shr 8;
-    3: _src := de and $00FF;
-    4: _src := hl shr 8;
-    5: _src := hl and $00FF;
-    6: _src := ramarray[hl];
-    7: _src := af and $00FF;
+    0: _src := pregB^;
+    1: _src := pregC^;
+    2: _src := pregD^;
+    3: _src := pregE^;
+    4: _src := pregH^;
+    5: _src := pregL^;
+    6: _src := ramarray[pregHL^];
+    7: _src := pregA^;
   end;
   _mask := 1 shl _bit;
   // Set the flags
-  flags := af and $00FF;
+  flags := pregF^;
   flags := flags and NOT_FLAG_ZERO and NOT_FLAG_SUBTRACT; // Reset flags
   flags := flags or FLAG_HALFCARRY;
   if (_src and _mask) = 0 then
     flags := flags or FLAG_ZERO;
-  af := (af and $FF00) or flags;
+  pregF^ := flags;
   // Bump the t_states
   if _reg <> 6 then
     Inc(t_states,8)
@@ -1155,12 +1376,12 @@ end;
 //
 //=============================================================================
 
-procedure ExecEd;
-var proc: procedure;
+procedure TProcessor.ExecEd; inline;
+var proc: TExecProc;
 begin
   // Get byte to execute
-  opcode := ramarray[pc];
-  IncPC;
+  opcode := ramarray[pregPC^];
+  Inc(pregPC^);
   proc := inst_ed[opcode];
   if proc <> nil then
     proc
@@ -1168,26 +1389,21 @@ begin
     error_flag := error_flag + [efIllegal];
 end;
 
-procedure ExecEdIM2;
+procedure TProcessor.ExecEdIM2; inline;
 begin
-  int_mode := 2;
+  pregIntM^ := 2;
   Inc(t_states,8);
 end;
 
-procedure ExecEdLDIA;
+procedure TProcessor.ExecEdLDIA; inline;
 begin
-  ir := (ir and $00FF) or (af and $FF00);
+  pregI^ := pregA^;
   Inc(t_states,9);
 end;
 
-procedure ExecEdRETI;
-var newpc: word;
+procedure TProcessor.ExecEdRETI; inline;
 begin
-  newpc := ramarray[sp];
-  IncSP;
-  newpc := newpc or ramarray[sp] shl 8;
-  IncSP;
-  pc := newpc;
+  pregPC^ := PopWord;
   Inc(t_states,14);
 end;
 
@@ -1195,8 +1411,8 @@ end;
 // one cycle will be executed. Returns False if the instruction could not
 // be executed
 
-function processor_execute: boolean;
-var proc:   procedure;
+function TProcessor.ExecuteInto: boolean;
+var proc:   TExecProc;
     addr:   Word;
     vector: Word;
 {$IFDEF EXEC_TRACE}
@@ -1207,27 +1423,23 @@ begin
 {$IFDEF EXEC_TRACE}
   for i := EXEC_TRACE_SIZE-2 downto 0 do
     exec_trace_log[i+1] := exec_trace_log[i];
-  exec_trace_log[0].af := af;
-  exec_trace_log[0].pc := pc;
+  exec_trace_log[0] := regset;
 {$ENDIF}
   // Check if interrupt waiting
-  if int_flag then
+  if int_flag and (pregIntE^ <> 0) then
     begin
       int_flag := False; // Reset the flag!
-      vector := (ir and $FF00) or (int_vec and $7E);
+      vector := (pregI^ shl 8) or (int_vec and $FE);
       addr := ramarray[vector] or (ramarray[vector+1] shl 8);
-      Dec(sp);
-      ramarray[sp] := pc shr 8;
-      Dec(sp);
-      ramarray[sp] := pc and $00FF;
-      pc := addr;
+      PushWord(pregPC^);
+      pregPC^ := addr;
       Inc(t_states,17); // @@@@@ Find out t states for processing interrupt
     end
   else
     begin
       // Get first byte to execute
-      opcode := ramarray[pc];
-      IncPC;
+      opcode := ramarray[pregPC^];
+      Inc(pregPC^);
       proc := inst_std[opcode];
       if proc <> nil then
         proc
@@ -1239,30 +1451,22 @@ end;
 
 // Cold boot or hard reset
 
-procedure processor_init;
+procedure TProcessor.Init;
 var i: word;
     b: byte;
     n: byte;
+    ri: TRegIndex;
 begin
   t_states := 0;
-  cpu_speed := 4000000; // Default to 4MHz device
-  int_enabled := True;
-  int_mode := 0; // Interrupt mode 0 (IM0) like 8080
-  pc := 0;
-  ir := 0;
-  ix := Word(Random(65536));
-  iy := Word(Random(65536));
-  sp := Word(Random(65536));
+  cpu_speed := 400000000; // Default to 4MHz device
+  pregIntE^ := 1;       // Enable interrupts
+  pregIntM^ := 0;       // Interrupt mode 0 (IM0) like 8080
+  for ri in TRegIndex do
+    regset.registers[ri] := Word(Random(65536));
+  pregPC^ := 0;
+  pregIR^ := 0;
   for i in word do
     ramarray[i] := Byte(Random(256));
-  af  := Word(Random(65536));
-  bc  := Word(Random(65536));
-  de  := Word(Random(65536));
-  hl  := Word(Random(65536));
-  af_ := Word(Random(65536));
-  bc_ := Word(Random(65536));
-  de_ := Word(Random(65536));
-  hl_ := Word(Random(65536));
   // Set up parity table
   for b in byte do
     begin
@@ -1415,7 +1619,7 @@ begin
   inst_ed[$5E] := @ExecEdIM2;
 end;
 
-procedure processor_interrupt(_vec:byte);
+procedure TProcessor.Interrupt(_vec:byte);
 begin
   int_vec := _vec;
   int_flag := True; // Flag the interrupt

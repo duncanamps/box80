@@ -6,7 +6,12 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  ExtCtrls, uprocessor, uterminal;
+  ExtCtrls,
+{$ifdef unix}
+  cthreads,
+  cmem, // the c memory manager is on some systems much faster for multi-threading
+{$endif}
+   uprocessor, uterminal;
 
 const
   MONITOR_COM = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\monitor.bin';
@@ -81,21 +86,10 @@ type
     procedure Timer1Timer(Sender: TObject);
   private
     CancelRequested: boolean;
+    FProcessor: TProcessor;
     FTerminal: TTerminal;
     FTimerClicks: integer;
-    last_af:  Word;
-    last_bc:  Word;
-    last_de:  Word;
-    last_hl:  Word;
-    last_af_: Word;
-    last_bc_: Word;
-    last_de_: Word;
-    last_hl_: Word;
-    last_ir:  Word;
-    last_ix:  Word;
-    last_iy:  Word;
-    last_sp:  Word;
-    last_pc:  Word;
+    last: TRegisterSet;
     procedure HandleSIOtransmitA(_b: byte);
     procedure ShowRegisters;
     procedure Status(const _msg: string);
@@ -111,31 +105,22 @@ implementation
 
 {$R *.lfm}
 
-uses
-  usio;
 
 { TfrmBox80 }
 
 procedure TfrmBox80.btnInitClick(Sender: TObject);
 var strm: TFileStream;
-    b:    byte;
-    t:    integer;
 begin
-  processor_init;
+  FProcessor.Init;
   // Load Grant Searle monitor ROM to $0000
   strm := TFileStream.Create(MONITOR_COM,fmOpenRead);
   try
     // Attempt to read 32K
-    strm.Read(ramarray[0],32768);
+    FProcessor.ReadFromStream(strm,0,32768);
   finally
     FreeAndNil(strm);
   end;
   ShowRegisters;
-  t := 0;
-  for b in byte do
-    if Assigned(inst_std[b]) then
-      Inc(t);
-  Status('%d/256 instructions mapped (%5.1f%%)',[t,t*100.0/256.0]);
 end;
 
 {$DEFINE REAL_SPEED}
@@ -172,19 +157,19 @@ begin
     start_time := Now();
     disp_last := start_time;
     refr_last := start_time;
-    start_t := t_states;
+    start_t := FProcessor.TStates;
     while good do
       begin
-        saved_pc := pc;
-        good := processor_execute;
+        saved_pc := FProcessor.PC;
+        good := FProcessor.ExecuteInto;
         Inc(instructions);
         Inc(instcount);
         if instcount > INST_BATCH then
           begin
             // Add 1mS worth of T states
             instcount := 0;
-            t_elapsed := t_states - start_t;
-            exp_time := t_elapsed / 4.0 / cpu_speed;
+            t_elapsed := FProcessor.TStates - start_t;
+            exp_time := t_elapsed / 4.0 / FProcessor.CPUspeed;
 {$IFDEF REAL_SPEED}
             repeat
               elapsed := (Now() - start_time) * 86400.0;
@@ -210,9 +195,9 @@ begin
               end;
           end;
       end;
-    if efIllegal in error_flag then
+    if efIllegal in FProcessor.ErrorFlag then
       MessageDlg('Error','Illegal instruction at ' + IntToHex(saved_pc),mtError,[mbOK],0);
-    if efHalt in error_flag then
+    if efHalt in FProcessor.ErrorFlag then
       MessageDlg('Information','Processor halted at ' + IntToHex(saved_pc),mtInformation,[mbOK],0);
     ShowRegisters;
   finally
@@ -225,8 +210,8 @@ end;
 procedure TfrmBox80.btnStepClick(Sender: TObject);
 var saved_pc: word;
 begin
-  saved_pc := pc;
-  if not processor_execute then
+  saved_pc := FProcessor.PC;
+  if not FProcessor.ExecuteInto then
     MessageDlg('Error','Illegal instruction at ' + IntToHex(saved_pc),mtError,[mbOK],0);
   ShowRegisters;
 end;
@@ -251,11 +236,13 @@ begin
   FTerminal.Font.Name := 'Lucida Sans Typewriter';
   FTerminal.Font.Size := 10;
   FTimerClicks := 0;
-  sio.ChannelA.OnTransmit := @HandleSIOtransmitA;
+  FProcessor := TProcessor.Create;
+  FProcessor.OnTransmitA := @HandleSIOtransmitA;
 end;
 
 procedure TfrmBox80.FormDestroy(Sender: TObject);
 begin
+  FreeAndNil(FProcessor);
   FreeAndNil(FTerminal);
 end;
 
@@ -263,8 +250,7 @@ procedure TfrmBox80.FormKeyPress(Sender: TObject; var Key: char);
 begin
   // Form keypress routine
   // Put the key in the simulator SIO and trigger an interrupt
-  SIO.ChannelA.Received := Ord(Key);
-  Key := #0; // Deal with key
+  FProcessor.ChannelReceiveA(Ord(key));
   frmBox80.SetFocus;
 end;
 
@@ -290,6 +276,7 @@ end;
 procedure TfrmBox80.ShowRegisters;
 var i: integer;
     addr: Word;
+    rs:   TRegisterSet;
     s: string;
 
   procedure SetFont(_ctrl: TControl; _selected: boolean);
@@ -335,43 +322,44 @@ var i: integer;
   end;
 
 begin
-  ShowByte(edtA, af  shr 8,last_af  shr 8);
-  ShowByte(edtA_,af_ shr 8,last_af_ shr 8);
-  ShowBit(labF7,af,last_af,7);
-  ShowBit(labF6,af,last_af,6);
-  ShowBit(labF5,af,last_af,5);
-  ShowBit(labF4,af,last_af,4);
-  ShowBit(labF3,af,last_af,3);
-  ShowBit(labF2,af,last_af,2);
-  ShowBit(labF1,af,last_af,1);
-  ShowBit(labF0,af,last_af,0);
-  ShowBit(labF_7,af_,last_af_,7);
-  ShowBit(labF_6,af_,last_af_,6);
-  ShowBit(labF_5,af_,last_af_,5);
-  ShowBit(labF_4,af_,last_af_,4);
-  ShowBit(labF_3,af_,last_af_,3);
-  ShowBit(labF_2,af_,last_af_,2);
-  ShowBit(labF_1,af_,last_af_,1);
-  ShowBit(labF_0,af_,last_af_,0);
-  ShowWord(edtBC,bc,last_bc);
-  ShowWord(edtDE,de,last_de);
-  ShowWord(edtHL,hl,last_hl);
-  ShowWord(edtBC_,bc_,last_bc_);
-  ShowWord(edtDE_,de_,last_de_);
-  ShowWord(edtHL_,hl_,last_hl_);
-  ShowWord(edtIR,ir,last_ir);
-  ShowWord(edtIX,ix,last_ix);
-  ShowWord(edtIY,iy,last_iy);
-  ShowWord(edtSP,sp,last_sp);
-  ShowWord(edtPC,pc,last_pc);
+  rs := FProcessor.RegisterSet;
+  ShowByte(edtA, rs.registers[regAF]  shr 8,last.registers[regAF]  shr 8);
+  ShowByte(edtA_,rs.registers[regAF_] shr 8,last.registers[regAF_] shr 8);
+  ShowBit(labF7,rs.registers[regAF],last.registers[regAF],7);
+  ShowBit(labF6,rs.registers[regAF],last.registers[regAF],6);
+  ShowBit(labF5,rs.registers[regAF],last.registers[regAF],5);
+  ShowBit(labF4,rs.registers[regAF],last.registers[regAF],4);
+  ShowBit(labF3,rs.registers[regAF],last.registers[regAF],3);
+  ShowBit(labF2,rs.registers[regAF],last.registers[regAF],2);
+  ShowBit(labF1,rs.registers[regAF],last.registers[regAF],1);
+  ShowBit(labF0,rs.registers[regAF],last.registers[regAF],0);
+  ShowBit(labF_7,rs.registers[regAF_],last.registers[regAF_],7);
+  ShowBit(labF_6,rs.registers[regAF_],last.registers[regAF_],6);
+  ShowBit(labF_5,rs.registers[regAF_],last.registers[regAF_],5);
+  ShowBit(labF_4,rs.registers[regAF_],last.registers[regAF_],4);
+  ShowBit(labF_3,rs.registers[regAF_],last.registers[regAF_],3);
+  ShowBit(labF_2,rs.registers[regAF_],last.registers[regAF_],2);
+  ShowBit(labF_1,rs.registers[regAF_],last.registers[regAF_],1);
+  ShowBit(labF_0,rs.registers[regAF_],last.registers[regAF_],0);
+  ShowWord(edtBC,rs.registers[regBC],last.registers[regBC]);
+  ShowWord(edtDE,rs.registers[regDE],last.registers[regDE]);
+  ShowWord(edtHL,rs.registers[regHL],last.registers[regHL]);
+  ShowWord(edtBC_,rs.registers[regBC_],last.registers[regBC_]);
+  ShowWord(edtDE_,rs.registers[regDE_],last.registers[regDE_]);
+  ShowWord(edtHL_,rs.registers[regHL_],last.registers[regHL_]);
+  ShowWord(edtIR,rs.registers[regIR],last.registers[regIR]);
+  ShowWord(edtIX,rs.registers[regIX],last.registers[regIX]);
+  ShowWord(edtIY,rs.registers[regIY],last.registers[regIY]);
+  ShowWord(edtSP,rs.registers[regSP],last.registers[regSP]);
+  ShowWord(edtPC,rs.registers[regPC],last.registers[regPC]);
   // Show what's at the program counter address
-  addr := pc;
+  addr := rs.registers[regPC];
   s := '';
   for i := 0 to 4 do
     begin
       if s <> '' then
         s := s + ' ';
-      s := s + IntToHex(ramarray[addr]);
+      s := s + IntToHex(FProcessor.RAM[addr]);
       if addr = $FFFF then
         addr := 0
       else
@@ -379,22 +367,10 @@ begin
     end;
   edtAtPC.Text := s;
   // Update T and uS
-  edtT.Text := Format('%-12.0n',[double(t_states)]);
-  edtuS.Text := Format('%-12.2n',[t_states / cpu_speed * 1000000.0 / 4.0]);
+  edtT.Text := Format('%-12.0n',[double(FProcessor.TStates)]);
+  edtuS.Text := Format('%-12.2n',[FProcessor.TStates / FProcessor.CpuSpeed * 1000000.0 / 4.0]);
   // Update the "last" variables
-  last_af  := af;
-  last_bc  := bc;
-  last_de  := de;
-  last_hl  := hl;
-  last_af_ := af_;
-  last_bc_ := bc_;
-  last_de_ := de_;
-  last_hl_ := hl_;
-  last_ir  := ir;
-  last_ix  := ix;
-  last_iy  := iy;
-  last_sp  := sp;
-  last_pc  := pc;
+  last := rs;
 end;
 
 procedure TfrmBox80.Status(const _msg: string);
