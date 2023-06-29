@@ -277,6 +277,7 @@ type
       function  ProcessPortIn(_port: byte): byte;
       procedure ProcessPortOut(_port, _byte: byte);
       procedure PushWord(_word: Word); inline;
+      procedure SetCPUspeed(_speed: int64);
       procedure SetOnTransmitA(_proc: TSIOtransmitProc);
       procedure SetPCrelative(_b: byte); inline;
       procedure SetProcessorState(_ps: TProcessorState);
@@ -293,7 +294,7 @@ type
       procedure ExecuteStop;              // Stop processor if it's running
       procedure Init;                     // Initialise COLD
       procedure ReadFromStream(_strm: TStream; _start, _length: integer);
-      property CPUspeed: int64 read cpu_speed;
+      property CPUspeed: int64 read cpu_speed write SetCPUspeed;
       property ErrorFlag: TErrorFlags read error_flag;
       property OnStateChange: TStateChangeProc read FOnStateChange write FOnStateChange;
       property OnTransmitA: TSIOtransmitProc read FOnTransmitA write SetOnTransmitA;
@@ -1289,6 +1290,14 @@ end;
 procedure TProcessor.ReadFromStream(_strm: TStream; _start, _length: integer);
 begin
   _strm.Read(ramarray[_start],_length);
+end;
+
+procedure TProcessor.SetCPUspeed(_speed: int64);
+begin
+  t_states := 0;
+  cpu_speed := _speed;
+  run_start_time := Now();
+  run_start_cycles := 0;
 end;
 
 procedure TProcessor.SetPCrelative(_b: byte); inline;

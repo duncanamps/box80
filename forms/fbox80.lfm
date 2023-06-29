@@ -610,6 +610,34 @@ object frmBox80: TfrmBox80
       object miDebugSep1: TMenuItem
         Caption = '-'
       end
+      object miDebugCPU: TMenuItem
+        Caption = 'CPU speed'
+        Hint = 'Set speed to 4.0MHz'
+        object miDebugCPU25: TMenuItem
+          Action = actDebugCPU25
+        end
+        object miDebugCPU40: TMenuItem
+          Action = actDebugCPU40
+        end
+        object miDebugCPU80: TMenuItem
+          Action = actDebugCPU80
+        end
+        object miDebugCPU100: TMenuItem
+          Action = actDebugCPU100
+        end
+        object miDebugCPU200: TMenuItem
+          Action = actDebugCPU200
+        end
+        object miDebugCPU333: TMenuItem
+          Action = actDebugCPU333
+        end
+      end
+      object miDebugSep2: TMenuItem
+        Caption = '-'
+      end
+      object miDebugReset: TMenuItem
+        Action = actDebugReset
+      end
     end
   end
   object ActionList1: TActionList
@@ -647,6 +675,47 @@ object frmBox80: TfrmBox80
       Hint = 'Stop the processor'
       OnExecute = actDebugStopExecute
       ShortCut = 16497
+    end
+    object actDebugReset: TAction
+      Category = 'Debug'
+      Caption = 'Reset'
+      Hint = 'Perform a cold reset of the machine'
+    end
+    object actDebugCPU40: TAction
+      Category = 'Debug'
+      Caption = '4.0MHz'
+      Hint = 'Set speed to 4.0MHz'
+      OnExecute = actDebugCPU40Execute
+    end
+    object actDebugCPU25: TAction
+      Category = 'Debug'
+      Caption = '2.5MHz'
+      Hint = 'Set speed to 2.5MHz'
+      OnExecute = actDebugCPU25Execute
+    end
+    object actDebugCPU80: TAction
+      Category = 'Debug'
+      Caption = '8.0MHz'
+      Hint = 'Set CPU speed to 8.0MHz'
+      OnExecute = actDebugCPU80Execute
+    end
+    object actDebugCPU100: TAction
+      Category = 'Debug'
+      Caption = '10.0MHz'
+      Hint = 'Set CPU speed to 10.0MHz'
+      OnExecute = actDebugCPU100Execute
+    end
+    object actDebugCPU200: TAction
+      Category = 'Debug'
+      Caption = '20.0MHz'
+      Hint = 'Set CPU speed to 20.0MHz'
+      OnExecute = actDebugCPU200Execute
+    end
+    object actDebugCPU333: TAction
+      Category = 'Debug'
+      Caption = '33.3MHz'
+      Hint = 'Set CPU speed to 33.3MHz'
+      OnExecute = actDebugCPU333Execute
     end
   end
 end
