@@ -488,14 +488,6 @@ object frmBox80: TfrmBox80
     TabOrder = 13
     Text = '0000'
   end
-  object btnStepInto: TButton
-    Left = 25
-    Height = 31
-    Top = 16
-    Width = 94
-    Action = actDebugStepInto
-    TabOrder = 14
-  end
   object Label15: TLabel
     Left = 25
     Height = 20
@@ -512,7 +504,7 @@ object frmBox80: TfrmBox80
     Font.Name = 'Lucida Sans Typewriter'
     ParentFont = False
     ReadOnly = True
-    TabOrder = 15
+    TabOrder = 14
     Text = '0'
   end
   object Label16: TLabel
@@ -531,16 +523,8 @@ object frmBox80: TfrmBox80
     Font.Name = 'Lucida Sans Typewriter'
     ParentFont = False
     ReadOnly = True
-    TabOrder = 16
+    TabOrder = 15
     Text = '0'
-  end
-  object btnRun: TButton
-    Left = 232
-    Height = 31
-    Top = 16
-    Width = 94
-    Action = actDebugRun
-    TabOrder = 17
   end
   object StatusBar1: TStatusBar
     Left = 0
@@ -548,15 +532,6 @@ object frmBox80: TfrmBox80
     Top = 544
     Width = 1070
     Panels = <>
-  end
-  object btnStop: TButton
-    Left = 336
-    Height = 31
-    Top = 16
-    Width = 94
-    Action = actDebugStop
-    OnClick = btnStopClick
-    TabOrder = 19
   end
   object labStatus: TLabel
     Left = 24
@@ -570,27 +545,113 @@ object frmBox80: TfrmBox80
     ParentColor = False
     Transparent = False
   end
-  object btnStepOver: TButton
-    Left = 129
-    Height = 31
-    Top = 16
-    Width = 94
-    Action = actDebugStepOver
-    TabOrder = 20
-  end
   object pnlButton: TPanel
-    Left = 605
-    Height = 63
-    Top = 40
-    Width = 213
-    ClientHeight = 63
-    ClientWidth = 213
-    TabOrder = 21
+    Left = 0
+    Height = 34
+    Top = 0
+    Width = 1070
+    Align = alTop
+    ClientHeight = 34
+    ClientWidth = 1070
+    ParentColor = False
+    TabOrder = 17
     object SpeedButton1: TSpeedButton
-      Left = 44
-      Height = 28
-      Top = 6
-      Width = 29
+      Left = 1
+      Height = 32
+      Top = 1
+      Width = 32
+      Action = actFileExit
+      Align = alLeft
+      Images = ImageList1
+      ImageIndex = 0
+      Spacing = -1
+      ShowCaption = False
+      ShowHint = True
+      ParentShowHint = False
+    end
+    object SpeedButton2: TSpeedButton
+      Left = 49
+      Height = 32
+      Top = 1
+      Width = 32
+      Action = actVMReset
+      Align = alLeft
+      Images = ImageList1
+      ImageIndex = 1
+      Spacing = -1
+      ShowCaption = False
+      ShowHint = True
+      ParentShowHint = False
+    end
+    object pnlFileEnd: TPanel
+      Left = 33
+      Height = 32
+      Top = 1
+      Width = 16
+      Align = alLeft
+      BevelOuter = bvNone
+      TabOrder = 0
+    end
+    object pnlFileEnd1: TPanel
+      Left = 81
+      Height = 32
+      Top = 1
+      Width = 16
+      Align = alLeft
+      BevelOuter = bvNone
+      TabOrder = 1
+    end
+    object SpeedButton3: TSpeedButton
+      Left = 97
+      Height = 32
+      Top = 1
+      Width = 32
+      Action = actDebugStepInto
+      Align = alLeft
+      Images = ImageList1
+      ImageIndex = 2
+      ShowCaption = False
+      ShowHint = True
+      ParentShowHint = False
+    end
+    object SpeedButton4: TSpeedButton
+      Left = 129
+      Height = 32
+      Top = 1
+      Width = 32
+      Action = actDebugStepOver
+      Align = alLeft
+      Images = ImageList1
+      ImageIndex = 3
+      ShowCaption = False
+      ShowHint = True
+      ParentShowHint = False
+    end
+    object SpeedButton5: TSpeedButton
+      Left = 161
+      Height = 32
+      Top = 1
+      Width = 32
+      Action = actDebugRun
+      Align = alLeft
+      Images = ImageList1
+      ImageIndex = 4
+      ShowCaption = False
+      ShowHint = True
+      ParentShowHint = False
+    end
+    object SpeedButton6: TSpeedButton
+      Left = 193
+      Height = 32
+      Top = 1
+      Width = 32
+      Action = actDebugStop
+      Align = alLeft
+      Images = ImageList1
+      ImageIndex = 5
+      ShowCaption = False
+      ShowHint = True
+      ParentShowHint = False
     end
   end
   object Timer1: TTimer
@@ -600,12 +661,43 @@ object frmBox80: TfrmBox80
     Top = 248
   end
   object MainMenu1: TMainMenu
+    Images = ImageList1
     Left = 216
     Top = 160
     object miFile: TMenuItem
       Caption = '&File'
       object miFileExit: TMenuItem
         Action = actFileExit
+      end
+    end
+    object miVM: TMenuItem
+      Caption = '&VM'
+      object miVMCPU: TMenuItem
+        Caption = 'CPU speed'
+        object miVMCPU25: TMenuItem
+          Action = actVMCPU25
+        end
+        object miVMCPU40: TMenuItem
+          Action = actVMCPU40
+        end
+        object miVMCPU80: TMenuItem
+          Action = actVMCPU80
+        end
+        object miVMCPU100: TMenuItem
+          Action = actVMCPU100
+        end
+        object miVMCPU200: TMenuItem
+          Action = actVMCPU200
+        end
+        object miVMCPU333: TMenuItem
+          Action = actVMCPU333
+        end
+      end
+      object miVMsep1: TMenuItem
+        Caption = '-'
+      end
+      object miVMReset: TMenuItem
+        Action = actVMReset
       end
     end
     object miDebug: TMenuItem
@@ -622,46 +714,17 @@ object frmBox80: TfrmBox80
       object miDebugStop: TMenuItem
         Action = actDebugStop
       end
-      object miDebugSep1: TMenuItem
-        Caption = '-'
-      end
-      object miDebugCPU: TMenuItem
-        Caption = 'CPU speed'
-        Hint = 'Set speed to 4.0MHz'
-        object miDebugCPU25: TMenuItem
-          Action = actDebugCPU25
-        end
-        object miDebugCPU40: TMenuItem
-          Action = actDebugCPU40
-        end
-        object miDebugCPU80: TMenuItem
-          Action = actDebugCPU80
-        end
-        object miDebugCPU100: TMenuItem
-          Action = actDebugCPU100
-        end
-        object miDebugCPU200: TMenuItem
-          Action = actDebugCPU200
-        end
-        object miDebugCPU333: TMenuItem
-          Action = actDebugCPU333
-        end
-      end
-      object miDebugSep2: TMenuItem
-        Caption = '-'
-      end
-      object miDebugReset: TMenuItem
-        Action = actDebugReset
-      end
     end
   end
   object ActionList1: TActionList
+    Images = ImageList1
     Left = 216
-    Top = 256
+    Top = 264
     object actFileExit: TAction
       Category = 'File'
       Caption = 'E&xit'
       Hint = 'Exit this application'
+      ImageIndex = 0
       OnExecute = actFileExitExecute
       ShortCut = 32883
     end
@@ -669,13 +732,15 @@ object frmBox80: TfrmBox80
       Category = 'Debug'
       Caption = 'Step into'
       Hint = 'Step the processor by one instruction'
+      ImageIndex = 2
       OnExecute = actDebugStepIntoExecute
       ShortCut = 118
     end
     object actDebugStepOver: TAction
       Category = 'Debug'
       Caption = 'Step over'
-      Hint = 'Step over any CALL or repeat instructions like LDIR'
+      Hint = 'Step over the next instruction'
+      ImageIndex = 3
       OnExecute = actDebugStepOverExecute
       ShortCut = 119
     end
@@ -683,6 +748,7 @@ object frmBox80: TfrmBox80
       Category = 'Debug'
       Caption = 'Run'
       Hint = 'Run the processor continuously'
+      ImageIndex = 4
       OnExecute = actDebugRunExecute
       ShortCut = 120
     end
@@ -690,50 +756,80 @@ object frmBox80: TfrmBox80
       Category = 'Debug'
       Caption = 'Stop'
       Hint = 'Stop the processor'
+      ImageIndex = 5
       OnExecute = actDebugStopExecute
       ShortCut = 16497
     end
-    object actDebugReset: TAction
-      Category = 'Debug'
+    object actVMReset: TAction
+      Category = 'VM'
       Caption = 'Reset'
       Hint = 'Perform a cold reset of the machine'
-      OnExecute = actDebugResetExecute
+      ImageIndex = 1
+      OnExecute = actVMResetExecute
     end
-    object actDebugCPU40: TAction
-      Category = 'Debug'
+    object actVMCPU40: TAction
+      Category = 'VM'
       Caption = '4.0MHz'
       Hint = 'Set speed to 4.0MHz'
-      OnExecute = actDebugCPU40Execute
+      OnExecute = actVMCPU40Execute
     end
-    object actDebugCPU25: TAction
-      Category = 'Debug'
+    object actVMCPU25: TAction
+      Category = 'VM'
       Caption = '2.5MHz'
       Hint = 'Set speed to 2.5MHz'
-      OnExecute = actDebugCPU25Execute
+      OnExecute = actVMCPU25Execute
     end
-    object actDebugCPU80: TAction
-      Category = 'Debug'
+    object actVMCPU80: TAction
+      Category = 'VM'
       Caption = '8.0MHz'
       Hint = 'Set CPU speed to 8.0MHz'
-      OnExecute = actDebugCPU80Execute
+      OnExecute = actVMCPU80Execute
     end
-    object actDebugCPU100: TAction
-      Category = 'Debug'
+    object actVMCPU100: TAction
+      Category = 'VM'
       Caption = '10.0MHz'
       Hint = 'Set CPU speed to 10.0MHz'
-      OnExecute = actDebugCPU100Execute
+      OnExecute = actVMCPU100Execute
     end
-    object actDebugCPU200: TAction
-      Category = 'Debug'
+    object actVMCPU200: TAction
+      Category = 'VM'
       Caption = '20.0MHz'
       Hint = 'Set CPU speed to 20.0MHz'
-      OnExecute = actDebugCPU200Execute
+      OnExecute = actVMCPU200Execute
     end
-    object actDebugCPU333: TAction
-      Category = 'Debug'
+    object actVMCPU333: TAction
+      Category = 'VM'
       Caption = '33.3MHz'
       Hint = 'Set CPU speed to 33.3MHz'
-      OnExecute = actDebugCPU333Execute
+      OnExecute = actVMCPU333Execute
     end
+  end
+  object ImageList1: TImageList
+    Left = 338
+    Top = 92
+    Bitmap = {
+      4C7A060000001000000010000000A30200000000000078DAED56AD52EC3014AE
+      40207800440C02834256AEBC0699B7C0F40D50C8153C02B84ADCB5983C0188BB
+      6A276267B0CB4C653827699AD36CD2A4E95CD87B87EC7E33BB49BF9CBFEFA4A9
+      AAE31A2727E7ECECEC17BFBCFCA328700ED7527CC65A619FA7C0395C9BB28BEB
+      17172FF2F4F4BAF6D7710ED7F099901FD646884BF7B0BEF96BB1F9989DBFCDB7
+      F9F0E3CDE5D31A86E653F90BF1A7F2E7D7CFE7A7EA47F5433543B534A51FEA87
+      AF61ABDD1CFDFA7A8BE931778F4C2E3EC367A21EB84D2301585387B675A86B37
+      8FBF710E39D62EE532A62A21D4EA5D69548D8079EEB84A19E01ECE97817FF55B
+      A8BB57E0AE0C60AA07FA221DDFF8E4F86017B99C534E00B8878BC7F185B13BC9
+      B57E387F0D1F62D1F1AE72F8CAE483FA3F978F39A5F9D3F51099B6B7C0DD8EF9
+      DA175ECE1FF2D1A6F9FC45E7FA20FF5A5732C17F53D5FAD9688CF247BA929E1F
+      5B03B48B5CAA719ABFB1AE4C3E749EFB78D1676757F59AE743FFC4FAC482DA45
+      AEEB9FA5FD7BAC23378EF08106F96B216F29448DC341D075DD0005FB2929150E
+      FCBFDFEF35A6F8BBDD6E801613EE0103FF6F361B0D2842DD82E07CC08B577537
+      371AA34369BD9E6D5F0FE4826E7CFBB9F177F7F7E3FF3D72E38F21C7BE3F8AE2
+      27636EFCDF6DDFF7A3447FD48F1CFB3FFDFF35F9CFEE7F787F2CD21F9C1B768F
+      22FD3D3E1A94F6FFC38341A4FFD7F0E5A49E07FD07B5D208C4DFC017CF379F3F
+      8A1FCFBEFEFCF6F30F2F527D7180CBBD88E67FA2FF718FA4FD44FFE31E357927
+      FF83FDDF2C6233B8D7F0E14EC50A4E0BA53F2DDE9D2A31DB1FCBB71F31D31F9F
+      AF66FA13E3E7FA93E21FFA339F2FB4FD3678774CF1719D619B17E7EF6BEA277B
+      9BA5FA31BEF2820E907D6E4BC7B1DFE7D32740FE3B9F85EF0BB750B7A7046E55
+      A43EDCAC7F24F0F4C3FF6FF98BF4B354BFDF323E01AA3E05FE
+    }
   end
 end

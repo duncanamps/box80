@@ -27,18 +27,14 @@ type
     actDebugStepOver: TAction;
     actDebugRun: TAction;
     actDebugStop: TAction;
-    actDebugReset: TAction;
-    actDebugCPU40: TAction;
-    actDebugCPU25: TAction;
-    actDebugCPU80: TAction;
-    actDebugCPU100: TAction;
-    actDebugCPU200: TAction;
-    actDebugCPU333: TAction;
+    actVMReset: TAction;
+    actVMCPU40: TAction;
+    actVMCPU25: TAction;
+    actVMCPU80: TAction;
+    actVMCPU100: TAction;
+    actVMCPU200: TAction;
+    actVMCPU333: TAction;
     ActionList1: TActionList;
-    btnStepInto: TButton;
-    btnRun: TButton;
-    btnStop: TButton;
-    btnStepOver: TButton;
     edtT: TEdit;
     edtuS: TEdit;
     edtA_: TEdit;
@@ -55,6 +51,7 @@ type
     edtHL: TEdit;
     edtDE: TEdit;
     edtBC: TEdit;
+    ImageList1: TImageList;
     Label1: TLabel;
     Label10: TLabel;
     Label11: TLabel;
@@ -89,34 +86,41 @@ type
     Label9: TLabel;
     labF_7: TLabel;
     MainMenu1: TMainMenu;
-    miDebugCPU25: TMenuItem;
-    miDebugCPU40: TMenuItem;
-    miDebugCPU80: TMenuItem;
-    miDebugCPU100: TMenuItem;
-    miDebugCPU200: TMenuItem;
-    miDebugCPU333: TMenuItem;
-    miDebugCPU: TMenuItem;
-    miDebugReset: TMenuItem;
-    miDebugSep2: TMenuItem;
+    miVMCPU: TMenuItem;
+    miVMCPU25: TMenuItem;
+    miVMCPU40: TMenuItem;
+    miVMCPU80: TMenuItem;
+    miVMCPU100: TMenuItem;
+    miVMCPU200: TMenuItem;
+    miVMCPU333: TMenuItem;
+    miVMReset: TMenuItem;
+    miVMsep1: TMenuItem;
+    miVM: TMenuItem;
     miDebugStepInto: TMenuItem;
     miDebugStepOver: TMenuItem;
     miDebugRun: TMenuItem;
     miDebugStop: TMenuItem;
-    miDebugSep1: TMenuItem;
     miFileExit: TMenuItem;
     miDebug: TMenuItem;
     miFile: TMenuItem;
+    pnlFileEnd: TPanel;
     pnlButton: TPanel;
+    pnlFileEnd1: TPanel;
     SpeedButton1: TSpeedButton;
+    SpeedButton2: TSpeedButton;
+    SpeedButton3: TSpeedButton;
+    SpeedButton4: TSpeedButton;
+    SpeedButton5: TSpeedButton;
+    SpeedButton6: TSpeedButton;
     StatusBar1: TStatusBar;
     Timer1: TTimer;
-    procedure actDebugCPU100Execute(Sender: TObject);
-    procedure actDebugCPU200Execute(Sender: TObject);
-    procedure actDebugCPU25Execute(Sender: TObject);
-    procedure actDebugCPU333Execute(Sender: TObject);
-    procedure actDebugCPU40Execute(Sender: TObject);
-    procedure actDebugCPU80Execute(Sender: TObject);
-    procedure actDebugResetExecute(Sender: TObject);
+    procedure actVMCPU100Execute(Sender: TObject);
+    procedure actVMCPU200Execute(Sender: TObject);
+    procedure actVMCPU25Execute(Sender: TObject);
+    procedure actVMCPU333Execute(Sender: TObject);
+    procedure actVMCPU40Execute(Sender: TObject);
+    procedure actVMCPU80Execute(Sender: TObject);
+    procedure actVMResetExecute(Sender: TObject);
     procedure actDebugRunExecute(Sender: TObject);
     procedure actDebugStepIntoExecute(Sender: TObject);
     procedure actDebugStepOverExecute(Sender: TObject);
@@ -194,17 +198,17 @@ begin
   FProcessor.ExecuteStepOver;
 end;
 
-procedure TfrmBox80.actDebugCPU40Execute(Sender: TObject);
+procedure TfrmBox80.actVMCPU40Execute(Sender: TObject);
 begin
   FProcessor.CPUspeed := 4000000;
 end;
 
-procedure TfrmBox80.actDebugCPU80Execute(Sender: TObject);
+procedure TfrmBox80.actVMCPU80Execute(Sender: TObject);
 begin
   FProcessor.CPUspeed := 8000000;
 end;
 
-procedure TfrmBox80.actDebugResetExecute(Sender: TObject);
+procedure TfrmBox80.actVMResetExecute(Sender: TObject);
 var saved_state: TProcessorState;
 begin
   saved_state := FProcessor.ProcessorState;
@@ -223,22 +227,22 @@ begin
   }
 end;
 
-procedure TfrmBox80.actDebugCPU25Execute(Sender: TObject);
+procedure TfrmBox80.actVMCPU25Execute(Sender: TObject);
 begin
   FProcessor.CPUspeed := 2500000;
 end;
 
-procedure TfrmBox80.actDebugCPU333Execute(Sender: TObject);
+procedure TfrmBox80.actVMCPU333Execute(Sender: TObject);
 begin
   FProcessor.CPUspeed := 33333333;
 end;
 
-procedure TfrmBox80.actDebugCPU100Execute(Sender: TObject);
+procedure TfrmBox80.actVMCPU100Execute(Sender: TObject);
 begin
   FProcessor.CPUspeed := 10000000;
 end;
 
-procedure TfrmBox80.actDebugCPU200Execute(Sender: TObject);
+procedure TfrmBox80.actVMCPU200Execute(Sender: TObject);
 begin
   FProcessor.CPUspeed := 20000000;
 end;
