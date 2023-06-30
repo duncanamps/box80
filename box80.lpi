@@ -68,6 +68,9 @@
     </RunParams>
     <RequiredPackages>
       <Item>
+        <PackageName Value="AnchorDocking"/>
+      </Item>
+      <Item>
         <PackageName Value="BGRABitmapPack"/>
       </Item>
       <Item>

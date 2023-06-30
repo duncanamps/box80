@@ -1,11 +1,11 @@
 object frmBox80: TfrmBox80
   Left = 411
-  Height = 598
+  Height = 759
   Top = 220
-  Width = 1070
+  Width = 1048
   Caption = 'frmBox80'
-  ClientHeight = 573
-  ClientWidth = 1070
+  ClientHeight = 734
+  ClientWidth = 1048
   DesignTimePPI = 120
   Menu = MainMenu1
   OnActivate = FormActivate
@@ -13,548 +13,23 @@ object frmBox80: TfrmBox80
   OnDestroy = FormDestroy
   OnKeyPress = FormKeyPress
   LCLVersion = '2.2.6.0'
-  object Label1: TLabel
-    Left = 24
-    Height = 20
-    Top = 66
-    Width = 17
-    Caption = 'AF'
-    ParentColor = False
-  end
-  object Label2: TLabel
-    Left = 24
-    Height = 20
-    Top = 138
-    Width = 18
-    Caption = 'BC'
-    ParentColor = False
-  end
-  object Label3: TLabel
-    Left = 24
-    Height = 20
-    Top = 170
-    Width = 19
-    Caption = 'DE'
-    ParentColor = False
-  end
-  object Label4: TLabel
-    Left = 24
-    Height = 20
-    Top = 202
-    Width = 18
-    Caption = 'HL'
-    ParentColor = False
-  end
-  object Label5: TLabel
-    Left = 129
-    Height = 20
-    Top = 66
-    Width = 20
-    Caption = 'AF'''
-    ParentColor = False
-  end
-  object Label6: TLabel
-    Left = 129
-    Height = 20
-    Top = 138
-    Width = 21
-    Caption = 'BC'''
-    ParentColor = False
-  end
-  object Label7: TLabel
-    Left = 129
-    Height = 20
-    Top = 170
-    Width = 22
-    Caption = 'DE'''
-    ParentColor = False
-  end
-  object Label8: TLabel
-    Left = 129
-    Height = 20
-    Top = 202
-    Width = 21
-    Caption = 'HL'''
-    ParentColor = False
-  end
-  object Label9: TLabel
-    Left = 24
-    Height = 20
-    Top = 234
-    Width = 13
-    Caption = 'IR'
-    ParentColor = False
-  end
-  object Label10: TLabel
-    Left = 24
-    Height = 20
-    Top = 266
-    Width = 13
-    Caption = 'IX'
-    ParentColor = False
-  end
-  object Label11: TLabel
-    Left = 24
-    Height = 20
-    Top = 298
-    Width = 12
-    Caption = 'IY'
-    ParentColor = False
-  end
-  object Label12: TLabel
-    Left = 24
-    Height = 20
-    Top = 362
-    Width = 17
-    Caption = 'PC'
-    ParentColor = False
-  end
-  object Label13: TLabel
-    Left = 24
-    Height = 20
-    Top = 331
-    Width = 16
-    Caption = 'SP'
-    ParentColor = False
-  end
-  object edtBC: TEdit
-    Left = 56
-    Height = 25
-    Top = 136
-    Width = 46
-    Font.Name = 'Lucida Sans Typewriter'
-    ParentFont = False
-    TabOrder = 0
-    Text = '0000'
-  end
-  object edtDE: TEdit
-    Left = 56
-    Height = 25
-    Top = 168
-    Width = 46
-    Font.Name = 'Lucida Sans Typewriter'
-    ParentFont = False
-    TabOrder = 1
-    Text = '0000'
-  end
-  object edtHL: TEdit
-    Left = 56
-    Height = 25
-    Top = 200
-    Width = 46
-    Font.Name = 'Lucida Sans Typewriter'
-    ParentFont = False
-    TabOrder = 2
-    Text = '0000'
-  end
-  object edtBC_: TEdit
-    Left = 161
-    Height = 25
-    Top = 136
-    Width = 46
-    Font.Name = 'Lucida Sans Typewriter'
-    ParentFont = False
-    TabOrder = 3
-    Text = '0000'
-  end
-  object edtDE_: TEdit
-    Left = 161
-    Height = 28
-    Top = 168
-    Width = 46
-    TabOrder = 4
-    Text = '0000'
-  end
-  object edtHL_: TEdit
-    Left = 161
-    Height = 25
-    Top = 200
-    Width = 46
-    Font.Name = 'Lucida Sans Typewriter'
-    ParentFont = False
-    TabOrder = 5
-    Text = '0000'
-  end
-  object edtA: TEdit
-    Left = 56
-    Height = 25
-    Top = 64
-    Width = 26
-    Font.Name = 'Lucida Sans Typewriter'
-    ParentFont = False
-    TabOrder = 6
-    Text = '00'
-  end
-  object edtA_: TEdit
-    Left = 161
-    Height = 25
-    Top = 64
-    Width = 26
-    Font.Name = 'Lucida Sans Typewriter'
-    ParentFont = False
-    TabOrder = 7
-    Text = '00'
-  end
-  object labF7: TLabel
-    Left = 24
-    Height = 15
-    Top = 96
-    Width = 20
-    Alignment = taCenter
-    AutoSize = False
-    Caption = 'S'
-    Color = clGradientInactiveCaption
-    Font.Name = 'Lucida Console'
-    ParentColor = False
-    ParentFont = False
-    Transparent = False
-  end
-  object labF6: TLabel
-    Left = 48
-    Height = 15
-    Top = 96
-    Width = 20
-    Alignment = taCenter
-    AutoSize = False
-    Caption = 'Z'
-    Color = clGradientInactiveCaption
-    Font.Name = 'Lucida Console'
-    ParentColor = False
-    ParentFont = False
-    Transparent = False
-  end
-  object labF5: TLabel
-    Left = 72
-    Height = 15
-    Top = 96
-    Width = 20
-    Alignment = taCenter
-    AutoSize = False
-    Caption = 'X'
-    Color = clGradientInactiveCaption
-    Font.Name = 'Lucida Console'
-    ParentColor = False
-    ParentFont = False
-    Transparent = False
-  end
-  object labF4: TLabel
-    Left = 96
-    Height = 15
-    Top = 96
-    Width = 20
-    Alignment = taCenter
-    AutoSize = False
-    Caption = 'H'
-    Color = clGradientInactiveCaption
-    Font.Name = 'Lucida Console'
-    ParentColor = False
-    ParentFont = False
-    Transparent = False
-  end
-  object labF3: TLabel
-    Left = 24
-    Height = 15
-    Top = 114
-    Width = 20
-    Alignment = taCenter
-    AutoSize = False
-    Caption = 'X'
-    Color = clGradientInactiveCaption
-    Font.Name = 'Lucida Console'
-    ParentColor = False
-    ParentFont = False
-    Transparent = False
-  end
-  object labF2: TLabel
-    Left = 48
-    Height = 15
-    Top = 114
-    Width = 20
-    Alignment = taCenter
-    AutoSize = False
-    Caption = 'PV'
-    Color = clGradientInactiveCaption
-    Font.Name = 'Lucida Console'
-    ParentColor = False
-    ParentFont = False
-    Transparent = False
-  end
-  object labF1: TLabel
-    Left = 72
-    Height = 15
-    Top = 114
-    Width = 20
-    Alignment = taCenter
-    AutoSize = False
-    Caption = 'N'
-    Color = clGradientInactiveCaption
-    Font.Name = 'Lucida Console'
-    ParentColor = False
-    ParentFont = False
-    Transparent = False
-  end
-  object labF0: TLabel
-    Left = 96
-    Height = 15
-    Top = 114
-    Width = 20
-    Alignment = taCenter
-    AutoSize = False
-    Caption = 'C'
-    Color = clGradientInactiveCaption
-    Font.Name = 'Lucida Console'
-    ParentColor = False
-    ParentFont = False
-    Transparent = False
-  end
-  object labF_7: TLabel
-    Left = 129
-    Height = 15
-    Top = 96
-    Width = 20
-    Alignment = taCenter
-    AutoSize = False
-    Caption = 'S'
-    Color = clGradientInactiveCaption
-    Font.Name = 'Lucida Console'
-    ParentColor = False
-    ParentFont = False
-    Transparent = False
-  end
-  object labF_6: TLabel
-    Left = 153
-    Height = 15
-    Top = 96
-    Width = 20
-    Alignment = taCenter
-    AutoSize = False
-    Caption = 'Z'
-    Color = clGradientInactiveCaption
-    Font.Name = 'Lucida Console'
-    ParentColor = False
-    ParentFont = False
-    Transparent = False
-  end
-  object labF_5: TLabel
-    Left = 177
-    Height = 15
-    Top = 96
-    Width = 20
-    Alignment = taCenter
-    AutoSize = False
-    Caption = 'X'
-    Color = clGradientInactiveCaption
-    Font.Name = 'Lucida Console'
-    ParentColor = False
-    ParentFont = False
-    Transparent = False
-  end
-  object labF_4: TLabel
-    Left = 201
-    Height = 15
-    Top = 96
-    Width = 20
-    Alignment = taCenter
-    AutoSize = False
-    Caption = 'H'
-    Color = clGradientInactiveCaption
-    Font.Name = 'Lucida Console'
-    ParentColor = False
-    ParentFont = False
-    Transparent = False
-  end
-  object labF_3: TLabel
-    Left = 129
-    Height = 15
-    Top = 114
-    Width = 20
-    Alignment = taCenter
-    AutoSize = False
-    Caption = 'X'
-    Color = clGradientInactiveCaption
-    Font.Name = 'Lucida Console'
-    ParentColor = False
-    ParentFont = False
-    Transparent = False
-  end
-  object labF_2: TLabel
-    Left = 153
-    Height = 15
-    Top = 114
-    Width = 20
-    Alignment = taCenter
-    AutoSize = False
-    Caption = 'PV'
-    Color = clGradientInactiveCaption
-    Font.Name = 'Lucida Console'
-    ParentColor = False
-    ParentFont = False
-    Transparent = False
-  end
-  object labF_1: TLabel
-    Left = 177
-    Height = 15
-    Top = 114
-    Width = 20
-    Alignment = taCenter
-    AutoSize = False
-    Caption = 'N'
-    Color = clGradientInactiveCaption
-    Font.Name = 'Lucida Console'
-    ParentColor = False
-    ParentFont = False
-    Transparent = False
-  end
-  object labF_0: TLabel
-    Left = 200
-    Height = 15
-    Top = 114
-    Width = 20
-    Alignment = taCenter
-    AutoSize = False
-    Caption = 'C'
-    Color = clGradientInactiveCaption
-    Font.Name = 'Lucida Console'
-    ParentColor = False
-    ParentFont = False
-    Transparent = False
-  end
-  object edtIR: TEdit
-    Left = 56
-    Height = 25
-    Top = 232
-    Width = 46
-    Font.Name = 'Lucida Sans Typewriter'
-    ParentFont = False
-    TabOrder = 8
-    Text = '0000'
-  end
-  object edtIX: TEdit
-    Left = 56
-    Height = 25
-    Top = 264
-    Width = 46
-    Font.Name = 'Lucida Sans Typewriter'
-    ParentFont = False
-    TabOrder = 9
-    Text = '0000'
-  end
-  object edtIY: TEdit
-    Left = 56
-    Height = 25
-    Top = 296
-    Width = 46
-    Font.Name = 'Lucida Sans Typewriter'
-    ParentFont = False
-    TabOrder = 10
-    Text = '0000'
-  end
-  object edtSP: TEdit
-    Left = 56
-    Height = 25
-    Top = 329
-    Width = 46
-    Font.Name = 'Lucida Sans Typewriter'
-    ParentFont = False
-    TabOrder = 11
-    Text = '0000'
-  end
-  object edtPC: TEdit
-    Left = 56
-    Height = 25
-    Top = 360
-    Width = 46
-    Font.Name = 'Lucida Sans Typewriter'
-    ParentFont = False
-    TabOrder = 12
-    Text = '0000'
-  end
-  object Label14: TLabel
-    Left = 24
-    Height = 20
-    Top = 392
-    Width = 21
-    Caption = 'Byt'
-    ParentColor = False
-  end
-  object edtAtPC: TEdit
-    Left = 56
-    Height = 25
-    Top = 392
-    Width = 164
-    Font.Name = 'Lucida Sans Typewriter'
-    ParentFont = False
-    ReadOnly = True
-    TabOrder = 13
-    Text = '0000'
-  end
-  object Label15: TLabel
-    Left = 25
-    Height = 20
-    Top = 425
-    Width = 8
-    Caption = 'T'
-    ParentColor = False
-  end
-  object edtT: TEdit
-    Left = 56
-    Height = 25
-    Top = 424
-    Width = 164
-    Font.Name = 'Lucida Sans Typewriter'
-    ParentFont = False
-    ReadOnly = True
-    TabOrder = 14
-    Text = '0'
-  end
-  object Label16: TLabel
-    Left = 25
-    Height = 20
-    Top = 459
-    Width = 16
-    Caption = 'uS'
-    ParentColor = False
-  end
-  object edtuS: TEdit
-    Left = 56
-    Height = 25
-    Top = 454
-    Width = 164
-    Font.Name = 'Lucida Sans Typewriter'
-    ParentFont = False
-    ReadOnly = True
-    TabOrder = 15
-    Text = '0'
-  end
   object StatusBar1: TStatusBar
     Left = 0
     Height = 29
-    Top = 544
-    Width = 1070
+    Top = 705
+    Width = 1048
     Panels = <>
-  end
-  object labStatus: TLabel
-    Left = 24
-    Height = 20
-    Top = 496
-    Width = 196
-    Alignment = taCenter
-    AutoSize = False
-    Caption = 'Unknown'
-    Color = clScrollBar
-    ParentColor = False
-    Transparent = False
   end
   object pnlButton: TPanel
     Left = 0
     Height = 34
     Top = 0
-    Width = 1070
+    Width = 1048
     Align = alTop
     ClientHeight = 34
-    ClientWidth = 1070
+    ClientWidth = 1048
     ParentColor = False
-    TabOrder = 17
+    TabOrder = 1
     object SpeedButton1: TSpeedButton
       Left = 1
       Height = 32
@@ -654,16 +129,654 @@ object frmBox80: TfrmBox80
       ParentShowHint = False
     end
   end
+  object pnlRegisters: TPanel
+    Left = 0
+    Height = 671
+    Top = 34
+    Width = 224
+    Align = alLeft
+    ClientHeight = 671
+    ClientWidth = 224
+    ParentColor = False
+    TabOrder = 2
+    object Label1: TLabel
+      Left = 10
+      Height = 20
+      Top = 33
+      Width = 17
+      Caption = 'AF'
+      ParentColor = False
+    end
+    object Label2: TLabel
+      Left = 10
+      Height = 20
+      Top = 108
+      Width = 18
+      Caption = 'BC'
+      ParentColor = False
+    end
+    object Label3: TLabel
+      Left = 10
+      Height = 20
+      Top = 140
+      Width = 19
+      Caption = 'DE'
+      ParentColor = False
+    end
+    object Label4: TLabel
+      Left = 10
+      Height = 20
+      Top = 172
+      Width = 18
+      Caption = 'HL'
+      ParentColor = False
+    end
+    object Label5: TLabel
+      Left = 115
+      Height = 20
+      Top = 33
+      Width = 20
+      Caption = 'AF'''
+      ParentColor = False
+    end
+    object Label6: TLabel
+      Left = 115
+      Height = 20
+      Top = 108
+      Width = 21
+      Caption = 'BC'''
+      ParentColor = False
+    end
+    object Label7: TLabel
+      Left = 115
+      Height = 20
+      Top = 140
+      Width = 22
+      Caption = 'DE'''
+      ParentColor = False
+    end
+    object Label8: TLabel
+      Left = 115
+      Height = 20
+      Top = 172
+      Width = 21
+      Caption = 'HL'''
+      ParentColor = False
+    end
+    object Label9: TLabel
+      Left = 10
+      Height = 20
+      Top = 204
+      Width = 13
+      Caption = 'IR'
+      ParentColor = False
+    end
+    object Label10: TLabel
+      Left = 10
+      Height = 20
+      Top = 236
+      Width = 13
+      Caption = 'IX'
+      ParentColor = False
+    end
+    object Label11: TLabel
+      Left = 10
+      Height = 20
+      Top = 268
+      Width = 12
+      Caption = 'IY'
+      ParentColor = False
+    end
+    object Label12: TLabel
+      Left = 10
+      Height = 20
+      Top = 332
+      Width = 17
+      Caption = 'PC'
+      ParentColor = False
+    end
+    object Label13: TLabel
+      Left = 10
+      Height = 20
+      Top = 301
+      Width = 16
+      Caption = 'SP'
+      ParentColor = False
+    end
+    object edtBC: TEdit
+      Left = 42
+      Height = 25
+      Top = 106
+      Width = 46
+      Font.Name = 'Lucida Sans Typewriter'
+      ParentFont = False
+      TabOrder = 0
+      Text = '0000'
+    end
+    object edtDE: TEdit
+      Left = 42
+      Height = 25
+      Top = 138
+      Width = 46
+      Font.Name = 'Lucida Sans Typewriter'
+      ParentFont = False
+      TabOrder = 1
+      Text = '0000'
+    end
+    object edtHL: TEdit
+      Left = 42
+      Height = 25
+      Top = 170
+      Width = 46
+      Font.Name = 'Lucida Sans Typewriter'
+      ParentFont = False
+      TabOrder = 2
+      Text = '0000'
+    end
+    object edtBC_: TEdit
+      Left = 147
+      Height = 25
+      Top = 106
+      Width = 46
+      Font.Name = 'Lucida Sans Typewriter'
+      ParentFont = False
+      TabOrder = 3
+      Text = '0000'
+    end
+    object edtDE_: TEdit
+      Left = 147
+      Height = 28
+      Top = 138
+      Width = 46
+      TabOrder = 4
+      Text = '0000'
+    end
+    object edtHL_: TEdit
+      Left = 147
+      Height = 25
+      Top = 170
+      Width = 46
+      Font.Name = 'Lucida Sans Typewriter'
+      ParentFont = False
+      TabOrder = 5
+      Text = '0000'
+    end
+    object edtA: TEdit
+      Left = 42
+      Height = 25
+      Top = 31
+      Width = 26
+      Font.Name = 'Lucida Sans Typewriter'
+      ParentFont = False
+      TabOrder = 6
+      Text = '00'
+    end
+    object edtA_: TEdit
+      Left = 147
+      Height = 25
+      Top = 31
+      Width = 26
+      Font.Name = 'Lucida Sans Typewriter'
+      ParentFont = False
+      TabOrder = 7
+      Text = '00'
+    end
+    object labF7: TLabel
+      Left = 10
+      Height = 15
+      Top = 63
+      Width = 20
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'S'
+      Color = clGradientInactiveCaption
+      Font.Name = 'Lucida Console'
+      ParentColor = False
+      ParentFont = False
+      Transparent = False
+    end
+    object labF6: TLabel
+      Left = 34
+      Height = 15
+      Top = 63
+      Width = 20
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'Z'
+      Color = clGradientInactiveCaption
+      Font.Name = 'Lucida Console'
+      ParentColor = False
+      ParentFont = False
+      Transparent = False
+    end
+    object labF5: TLabel
+      Left = 58
+      Height = 15
+      Top = 63
+      Width = 20
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'X'
+      Color = clGradientInactiveCaption
+      Font.Name = 'Lucida Console'
+      ParentColor = False
+      ParentFont = False
+      Transparent = False
+    end
+    object labF4: TLabel
+      Left = 82
+      Height = 15
+      Top = 63
+      Width = 20
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'H'
+      Color = clGradientInactiveCaption
+      Font.Name = 'Lucida Console'
+      ParentColor = False
+      ParentFont = False
+      Transparent = False
+    end
+    object labF3: TLabel
+      Left = 10
+      Height = 15
+      Top = 81
+      Width = 20
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'X'
+      Color = clGradientInactiveCaption
+      Font.Name = 'Lucida Console'
+      ParentColor = False
+      ParentFont = False
+      Transparent = False
+    end
+    object labF2: TLabel
+      Left = 34
+      Height = 15
+      Top = 81
+      Width = 20
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'PV'
+      Color = clGradientInactiveCaption
+      Font.Name = 'Lucida Console'
+      ParentColor = False
+      ParentFont = False
+      Transparent = False
+    end
+    object labF1: TLabel
+      Left = 58
+      Height = 15
+      Top = 81
+      Width = 20
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'N'
+      Color = clGradientInactiveCaption
+      Font.Name = 'Lucida Console'
+      ParentColor = False
+      ParentFont = False
+      Transparent = False
+    end
+    object labF0: TLabel
+      Left = 82
+      Height = 15
+      Top = 81
+      Width = 20
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'C'
+      Color = clGradientInactiveCaption
+      Font.Name = 'Lucida Console'
+      ParentColor = False
+      ParentFont = False
+      Transparent = False
+    end
+    object labF_7: TLabel
+      Left = 115
+      Height = 15
+      Top = 63
+      Width = 20
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'S'
+      Color = clGradientInactiveCaption
+      Font.Name = 'Lucida Console'
+      ParentColor = False
+      ParentFont = False
+      Transparent = False
+    end
+    object labF_6: TLabel
+      Left = 139
+      Height = 15
+      Top = 63
+      Width = 20
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'Z'
+      Color = clGradientInactiveCaption
+      Font.Name = 'Lucida Console'
+      ParentColor = False
+      ParentFont = False
+      Transparent = False
+    end
+    object labF_5: TLabel
+      Left = 163
+      Height = 15
+      Top = 63
+      Width = 20
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'X'
+      Color = clGradientInactiveCaption
+      Font.Name = 'Lucida Console'
+      ParentColor = False
+      ParentFont = False
+      Transparent = False
+    end
+    object labF_4: TLabel
+      Left = 187
+      Height = 15
+      Top = 63
+      Width = 20
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'H'
+      Color = clGradientInactiveCaption
+      Font.Name = 'Lucida Console'
+      ParentColor = False
+      ParentFont = False
+      Transparent = False
+    end
+    object labF_3: TLabel
+      Left = 115
+      Height = 15
+      Top = 81
+      Width = 20
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'X'
+      Color = clGradientInactiveCaption
+      Font.Name = 'Lucida Console'
+      ParentColor = False
+      ParentFont = False
+      Transparent = False
+    end
+    object labF_2: TLabel
+      Left = 139
+      Height = 15
+      Top = 81
+      Width = 20
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'PV'
+      Color = clGradientInactiveCaption
+      Font.Name = 'Lucida Console'
+      ParentColor = False
+      ParentFont = False
+      Transparent = False
+    end
+    object labF_1: TLabel
+      Left = 163
+      Height = 15
+      Top = 81
+      Width = 20
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'N'
+      Color = clGradientInactiveCaption
+      Font.Name = 'Lucida Console'
+      ParentColor = False
+      ParentFont = False
+      Transparent = False
+    end
+    object labF_0: TLabel
+      Left = 186
+      Height = 15
+      Top = 81
+      Width = 20
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'C'
+      Color = clGradientInactiveCaption
+      Font.Name = 'Lucida Console'
+      ParentColor = False
+      ParentFont = False
+      Transparent = False
+    end
+    object edtIR: TEdit
+      Left = 42
+      Height = 25
+      Top = 202
+      Width = 46
+      Font.Name = 'Lucida Sans Typewriter'
+      ParentFont = False
+      TabOrder = 8
+      Text = '0000'
+    end
+    object edtIX: TEdit
+      Left = 42
+      Height = 25
+      Top = 234
+      Width = 46
+      Font.Name = 'Lucida Sans Typewriter'
+      ParentFont = False
+      TabOrder = 9
+      Text = '0000'
+    end
+    object edtIY: TEdit
+      Left = 42
+      Height = 25
+      Top = 266
+      Width = 46
+      Font.Name = 'Lucida Sans Typewriter'
+      ParentFont = False
+      TabOrder = 10
+      Text = '0000'
+    end
+    object edtSP: TEdit
+      Left = 42
+      Height = 25
+      Top = 299
+      Width = 46
+      Font.Name = 'Lucida Sans Typewriter'
+      ParentFont = False
+      TabOrder = 11
+      Text = '0000'
+    end
+    object edtPC: TEdit
+      Left = 42
+      Height = 25
+      Top = 330
+      Width = 46
+      Font.Name = 'Lucida Sans Typewriter'
+      ParentFont = False
+      TabOrder = 12
+      Text = '0000'
+    end
+    object Label14: TLabel
+      Left = 10
+      Height = 20
+      Top = 362
+      Width = 21
+      Caption = 'Byt'
+      ParentColor = False
+    end
+    object edtAtPC: TEdit
+      Left = 42
+      Height = 25
+      Top = 362
+      Width = 164
+      Font.Name = 'Lucida Sans Typewriter'
+      ParentFont = False
+      ReadOnly = True
+      TabOrder = 13
+      Text = '0000'
+    end
+    object Label15: TLabel
+      Left = 11
+      Height = 20
+      Top = 395
+      Width = 8
+      Caption = 'T'
+      ParentColor = False
+    end
+    object edtT: TEdit
+      Left = 42
+      Height = 25
+      Top = 394
+      Width = 164
+      Alignment = taRightJustify
+      Font.Name = 'Lucida Sans Typewriter'
+      ParentFont = False
+      ReadOnly = True
+      TabOrder = 14
+      Text = '0'
+    end
+    object Label16: TLabel
+      Left = 11
+      Height = 20
+      Top = 429
+      Width = 16
+      Caption = 'uS'
+      ParentColor = False
+    end
+    object edtuS: TEdit
+      Left = 42
+      Height = 25
+      Top = 424
+      Width = 164
+      Alignment = taRightJustify
+      Font.Name = 'Lucida Sans Typewriter'
+      ParentFont = False
+      ReadOnly = True
+      TabOrder = 15
+      Text = '0'
+    end
+    object labStatus: TLabel
+      Left = 10
+      Height = 20
+      Top = 466
+      Width = 196
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'Unknown'
+      Color = clScrollBar
+      ParentColor = False
+      Transparent = False
+    end
+    object Label17: TLabel
+      Left = 1
+      Height = 21
+      Top = 1
+      Width = 222
+      Align = alTop
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'Registers / Timing'
+      Color = clScrollBar
+      ParentColor = False
+      Transparent = False
+    end
+  end
+  object Splitter1: TSplitter
+    Left = 224
+    Height = 671
+    Top = 34
+    Width = 6
+  end
+  object pnlDisassembler: TPanel
+    Left = 230
+    Height = 671
+    Top = 34
+    Width = 381
+    Align = alLeft
+    ClientHeight = 671
+    ClientWidth = 381
+    TabOrder = 4
+    OnClick = pnlDisassemblerClick
+    object Label18: TLabel
+      Left = 1
+      Height = 21
+      Top = 1
+      Width = 379
+      Align = alTop
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'Disassembler'
+      Color = clScrollBar
+      ParentColor = False
+      Transparent = False
+    end
+  end
+  object Splitter2: TSplitter
+    Left = 611
+    Height = 671
+    Top = 34
+    Width = 6
+  end
+  object pnlWatch: TPanel
+    Left = 617
+    Height = 671
+    Top = 34
+    Width = 431
+    Align = alClient
+    ClientHeight = 671
+    ClientWidth = 431
+    TabOrder = 6
+    object Label19: TLabel
+      Left = 1
+      Height = 21
+      Top = 1
+      Width = 429
+      Align = alTop
+      Alignment = taCenter
+      AutoSize = False
+      Caption = 'Watch'
+      Color = clScrollBar
+      ParentColor = False
+      Transparent = False
+    end
+  end
+  object ImageList1: TImageList
+    Left = 338
+    Top = 92
+    Bitmap = {
+      4C7A060000001000000010000000A30200000000000078DAED56AD52EC3014AE
+      40207800440C02834256AEBC0699B7C0F40D50C8153C02B84ADCB5983C0188BB
+      6A276267B0CB4C653827699AD36CD2A4E95CD87B87EC7E33BB49BF9CBFEFA4A9
+      AAE31A2727E7ECECEC17BFBCFCA328700ED7527CC65A619FA7C0395C9BB28BEB
+      17172FF2F4F4BAF6D7710ED7F099901FD646884BF7B0BEF96BB1F9989DBFCDB7
+      F9F0E3CDE5D31A86E653F90BF1A7F2E7D7CFE7A7EA47F5433543B534A51FEA87
+      AF61ABDD1CFDFA7A8BE931778F4C2E3EC367A21EB84D2301585387B675A86B37
+      8FBF710E39D62EE532A62A21D4EA5D69548D8079EEB84A19E01ECE97817FF55B
+      A8BB57E0AE0C60AA07FA221DDFF8E4F86017B99C534E00B8878BC7F185B13BC9
+      B57E387F0D1F62D1F1AE72F8CAE483FA3F978F39A5F9D3F51099B6B7C0DD8EF9
+      DA175ECE1FF2D1A6F9FC45E7FA20FF5A5732C17F53D5FAD9688CF247BA929E1F
+      5B03B48B5CAA719ABFB1AE4C3E749EFB78D1676757F59AE743FFC4FAC482DA45
+      AEEB9FA5FD7BAC23378EF08106F96B216F29448DC341D075DD0005FB2929150E
+      FCBFDFEF35A6F8BBDD6E801613EE0103FF6F361B0D2842DD82E07CC08B577537
+      371AA34369BD9E6D5F0FE4826E7CFBB9F177F7F7E3FF3D72E38F21C7BE3F8AE2
+      27636EFCDF6DDFF7A3447FD48F1CFB3FFDFF35F9CFEE7F787F2CD21F9C1B768F
+      22FD3D3E1A94F6FFC38341A4FFD7F0E5A49E07FD07B5D208C4DFC017CF379F3F
+      8A1FCFBEFEFCF6F30F2F527D7180CBBD88E67FA2FF718FA4FD44FFE31E357927
+      FF83FDDF2C6233B8D7F0E14EC50A4E0BA53F2DDE9D2A31DB1FCBB71F31D31F9F
+      AF66FA13E3E7FA93E21FFA339F2FB4FD3678774CF1719D619B17E7EF6BEA277B
+      9BA5FA31BEF2820E907D6E4BC7B1DFE7D32740FE3B9F85EF0BB750B7A7046E55
+      A43EDCAC7F24F0F4C3FF6FF98BF4B354BFDF323E01AA3E05FE
+    }
+  end
   object Timer1: TTimer
     Interval = 250
     OnTimer = Timer1Timer
-    Left = 126
-    Top = 248
+    Left = 160
+    Top = 282
   end
   object MainMenu1: TMainMenu
     Images = ImageList1
-    Left = 216
-    Top = 160
+    Left = 250
+    Top = 194
     object miFile: TMenuItem
       Caption = '&File'
       object miFileExit: TMenuItem
@@ -674,23 +787,49 @@ object frmBox80: TfrmBox80
       Caption = '&VM'
       object miVMCPU: TMenuItem
         Caption = 'CPU speed'
+        object miVMCPU00: TMenuItem
+          Action = actVMCPU00
+          AutoCheck = True
+        end
         object miVMCPU25: TMenuItem
           Action = actVMCPU25
+          AutoCheck = True
         end
         object miVMCPU40: TMenuItem
           Action = actVMCPU40
+          AutoCheck = True
+        end
+        object miVMCPU60: TMenuItem
+          Action = actVMCPU60
+          AutoCheck = True
+        end
+        object miVMCPU73: TMenuItem
+          Action = actVMCPU73
+          AutoCheck = True
         end
         object miVMCPU80: TMenuItem
           Action = actVMCPU80
+          AutoCheck = True
         end
         object miVMCPU100: TMenuItem
           Action = actVMCPU100
+          AutoCheck = True
+        end
+        object miVMCPU184: TMenuItem
+          Action = actVMCPU184
+          AutoCheck = True
         end
         object miVMCPU200: TMenuItem
           Action = actVMCPU200
+          AutoCheck = True
         end
         object miVMCPU333: TMenuItem
           Action = actVMCPU333
+          AutoCheck = True
+        end
+        object miVMCPU500: TMenuItem
+          Action = actVMCPU500
+          AutoCheck = True
         end
       end
       object miVMsep1: TMenuItem
@@ -718,8 +857,8 @@ object frmBox80: TfrmBox80
   end
   object ActionList1: TActionList
     Images = ImageList1
-    Left = 216
-    Top = 264
+    Left = 250
+    Top = 298
     object actFileExit: TAction
       Category = 'File'
       Caption = 'E&xit'
@@ -769,67 +908,92 @@ object frmBox80: TfrmBox80
     end
     object actVMCPU40: TAction
       Category = 'VM'
-      Caption = '4.0MHz'
-      Hint = 'Set speed to 4.0MHz'
+      AutoCheck = True
+      Caption = '4.0 MHz'
+      Checked = True
+      GroupIndex = 1
+      Hint = 'Set speed to 4.0 MHz'
       OnExecute = actVMCPU40Execute
     end
     object actVMCPU25: TAction
       Category = 'VM'
-      Caption = '2.5MHz'
-      Hint = 'Set speed to 2.5MHz'
+      AutoCheck = True
+      Caption = '2.5 MHz'
+      GroupIndex = 1
+      Hint = 'Set speed to 2.5 MHz'
       OnExecute = actVMCPU25Execute
     end
     object actVMCPU80: TAction
       Category = 'VM'
-      Caption = '8.0MHz'
-      Hint = 'Set CPU speed to 8.0MHz'
+      AutoCheck = True
+      Caption = '8.0 MHz'
+      GroupIndex = 1
+      Hint = 'Set CPU speed to 8.0 MHz'
       OnExecute = actVMCPU80Execute
     end
     object actVMCPU100: TAction
       Category = 'VM'
-      Caption = '10.0MHz'
-      Hint = 'Set CPU speed to 10.0MHz'
+      AutoCheck = True
+      Caption = '10.0 MHz'
+      GroupIndex = 1
+      Hint = 'Set CPU speed to 10.0 MHz'
       OnExecute = actVMCPU100Execute
     end
     object actVMCPU200: TAction
       Category = 'VM'
-      Caption = '20.0MHz'
-      Hint = 'Set CPU speed to 20.0MHz'
+      AutoCheck = True
+      Caption = '20.0 MHz'
+      GroupIndex = 1
+      Hint = 'Set CPU speed to 20.0 MHz'
       OnExecute = actVMCPU200Execute
     end
     object actVMCPU333: TAction
       Category = 'VM'
-      Caption = '33.3MHz'
-      Hint = 'Set CPU speed to 33.3MHz'
+      AutoCheck = True
+      Caption = '33.3 MHz'
+      GroupIndex = 1
+      Hint = 'Set CPU speed to 33.3 MHz'
       OnExecute = actVMCPU333Execute
     end
-  end
-  object ImageList1: TImageList
-    Left = 338
-    Top = 92
-    Bitmap = {
-      4C7A060000001000000010000000A30200000000000078DAED56AD52EC3014AE
-      40207800440C02834256AEBC0699B7C0F40D50C8153C02B84ADCB5983C0188BB
-      6A276267B0CB4C653827699AD36CD2A4E95CD87B87EC7E33BB49BF9CBFEFA4A9
-      AAE31A2727E7ECECEC17BFBCFCA328700ED7527CC65A619FA7C0395C9BB28BEB
-      17172FF2F4F4BAF6D7710ED7F099901FD646884BF7B0BEF96BB1F9989DBFCDB7
-      F9F0E3CDE5D31A86E653F90BF1A7F2E7D7CFE7A7EA47F5433543B534A51FEA87
-      AF61ABDD1CFDFA7A8BE931778F4C2E3EC367A21EB84D2301585387B675A86B37
-      8FBF710E39D62EE532A62A21D4EA5D69548D8079EEB84A19E01ECE97817FF55B
-      A8BB57E0AE0C60AA07FA221DDFF8E4F86017B99C534E00B8878BC7F185B13BC9
-      B57E387F0D1F62D1F1AE72F8CAE483FA3F978F39A5F9D3F51099B6B7C0DD8EF9
-      DA175ECE1FF2D1A6F9FC45E7FA20FF5A5732C17F53D5FAD9688CF247BA929E1F
-      5B03B48B5CAA719ABFB1AE4C3E749EFB78D1676757F59AE743FFC4FAC482DA45
-      AEEB9FA5FD7BAC23378EF08106F96B216F29448DC341D075DD0005FB2929150E
-      FCBFDFEF35A6F8BBDD6E801613EE0103FF6F361B0D2842DD82E07CC08B577537
-      371AA34369BD9E6D5F0FE4826E7CFBB9F177F7F7E3FF3D72E38F21C7BE3F8AE2
-      27636EFCDF6DDFF7A3447FD48F1CFB3FFDFF35F9CFEE7F787F2CD21F9C1B768F
-      22FD3D3E1A94F6FFC38341A4FFD7F0E5A49E07FD07B5D208C4DFC017CF379F3F
-      8A1FCFBEFEFCF6F30F2F527D7180CBBD88E67FA2FF718FA4FD44FFE31E357927
-      FF83FDDF2C6233B8D7F0E14EC50A4E0BA53F2DDE9D2A31DB1FCBB71F31D31F9F
-      AF66FA13E3E7FA93E21FFA339F2FB4FD3678774CF1719D619B17E7EF6BEA277B
-      9BA5FA31BEF2820E907D6E4BC7B1DFE7D32740FE3B9F85EF0BB750B7A7046E55
-      A43EDCAC7F24F0F4C3FF6FF98BF4B354BFDF323E01AA3E05FE
-    }
+    object actVMCPU73: TAction
+      Category = 'VM'
+      AutoCheck = True
+      Caption = '7.3728 MHz'
+      GroupIndex = 1
+      Hint = 'Set CPU speed to 7.3728 MHz (64 x 115,200)'
+      OnExecute = actVMCPU73Execute
+    end
+    object actVMCPU184: TAction
+      Category = 'VM'
+      AutoCheck = True
+      Caption = '18.432 MHz'
+      GroupIndex = 1
+      Hint = 'Set CPU speed to 18.432 MHz (160 x 115,200)'
+      OnExecute = actVMCPU184Execute
+    end
+    object actVMCPU500: TAction
+      Category = 'VM'
+      AutoCheck = True
+      Caption = '50.0 MHz'
+      GroupIndex = 1
+      Hint = 'Set CPU speed to 50.0 MHz'
+      OnExecute = actVMCPU500Execute
+    end
+    object actVMCPU60: TAction
+      Category = 'VM'
+      AutoCheck = True
+      Caption = '6.0 MHz'
+      GroupIndex = 1
+      Hint = 'Set CPU speed to 6.0 MHz'
+      OnExecute = actVMCPU60Execute
+    end
+    object actVMCPU00: TAction
+      Category = 'VM'
+      AutoCheck = True
+      Caption = '32,768 Hz'
+      GroupIndex = 1
+      Hint = 'Set CPU speed to 32,768 Hz'
+      OnExecute = actVMCPU00Execute
+    end
   end
 end

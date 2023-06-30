@@ -1708,6 +1708,7 @@ end;
 
 function TProcessor.ProcessPortIn(_port: byte): byte;
 begin
+  Result := 0;
   case _port of
     SIOA_D: Result := SIO.ChannelA.Data;        // Port 00
     SIOB_D: Result := SIO.ChannelB.Data;        // Port 01
@@ -1894,11 +1895,11 @@ end;
 //-----------------------------------------------------------------------------
 
 procedure TProcessor.Execute;
-const CHECK_EVERY = 10000; // Check execution every n instructions
 var elapsed_time:   double; // Number of seconds elapsed since run started
     simulated_time: double; // Number of simulated seconds elapsed since run started
     check:          integer;
     i:              integer;
+    check_every:    integer;
 begin
   check := 0;
   while (not Terminated) do
@@ -1914,6 +1915,14 @@ begin
         psRunning:
           begin
             i := 0;
+            if CPUspeed > 10000000 then
+              check_every := 100000
+            else if CPUspeed > 1000000 then
+              check_every := 10000
+            else if CPUspeed > 100000 then
+              check_every := 1000
+            else
+              check_every := 250;
             while (i < CHECK_EVERY) and (FProcessorState = psRunning) and (error_flag = []) do
               begin
                 ExecuteOneInst;

@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  ExtCtrls, Menus, ActnList, Buttons,
+  ExtCtrls, Menus, ActnList, Buttons, AnchorDockPanel,
 {$ifdef unix}
   cthreads,
   cmem, // the c memory manager is on some systems much faster for multi-threading
@@ -22,35 +22,40 @@ type
   { TfrmBox80 }
 
   TfrmBox80 = class(TForm)
-    actFileExit: TAction;
+    actDebugRun: TAction;
     actDebugStepInto: TAction;
     actDebugStepOver: TAction;
-    actDebugRun: TAction;
     actDebugStop: TAction;
-    actVMReset: TAction;
-    actVMCPU40: TAction;
-    actVMCPU25: TAction;
-    actVMCPU80: TAction;
+    actFileExit: TAction;
+    actVMCPU00: TAction;
+    actVMCPU60: TAction;
+    actVMCPU500: TAction;
+    actVMCPU184: TAction;
+    actVMCPU73: TAction;
+    ActionList1: TActionList;
     actVMCPU100: TAction;
     actVMCPU200: TAction;
+    actVMCPU25: TAction;
     actVMCPU333: TAction;
-    ActionList1: TActionList;
-    edtT: TEdit;
-    edtuS: TEdit;
-    edtA_: TEdit;
+    actVMCPU40: TAction;
+    actVMCPU80: TAction;
+    actVMReset: TAction;
     edtA: TEdit;
+    edtAtPC: TEdit;
+    edtA_: TEdit;
+    edtBC: TEdit;
+    edtBC_: TEdit;
+    edtDE: TEdit;
+    edtDE_: TEdit;
+    edtHL: TEdit;
+    edtHL_: TEdit;
     edtIR: TEdit;
     edtIX: TEdit;
     edtIY: TEdit;
-    edtAtPC: TEdit;
-    edtSP: TEdit;
     edtPC: TEdit;
-    edtHL_: TEdit;
-    edtDE_: TEdit;
-    edtBC_: TEdit;
-    edtHL: TEdit;
-    edtDE: TEdit;
-    edtBC: TEdit;
+    edtSP: TEdit;
+    edtT: TEdit;
+    edtuS: TEdit;
     ImageList1: TImageList;
     Label1: TLabel;
     Label10: TLabel;
@@ -60,22 +65,9 @@ type
     Label14: TLabel;
     Label15: TLabel;
     Label16: TLabel;
-    labStatus: TLabel;
-    labF6: TLabel;
-    labF5: TLabel;
-    labF4: TLabel;
-    labF3: TLabel;
-    labF2: TLabel;
-    labF1: TLabel;
-    labF0: TLabel;
-    labF_6: TLabel;
-    labF_5: TLabel;
-    labF_4: TLabel;
-    labF_3: TLabel;
-    labF_2: TLabel;
-    labF_1: TLabel;
-    labF_0: TLabel;
-    labF7: TLabel;
+    Label17: TLabel;
+    Label18: TLabel;
+    Label19: TLabel;
     Label2: TLabel;
     Label3: TLabel;
     Label4: TLabel;
@@ -84,25 +76,49 @@ type
     Label7: TLabel;
     Label8: TLabel;
     Label9: TLabel;
+    labF0: TLabel;
+    labF1: TLabel;
+    labF2: TLabel;
+    labF3: TLabel;
+    labF4: TLabel;
+    labF5: TLabel;
+    labF6: TLabel;
+    labF7: TLabel;
+    labF_0: TLabel;
+    labF_1: TLabel;
+    labF_2: TLabel;
+    labF_3: TLabel;
+    labF_4: TLabel;
+    labF_5: TLabel;
+    labF_6: TLabel;
     labF_7: TLabel;
+    labStatus: TLabel;
     MainMenu1: TMainMenu;
-    miVMCPU: TMenuItem;
-    miVMCPU25: TMenuItem;
-    miVMCPU40: TMenuItem;
-    miVMCPU80: TMenuItem;
-    miVMCPU100: TMenuItem;
-    miVMCPU200: TMenuItem;
-    miVMCPU333: TMenuItem;
-    miVMReset: TMenuItem;
-    miVMsep1: TMenuItem;
-    miVM: TMenuItem;
+    miVMCPU60: TMenuItem;
+    miVMCPU00: TMenuItem;
+    miVMCPU500: TMenuItem;
+    miVMCPU184: TMenuItem;
+    miVMCPU73: TMenuItem;
+    miDebug: TMenuItem;
+    miDebugRun: TMenuItem;
     miDebugStepInto: TMenuItem;
     miDebugStepOver: TMenuItem;
-    miDebugRun: TMenuItem;
     miDebugStop: TMenuItem;
-    miFileExit: TMenuItem;
-    miDebug: TMenuItem;
     miFile: TMenuItem;
+    miFileExit: TMenuItem;
+    miVM: TMenuItem;
+    miVMCPU: TMenuItem;
+    miVMCPU100: TMenuItem;
+    miVMCPU200: TMenuItem;
+    miVMCPU25: TMenuItem;
+    miVMCPU333: TMenuItem;
+    miVMCPU40: TMenuItem;
+    miVMCPU80: TMenuItem;
+    miVMReset: TMenuItem;
+    miVMsep1: TMenuItem;
+    pnlWatch: TPanel;
+    pnlDisassembler: TPanel;
+    pnlRegisters: TPanel;
     pnlFileEnd: TPanel;
     pnlButton: TPanel;
     pnlFileEnd1: TPanel;
@@ -112,13 +128,20 @@ type
     SpeedButton4: TSpeedButton;
     SpeedButton5: TSpeedButton;
     SpeedButton6: TSpeedButton;
+    Splitter1: TSplitter;
+    Splitter2: TSplitter;
     StatusBar1: TStatusBar;
     Timer1: TTimer;
+    procedure actVMCPU00Execute(Sender: TObject);
     procedure actVMCPU100Execute(Sender: TObject);
+    procedure actVMCPU184Execute(Sender: TObject);
     procedure actVMCPU200Execute(Sender: TObject);
     procedure actVMCPU25Execute(Sender: TObject);
     procedure actVMCPU333Execute(Sender: TObject);
     procedure actVMCPU40Execute(Sender: TObject);
+    procedure actVMCPU500Execute(Sender: TObject);
+    procedure actVMCPU60Execute(Sender: TObject);
+    procedure actVMCPU73Execute(Sender: TObject);
     procedure actVMCPU80Execute(Sender: TObject);
     procedure actVMResetExecute(Sender: TObject);
     procedure actDebugRunExecute(Sender: TObject);
@@ -134,6 +157,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormKeyPress(Sender: TObject; var Key: char);
+    procedure pnlDisassemblerClick(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
   private
     CancelRequested: boolean;
@@ -203,6 +227,21 @@ begin
   FProcessor.CPUspeed := 4000000;
 end;
 
+procedure TfrmBox80.actVMCPU500Execute(Sender: TObject);
+begin
+  FProcessor.CPUspeed := 50000000;
+end;
+
+procedure TfrmBox80.actVMCPU60Execute(Sender: TObject);
+begin
+  FProcessor.CPUspeed := 6000000;
+end;
+
+procedure TfrmBox80.actVMCPU73Execute(Sender: TObject);
+begin
+  FProcessor.CPUspeed := 7372800;
+end;
+
 procedure TfrmBox80.actVMCPU80Execute(Sender: TObject);
 begin
   FProcessor.CPUspeed := 8000000;
@@ -240,6 +279,16 @@ end;
 procedure TfrmBox80.actVMCPU100Execute(Sender: TObject);
 begin
   FProcessor.CPUspeed := 10000000;
+end;
+
+procedure TfrmBox80.actVMCPU00Execute(Sender: TObject);
+begin
+  FProcessor.CPUspeed := 32768;
+end;
+
+procedure TfrmBox80.actVMCPU184Execute(Sender: TObject);
+begin
+  FProcessor.CPUspeed := 18432000;
 end;
 
 procedure TfrmBox80.actVMCPU200Execute(Sender: TObject);
@@ -363,6 +412,11 @@ end;
 
 procedure TfrmBox80.FormKeyPress(Sender: TObject; var Key: char);
 begin
+end;
+
+procedure TfrmBox80.pnlDisassemblerClick(Sender: TObject);
+begin
+
 end;
 
 procedure TfrmBox80.GrabFocus;
@@ -569,8 +623,8 @@ begin
     end;
   edtAtPC.Text := s;
   // Update T and uS
-  edtT.Text := Format('%-12.0n',[double(FProcessor.TStates)]);
-  edtuS.Text := Format('%-12.2n',[FProcessor.TStates / FProcessor.CpuSpeed * 1000000.0]);
+  edtT.Text := Format('%12.0n',[double(FProcessor.TStates)]);
+  edtuS.Text := Format('%12.2n',[FProcessor.TStates / FProcessor.CpuSpeed * 1000000.0]);
   // Update the "last" variables
   last := rs;
 end;
