@@ -2020,6 +2020,7 @@ var i: word;
     n: byte;
     ri: TRegIndex;
 begin
+  SIO.Init;             // Initialise SIO
   t_states := 0;
   cpu_speed := 4000000; // Default to 4MHz device
   pregIntE^ := 1;       // Enable interrupts

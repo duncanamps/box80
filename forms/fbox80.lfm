@@ -481,7 +481,7 @@ object frmBox80: TfrmBox80
     Left = 56
     Height = 25
     Top = 392
-    Width = 151
+    Width = 164
     Font.Name = 'Lucida Sans Typewriter'
     ParentFont = False
     ReadOnly = True
@@ -508,7 +508,7 @@ object frmBox80: TfrmBox80
     Left = 56
     Height = 25
     Top = 424
-    Width = 151
+    Width = 164
     Font.Name = 'Lucida Sans Typewriter'
     ParentFont = False
     ReadOnly = True
@@ -527,7 +527,7 @@ object frmBox80: TfrmBox80
     Left = 56
     Height = 25
     Top = 454
-    Width = 151
+    Width = 164
     Font.Name = 'Lucida Sans Typewriter'
     ParentFont = False
     ReadOnly = True
@@ -562,7 +562,7 @@ object frmBox80: TfrmBox80
     Left = 24
     Height = 20
     Top = 496
-    Width = 183
+    Width = 196
     Alignment = taCenter
     AutoSize = False
     Caption = 'Unknown'
@@ -577,6 +577,21 @@ object frmBox80: TfrmBox80
     Width = 94
     Action = actDebugStepOver
     TabOrder = 20
+  end
+  object pnlButton: TPanel
+    Left = 605
+    Height = 63
+    Top = 40
+    Width = 213
+    ClientHeight = 63
+    ClientWidth = 213
+    TabOrder = 21
+    object SpeedButton1: TSpeedButton
+      Left = 44
+      Height = 28
+      Top = 6
+      Width = 29
+    end
   end
   object Timer1: TTimer
     Interval = 250

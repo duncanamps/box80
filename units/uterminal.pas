@@ -39,6 +39,7 @@ type
     public
       constructor Create(AOwner: TComponent; _cols: integer; _rows: integer); reintroduce;
       destructor Destroy; override;
+      procedure Init;
       procedure RefreshScreen;
       function  ScreenChanged: boolean;
       procedure CmdBS;        // Character #8
@@ -60,12 +61,8 @@ type
 implementation
 
 constructor TTerminal.Create(AOwner: TComponent; _cols: integer; _rows: integer);
-var i: integer;
-    b: byte;
 begin
   inherited Create(AOwner);
-  FCursorCol := 0;
-  FCursorRow := 0;
   FCols := _cols;
   FRows := _rows;
   FMargin := 6;
@@ -74,11 +71,7 @@ begin
   if (FRows < 1) or (FRows > MAX_TERMINAL_ROWS) then
     raise Exception.Create('Illegal number of rows when creating terminal');
   SetLength(FScreen,FRows*FCols);
-  for i := 0 to Length(FScreen)-1 do
-    begin
-      b := Random(95)+32;
-      FScreen[i] := b;
-    end;
+  Init;
 end;
 
 destructor TTerminal.Destroy;
@@ -146,6 +139,19 @@ end;
 function TTerminal.ColToX(_col: integer): integer;
 begin
   ColToX := FCharWidth * _col + FMargin;
+end;
+
+procedure TTerminal.Init;
+var i: integer;
+    b: byte;
+begin
+  FCursorCol := 0;
+  FCursorRow := 0;
+  for i := 0 to Length(FScreen)-1 do
+    begin
+      b := Random(95)+32;
+      FScreen[i] := b;
+    end;
 end;
 
 procedure TTerminal.Paint;

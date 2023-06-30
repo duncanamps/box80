@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  ExtCtrls, Menus, ActnList,
+  ExtCtrls, Menus, ActnList, Buttons,
 {$ifdef unix}
   cthreads,
   cmem, // the c memory manager is on some systems much faster for multi-threading
@@ -106,6 +106,8 @@ type
     miFileExit: TMenuItem;
     miDebug: TMenuItem;
     miFile: TMenuItem;
+    pnlButton: TPanel;
+    SpeedButton1: TSpeedButton;
     StatusBar1: TStatusBar;
     Timer1: TTimer;
     procedure actDebugCPU100Execute(Sender: TObject);
@@ -212,6 +214,7 @@ begin
   ReadMonitorImage;
   ShowRegisters;
   ProcStateUpdate;
+  frmTerminal.Init;
   // @@@@@ Future use might enable the following, allow running machine to
   // continue to run after reset
   {

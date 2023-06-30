@@ -22,6 +22,7 @@ type
     FProcessor: TProcessor;
     FTerminal: TTerminal;
   public
+    procedure Init;
     procedure WriteChar(_ch: char);
     property Processor: TProcessor write FProcessor;
   end;
@@ -61,6 +62,11 @@ begin
   // Put the key in the simulator SIO and trigger an interrupt
   if Assigned(FProcessor) then
     FProcessor.ChannelReceiveA(Ord(key));
+end;
+
+procedure TfrmTerminal.Init;
+begin
+  FTerminal.Init;
 end;
 
 procedure TfrmTerminal.Timer1Timer(Sender: TObject);

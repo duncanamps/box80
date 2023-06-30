@@ -30,6 +30,8 @@ type
       procedure SetControl(_b: byte);
       procedure SetData(_b: byte);
       procedure SetReceived(_b: byte);
+    protected
+      procedure Init;
     public
       constructor Create(_parent: TSIO; _designator: TSIOchanneldes);
       property Control: byte read GetControl write SetControl;
@@ -46,6 +48,7 @@ type
     public
       constructor Create;
       destructor Destroy; override;
+      procedure Init;
       procedure TriggerInterrupt;
       property ChannelA: TSIOchannel read FChannelA write FChannelA;
       property ChannelB: TSIOchannel read FChannelB write FChannelB;
@@ -85,6 +88,15 @@ begin
     FRegWrite[0] := FRegWrite[0] and $F8; // Set index back to 0 for next cmd
 end;
 
+procedure TSIOchannel.Init;
+var i: integer;
+begin
+  for i := 0 to 7 do
+    FRegWrite[i] := 0;
+  for i := 0 to 2 do
+    FRegRead[i] := 0;
+end;
+
 procedure TSIOchannel.SetControl(_b: byte);
 var index: integer;
 begin
@@ -121,6 +133,7 @@ begin
   inherited Create;
   FChannelA := TSIOchannel.Create(Self,scdA);
   FChannelB := TSIOchannel.Create(Self,scdB);
+  Init;
 end;
 
 destructor TSIO.Destroy;
@@ -128,6 +141,12 @@ begin
   FreeAndNil(FChannelB);
   FreeAndNil(FChannelA);
   inherited Destroy;
+end;
+
+procedure TSIO.Init;
+begin
+  FChannelA.Init;
+  FChannelB.Init;
 end;
 
 procedure TSIO.TriggerInterrupt;
