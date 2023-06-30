@@ -66,7 +66,7 @@ type
 
   TExecProc = procedure of object;
 
-  TProcessorState = (psNone,psPaused,psRunning,psFault,psBreak);
+  TProcessorState = (psNone,psPaused,psStepInto,psStepOver,psRunning,psBreak,psFault);
 
   TStateChangeProc = procedure(_newstate: TProcessorState) of object;
 
@@ -352,6 +352,8 @@ type
       function  ExecuteOneInst: boolean;     // Execute one instruction
 //    function  ExecuteOver: boolean;     // Execute over the next instruction
       procedure ExecuteRun;
+      procedure ExecuteStepInto;          // Execute one step
+      procedure ExecuteStepOver;          // Step over next instruction
       procedure ExecuteStop;              // Stop processor if it's running
       procedure Init;                     // Initialise COLD
       procedure ReadFromStream(_strm: TStream; _start, _length: integer);
@@ -1902,6 +1904,13 @@ begin
   while (not Terminated) do
     begin
       case FProcessorState of
+        psStepInto:
+          begin
+            ExecuteOneInst;
+            if error_flag <> [] then
+              ProcessorState := psFault;
+            ProcessorState := psPaused;
+          end;
         psRunning:
           begin
             i := 0;
@@ -1975,6 +1984,25 @@ begin
       run_start_time   := Now();
       run_start_cycles := TStates;
       ProcessorState := psRunning;
+    end;
+end;
+
+procedure TProcessor.ExecuteStepInto;
+begin
+  if ProcessorState <> psRunning then
+    begin
+      error_flag := [];
+      ProcessorState := psStepInto;
+    end;
+end;
+
+procedure TProcessor.ExecuteStepOver;
+begin
+  if ProcessorState <> psRunning then
+    begin
+      error_flag := [];
+      // @@@@@ Put the breakpoint stuff here
+      ProcessorState := psStepOver;
     end;
 end;
 

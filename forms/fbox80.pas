@@ -116,6 +116,8 @@ type
     procedure actDebugCPU80Execute(Sender: TObject);
     procedure actDebugResetExecute(Sender: TObject);
     procedure actDebugRunExecute(Sender: TObject);
+    procedure actDebugStepIntoExecute(Sender: TObject);
+    procedure actDebugStepOverExecute(Sender: TObject);
     procedure actDebugStopExecute(Sender: TObject);
     procedure actFileExitExecute(Sender: TObject);
     procedure btnInitClick(Sender: TObject);
@@ -179,6 +181,16 @@ begin
   FProcessor.ExecuteRun;
 end;
 
+procedure TfrmBox80.actDebugStepIntoExecute(Sender: TObject);
+begin
+  FProcessor.ExecuteStepInto;
+end;
+
+procedure TfrmBox80.actDebugStepOverExecute(Sender: TObject);
+begin
+  FProcessor.ExecuteStepOver;
+end;
+
 procedure TfrmBox80.actDebugCPU40Execute(Sender: TObject);
 begin
   FProcessor.CPUspeed := 4000000;
@@ -194,10 +206,13 @@ var saved_state: TProcessorState;
 begin
   saved_state := FProcessor.ProcessorState;
   FProcessor.ProcessorState := psPaused;
+  Sleep(50); // Wait for any activities to stop
   FProcessor.Init;
-  // @@@@@ Load ROM files here if needed
+  // @@@@@ Future versions can have an option to restart running after reset
+  {
   if saved_state = psRunning then
     FProcessor.ProcessorState := saved_state;
+  }
 end;
 
 procedure TfrmBox80.actDebugCPU25Execute(Sender: TObject);
@@ -255,7 +270,7 @@ begin
     while good do
       begin
         saved_pc := FProcessor.PC;
-//        good := FProcessor.ExecuteOneInst;
+//        good := FProcessor.ExecuteStepInto;
         Inc(instructions);
         Inc(instcount);
         if instcount > INST_BATCH then
