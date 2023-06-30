@@ -139,6 +139,7 @@ type
     procedure HandleSIOtransmitA(_b: byte);
     procedure ProcStateChange(_ps: TProcessorState);
     procedure ProcStateUpdate;
+    procedure ReadMonitorImage;
     procedure ShowRegisters;
     procedure Status(const _msg: string);
     procedure Status(const _fmt: string; const _args: array of const);
@@ -195,9 +196,15 @@ begin
   saved_state := FProcessor.ProcessorState;
   FProcessor.ProcessorState := psPaused;
   FProcessor.Init;
-  // @@@@@ Load ROM files here if needed
+  ReadMonitorImage;
+  ShowRegisters;
+  ProcStateUpdate;
+  // @@@@@ Future use might enable the following, allow running machine to
+  // continue to run after reset
+  {
   if saved_state = psRunning then
     FProcessor.ProcessorState := saved_state;
+  }
 end;
 
 procedure TfrmBox80.actDebugCPU25Execute(Sender: TObject);
@@ -314,20 +321,13 @@ begin
 end;
 
 procedure TfrmBox80.FormCreate(Sender: TObject);
-var strm: TFileStream;
 begin
   FTimerClicks := 0;
   FProcessor := TProcessor.Create;
   FProcessor.OnStateChange := @ProcStateChange;
   FProcessor.OnTransmitA := @HandleSIOtransmitA;
   FProcessor.Init;
-  strm := TFileStream.Create(MONITOR_COM,fmOpenRead);
-  try
-    // Attempt to read 32K
-    FProcessor.ReadFromStream(strm,0,32768);
-  finally
-    FreeAndNil(strm);
-  end;
+  ReadMonitorImage;
   FProcessor.ProcessorState := psPaused;
   FProcessor.Suspended := False;
   Timer1.Enabled := True;
@@ -440,6 +440,18 @@ begin
         Status('Breakpoint');
         GrabFocus;
       end;
+  end;
+end;
+
+procedure TfrmBox80.ReadMonitorImage;
+var strm: TFileStream;
+begin
+  strm := TFileStream.Create(MONITOR_COM,fmOpenRead);
+  try
+    // Attempt to read 32K
+    FProcessor.ReadFromStream(strm,0,32768);
+  finally
+    FreeAndNil(strm);
   end;
 end;
 
