@@ -24,3 +24,4 @@ proflst.asc
 docs/research/
 imported/
 binaries/
+*.lps
