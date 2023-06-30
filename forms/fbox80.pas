@@ -14,7 +14,8 @@ uses
    uprocessor, uterminal;
 
 const
-  MONITOR_COM = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\monitor.bin';
+  MONITOR_BIN = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\monitor.bin';
+  BASIC_BIN   = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\basic.bin';
 
 
 type
@@ -27,6 +28,7 @@ type
     actDebugStepOver: TAction;
     actDebugStop: TAction;
     actFileExit: TAction;
+    actVMCPU1000: TAction;
     actVMCPU00: TAction;
     actVMCPU60: TAction;
     actVMCPU500: TAction;
@@ -99,6 +101,7 @@ type
     labF_7: TLabel;
     labStatus: TLabel;
     MainMenu1: TMainMenu;
+    miVMCPU1000: TMenuItem;
     miVMCPU60: TMenuItem;
     miVMCPU00: TMenuItem;
     miVMCPU500: TMenuItem;
@@ -138,6 +141,7 @@ type
     StatusBar1: TStatusBar;
     Timer1: TTimer;
     procedure actVMCPU00Execute(Sender: TObject);
+    procedure actVMCPU1000Execute(Sender: TObject);
     procedure actVMCPU100Execute(Sender: TObject);
     procedure actVMCPU184Execute(Sender: TObject);
     procedure actVMCPU200Execute(Sender: TObject);
@@ -289,6 +293,11 @@ end;
 procedure TfrmBox80.actVMCPU00Execute(Sender: TObject);
 begin
   FProcessor.CPUspeed := 32768;
+end;
+
+procedure TfrmBox80.actVMCPU1000Execute(Sender: TObject);
+begin
+  FProcessor.CPUspeed := 100000000;
 end;
 
 procedure TfrmBox80.actVMCPU184Execute(Sender: TObject);
@@ -530,10 +539,17 @@ end;
 procedure TfrmBox80.ReadMonitorImage;
 var strm: TFileStream;
 begin
-  strm := TFileStream.Create(MONITOR_COM,fmOpenRead);
+  strm := TFileStream.Create(MONITOR_BIN,fmOpenRead);
   try
     // Attempt to read 32K
     FProcessor.ReadFromStream(strm,0,32768);
+  finally
+    FreeAndNil(strm);
+  end;
+  strm := TFileStream.Create(BASIC_BIN,fmOpenRead);
+  try
+    // Attempt to read 32K
+    FProcessor.ReadFromStream(strm,$2000,32768);
   finally
     FreeAndNil(strm);
   end;

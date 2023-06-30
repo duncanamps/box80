@@ -25,3 +25,5 @@ docs/research/
 imported/
 binaries/
 *.lps
+docs/instruction_coverage.xlsx
+docs/~$instruction_coverage.xlsx

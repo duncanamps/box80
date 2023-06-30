@@ -30,6 +30,8 @@ type
       procedure SetControl(_b: byte);
       procedure SetData(_b: byte);
       procedure SetReceived(_b: byte);
+      procedure SetTXfull;
+      procedure SetTXempty;
     protected
       procedure Init;
     public
@@ -95,6 +97,7 @@ begin
     FRegWrite[i] := 0;
   for i := 0 to 2 do
     FRegRead[i] := 0;
+  SetTXempty;
 end;
 
 procedure TSIOchannel.SetControl(_b: byte);
@@ -110,7 +113,11 @@ procedure TSIOchannel.SetData(_b: byte);
 begin
   FData := _b;
   if ((FRegWrite[0] and $07) = 0) and Assigned(FOnTransmit) then
-    FOnTransmit(_b);
+    begin
+      SetTXfull;
+      FOnTransmit(_b);
+      SetTXempty;
+    end;
 end;
 
 procedure TSIOchannel.SetReceived(_b: byte);
@@ -121,6 +128,15 @@ begin
   FParent.TriggerInterrupt;
 end;
 
+procedure TSIOchannel.SetTXempty;
+begin
+  FRegRead[0] := FRegRead[0] or $02; // Set bit 2
+end;
+
+procedure TSIOchannel.SetTXfull;
+begin
+  FRegRead[0] := FRegRead[0] and $FD; // Clear bit 2
+end;
 
 //-----------------------------------------------------------------------------
 //
