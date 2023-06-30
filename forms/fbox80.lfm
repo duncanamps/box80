@@ -135,6 +135,7 @@ object frmBox80: TfrmBox80
     Top = 34
     Width = 224
     Align = alLeft
+    Alignment = taRightJustify
     ClientHeight = 671
     ClientWidth = 224
     ParentColor = False
@@ -655,10 +656,10 @@ object frmBox80: TfrmBox80
       Text = '0'
     end
     object labStatus: TLabel
-      Left = 10
+      Left = 42
       Height = 20
       Top = 466
-      Width = 196
+      Width = 164
       Alignment = taCenter
       AutoSize = False
       Caption = 'Unknown'
@@ -678,6 +679,52 @@ object frmBox80: TfrmBox80
       Color = clScrollBar
       ParentColor = False
       Transparent = False
+    end
+    object Label20: TLabel
+      Left = 11
+      Height = 20
+      Top = 464
+      Width = 22
+      Caption = 'VM'
+      ParentColor = False
+    end
+    object labMHz: TLabel
+      Left = 42
+      Height = 20
+      Top = 498
+      Width = 119
+      Alignment = taRightJustify
+      AutoSize = False
+      Color = clScrollBar
+      ParentColor = False
+      Transparent = False
+    end
+    object labMIPS: TLabel
+      Left = 42
+      Height = 20
+      Top = 528
+      Width = 119
+      Alignment = taRightJustify
+      AutoSize = False
+      Color = clScrollBar
+      ParentColor = False
+      Transparent = False
+    end
+    object Label21: TLabel
+      Left = 175
+      Height = 20
+      Top = 498
+      Width = 31
+      Caption = 'MHz'
+      ParentColor = False
+    end
+    object Label24: TLabel
+      Left = 173
+      Height = 20
+      Top = 528
+      Width = 33
+      Caption = 'MIPS'
+      ParentColor = False
     end
   end
   object Splitter1: TSplitter

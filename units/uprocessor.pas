@@ -84,12 +84,14 @@ type
       int_flag:     boolean;
       int_vec:      byte;
       t_states:     int64;
+      insts:        int64;
       cpu_speed:    int64;  // In Hz
       error_flag:   TErrorFlags;
       opcode:       byte;
       FProcessorState:  TProcessorState;
-      run_start_time:   TDateTime;
-      run_start_cycles: int64;
+      run_start_time:         TDateTime;
+      run_start_cycles:       int64;
+      run_start_instructions: int64;
       // Pointers 16 bit dest
       pregAF:  PWord;
       pregBC:  PWord;
@@ -133,6 +135,8 @@ type
       function  Fetch16: Word; inline;
       function  Fetch8: byte; inline;
       function  GetRegisterSet: TRegisterSet;
+      function  GetPerfMIPS: double;
+      function  GetPerfMHz: double;
       function  PopWord: Word; inline;
       function  ProcessPortIn(_port: byte): byte;
       procedure ExecAdd(_b: byte; _states: integer); inline;
@@ -363,6 +367,8 @@ type
       property OnStateChange: TStateChangeProc read FOnStateChange write FOnStateChange;
       property OnTransmitA: TSIOtransmitProc read FOnTransmitA write SetOnTransmitA;
       property PC: Word read regset.registers[regPC];
+      property PerfMHz: double read GetPerfMHz;
+      property PerfMIPS: double read GetPerfMIPS;
       property ProcessorState: TProcessorState read FProcessorState write SetProcessorState;
       property RAM: TRAMarray read ramarray;
       property RegisterSet: TRegisterSet read GetRegisterSet;
@@ -1698,6 +1704,40 @@ begin
   Result := regset;
 end;
 
+function TProcessor.GetPerfMIPS: double;
+var elapsed_time:  double;
+    elapsed_insts: int64;
+begin
+  if FProcessorState <> psRunning then
+    Result := 0.0
+  else
+    begin
+      elapsed_insts := insts - run_start_instructions;
+      elapsed_time  := (Now() - run_start_time) * 86400.0;
+      if elapsed_time = 0.0 then
+        Result := 0.0
+      else
+        Result := elapsed_insts / elapsed_time / 1000000.0;
+    end;
+end;
+
+function TProcessor.GetPerfMHz: double;
+var elapsed_time:  double;
+    elapsed_T:     int64;
+begin
+  if FProcessorState <> psRunning then
+    Result := 0.0
+  else
+    begin
+      elapsed_T    := TStates - run_start_cycles;
+      elapsed_time := (Now() - run_start_time) * 86400.0;
+      if elapsed_time = 0.0 then
+        Result := 0.0
+      else
+        Result := elapsed_T / elapsed_time / 1000000.0;
+    end;
+end;
+
 function TProcessor.PopWord: Word; inline;
 begin
   Result := ramarray[pregSP^];
@@ -1752,10 +1792,10 @@ end;
 
 procedure TProcessor.SetCPUspeed(_speed: int64);
 begin
-  t_states := 0;
   cpu_speed := _speed;
   run_start_time := Now();
-  run_start_cycles := 0;
+  run_start_cycles := TStates;
+  run_start_instructions := insts;
 end;
 
 procedure TProcessor.SetPCrelative(_b: byte); inline;
@@ -1983,6 +2023,7 @@ begin
         error_flag := error_flag + [efIllegal];
     end;
   Result := (error_flag = []);
+  Inc(insts);
 end;
 
 procedure TProcessor.ExecuteRun;
@@ -1990,8 +2031,9 @@ begin
   if ProcessorState <> psRunning then
     begin
       error_flag := [];
-      run_start_time   := Now();
-      run_start_cycles := TStates;
+      run_start_time         := Now();
+      run_start_cycles       := TStates;
+      run_start_instructions := insts;
       ProcessorState := psRunning;
     end;
 end;

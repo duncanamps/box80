@@ -69,6 +69,11 @@ type
     Label18: TLabel;
     Label19: TLabel;
     Label2: TLabel;
+    Label20: TLabel;
+    Label21: TLabel;
+    labMHz: TLabel;
+    labMIPS: TLabel;
+    Label24: TLabel;
     Label3: TLabel;
     Label4: TLabel;
     Label5: TLabel;
@@ -470,6 +475,7 @@ begin
         actDebugStop.Enabled     := False;
         labStatus.Caption := 'Not Started';
         labStatus.Color := clSilver;
+        labStatus.Font.Color := clDefault;
       end;
     psPaused:
       begin
@@ -479,6 +485,7 @@ begin
         actDebugStop.Enabled     := False;
         labStatus.Caption := 'PAUSED';
         labStatus.Color := clOlive;
+        labStatus.Font.Color := clWhite;
         Status('Paused');
         GrabFocus;
       end;
@@ -490,6 +497,7 @@ begin
         actDebugStop.Enabled     := True;
         labStatus.Caption := 'Running';
         labStatus.Color := clGreen;
+        labStatus.Font.Color := clWhite;
         Status('Running');
       end;
     psFault:
@@ -500,6 +508,7 @@ begin
         actDebugStop.Enabled     := False;
         labStatus.Caption := 'FAULT';
         labStatus.Color := clRed;
+        labStatus.Font.Color := clWhite;
         Status(FProcessor.ErrorString);
         GrabFocus;
       end;
@@ -511,6 +520,7 @@ begin
         actDebugStop.Enabled     := False;
         labStatus.Caption := 'Break';
         labStatus.Color := clMaroon;
+        labStatus.Font.Color := clWhite;
         Status('Breakpoint');
         GrabFocus;
       end;
@@ -625,6 +635,8 @@ begin
   // Update T and uS
   edtT.Text := Format('%12.0n',[double(FProcessor.TStates)]);
   edtuS.Text := Format('%12.2n',[FProcessor.TStates / FProcessor.CpuSpeed * 1000000.0]);
+  labMHz.Caption := Format('%7.3f',[FProcessor.PerfMHz]);
+  labMIPS.Caption := Format('%7.3f',[FProcessor.PerfMIPS]);
   // Update the "last" variables
   last := rs;
 end;
