@@ -5,7 +5,7 @@ Box80 - A cross-platform Virtual Machine to run Z80 code and CP/M.
 Box80 is a multi-platform virtual machine designed to execute Z80 code in a 64K code space. The intended usage is for running CP/M 2.2 and debugging assembly language apps developed for that operating system.
 The software emulates the hardware of [CP/M on breadboard by Grant Searle](http://searle.x10host.com/cpm/index.html) and caters for the following features:
 * Z80-SIO used to control serial input and output. This is redirected to the Windows screen and keyboard, there is no real serial linl
-* CF card interface to allow storage of the CP/M operating system, CP/M commands, and user installed software and data
+* CF card interface to allow storage of the CP/M operating system, CP/M commands, and user installed software and data (not implemented)
 * The ROM disable feature is not implemented as it is not actually used (the monitor is loaded into RAM automatically by the VM)
 
 ### Dependencies
@@ -47,7 +47,7 @@ What's working:
 * The SIO can trigger interrupts
 
 What's not working
-* About 50% of the basic Z80 instructions are missing
+* About 25% of the basic Z80 instructions are missing
 * Almost all of the extended (CB FD etc.) instructions are missing
 * The SIO is a very basic implementation, it will send and receive and let you know if a character is waiting; that's about it..
 

@@ -129,11 +129,13 @@ type
     procedure Timer1Timer(Sender: TObject);
   private
     CancelRequested: boolean;
+    FocusAllowed: boolean;
     FProcessor: TProcessor;
     FTimerClicks: integer;
     last: TRegisterSet;
     localNeedsUpdate: boolean;
     localProcStatus: TProcessorState;
+    procedure GrabFocus;
     procedure HandleSIOtransmitA(_b: byte);
     procedure ProcStateChange(_ps: TProcessorState);
     procedure ProcStateUpdate;
@@ -308,6 +310,7 @@ end;
 procedure TfrmBox80.FormActivate(Sender: TObject);
 begin
   frmTerminal.Processor := FProcessor;
+  FocusAllowed := True;
 end;
 
 procedure TfrmBox80.FormCreate(Sender: TObject);
@@ -340,6 +343,12 @@ end;
 
 procedure TfrmBox80.FormKeyPress(Sender: TObject; var Key: char);
 begin
+end;
+
+procedure TfrmBox80.GrabFocus;
+begin
+  if FocusAllowed then
+    SetFocus;
 end;
 
 procedure TfrmBox80.Timer1Timer(Sender: TObject);
@@ -396,6 +405,8 @@ begin
         actDebugStop.Enabled     := False;
         labStatus.Caption := 'PAUSED';
         labStatus.Color := clOlive;
+        Status('Paused');
+        GrabFocus;
       end;
     psRunning:
       begin
@@ -405,6 +416,7 @@ begin
         actDebugStop.Enabled     := True;
         labStatus.Caption := 'Running';
         labStatus.Color := clGreen;
+        Status('Running');
       end;
     psFault:
       begin
@@ -414,6 +426,8 @@ begin
         actDebugStop.Enabled     := False;
         labStatus.Caption := 'FAULT';
         labStatus.Color := clRed;
+        Status(FProcessor.ErrorString);
+        GrabFocus;
       end;
     psBreak:
       begin
@@ -423,6 +437,8 @@ begin
         actDebugStop.Enabled     := False;
         labStatus.Caption := 'Break';
         labStatus.Color := clMaroon;
+        Status('Breakpoint');
+        GrabFocus;
       end;
   end;
 end;

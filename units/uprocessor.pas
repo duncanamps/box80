@@ -39,7 +39,7 @@ type
 
   TBreakpoint = (bpNone,bpTemporary,bpPermanent);
 
-  TErrorFlag = (efIllegal,efHalt);
+  TErrorFlag = (efIllegal,efHalt,efBadPortIn,efBadPortOut);
   TErrorFlags = set of TErrorFlag;
 
   TPortInFunction = function(_portno: Word): byte of object;
@@ -128,6 +128,7 @@ type
       SIO:      TSIO;
       FOnTransmitA: TSIOtransmitProc;
       FOnStateChange: TStateChangeProc;
+      FErrorString: string;
       // Procs / funcs
       function  Fetch16: Word; inline;
       function  Fetch8: byte; inline;
@@ -356,6 +357,7 @@ type
       procedure ReadFromStream(_strm: TStream; _start, _length: integer);
       property CPUspeed: int64 read cpu_speed write SetCPUspeed;
       property ErrorFlag: TErrorFlags read error_flag;
+      property ErrorString: string read FErrorString;
       property OnStateChange: TStateChangeProc read FOnStateChange write FOnStateChange;
       property OnTransmitA: TSIOtransmitProc read FOnTransmitA write SetOnTransmitA;
       property PC: Word read regset.registers[regPC];
@@ -1702,6 +1704,21 @@ begin
   Inc(pregSP^);
 end;
 
+function TProcessor.ProcessPortIn(_port: byte): byte;
+begin
+  case _port of
+    SIOA_D: Result := SIO.ChannelA.Data;        // Port 00
+    SIOB_D: Result := SIO.ChannelB.Data;        // Port 01
+    SIOA_C: Result := SIO.ChannelA.Control;     // Port 02
+    SIOB_C: Result := SIO.ChannelB.Control;     // Port 03
+    otherwise
+      begin
+        FErrorString := Format('Input port $%2.2X not catered for',[_port]);
+        error_flag := error_flag + [efBadPortIn];
+      end;
+  end;
+end;
+
 procedure TProcessor.ProcessPortOut(_port, _byte: byte);
 begin
   case _port of
@@ -1710,7 +1727,10 @@ begin
     SIOA_C: SIO.ChannelA.Control := _byte;     // Port 02
     SIOB_C: SIO.ChannelB.Control := _byte;     // Port 03
     otherwise
-      raise Exception.Create(Format('Port $%2.2X not catered for',[_port]));
+      begin
+        FErrorString := Format('Output port $%2.2X not catered for',[_port]);
+        error_flag := error_flag + [efBadPortOut];
+      end;
   end;
 end;
 
@@ -1770,18 +1790,6 @@ begin
   flags := flags and NOT_FLAG_PV;        // Kill parity flag for now
   flags := flags or parity_table[pregA^];
   pregF^ := flags;
-end;
-
-function TProcessor.ProcessPortIn(_port: byte): byte;
-begin
-  case _port of
-    SIOA_D: Result := SIO.ChannelA.Data;        // Port 00
-    SIOB_D: Result := SIO.ChannelB.Data;        // Port 01
-    SIOA_C: Result := SIO.ChannelA.Control;     // Port 02
-    SIOB_C: Result := SIO.ChannelB.Control;     // Port 03
-    otherwise
-      raise Exception.Create(Format('Port $%2.2X not catered for',[_port]));
-  end;
 end;
 
 
@@ -1894,8 +1902,6 @@ begin
   while (not Terminated) do
     begin
       case FProcessorState of
-        psNone:    Sleep(10);
-        psPaused:  Sleep(10);
         psRunning:
           begin
             i := 0;
@@ -1916,6 +1922,8 @@ begin
                   sleep(Trunc((simulated_time-elapsed_time)*1000.0+0.5));
               end;
           end;
+        otherwise
+          sleep(20);
       end;
     end;
 end;
