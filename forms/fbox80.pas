@@ -209,15 +209,11 @@ begin
   FProcessor.ProcessorState := psPaused;
   Sleep(50); // Wait for any activities to stop
   FProcessor.Init;
-<<<<<<< HEAD
   ReadMonitorImage;
   ShowRegisters;
   ProcStateUpdate;
   // @@@@@ Future use might enable the following, allow running machine to
   // continue to run after reset
-=======
-  // @@@@@ Future versions can have an option to restart running after reset
->>>>>>> #5_single_step
   {
   if saved_state = psRunning then
     FProcessor.ProcessorState := saved_state;
