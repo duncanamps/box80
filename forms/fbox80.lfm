@@ -654,12 +654,14 @@ object frmBox80: TfrmBox80
       Category = 'Debug'
       Caption = 'Step into'
       Hint = 'Step the processor by one instruction'
+      OnExecute = actDebugStepIntoExecute
       ShortCut = 118
     end
     object actDebugStepOver: TAction
       Category = 'Debug'
       Caption = 'Step over'
       Hint = 'Step over any CALL or repeat instructions like LDIR'
+      OnExecute = actDebugStepOverExecute
       ShortCut = 119
     end
     object actDebugRun: TAction
