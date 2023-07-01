@@ -422,6 +422,8 @@ procedure TfrmBox80.FormDestroy(Sender: TObject);
 begin
   Timer1.Enabled := False;
   FProcessor.Terminate;   // Will delete its own instance
+  while not FProcessor.Finished do
+    Sleep(50);  // Wait until it's gone
 end;
 
 procedure TfrmBox80.FormKeyPress(Sender: TObject; var Key: char);
