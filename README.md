@@ -1,5 +1,5 @@
 ## Box80 V0.0
-**One liner:** Box80 - A cross-platform open-source Virtual Machine to run and debug Z80 code.
+**One liner:** Box80 - A cross-platform open-source Virtual Machine to run and debug Z80 code (very much Work In Progress!)
 
 ![screen_dump_windows_800](https://github.com/duncanamps/box80/assets/6016794/f7d92672-c2a2-4073-9274-6fb504f633af)
 
@@ -62,12 +62,12 @@ which are supported by the Lazarus ecosystem in 32 and 64 bit flavours, includin
 ## Development status
 | Item                          | Complete  | Notes                                 |
 | ----                          | --------: | -----                                 |
-| Dual thread Z80 core          | 100%      |                                       |
+| Dual thread Z80 core          | 100%      | Windows OK, Linux causing fault       |
 | Standard Z80 instructions     | 100%      | Needs to be run against a test suite  |
 | All Z80 instructions          | 47%       | Very little done on CB/DD/ED/FD       |
 | Terminal output               | 50%       | Vanilla, some ctrl codes, needs ANSI  |
 | Interrupt processing          | 33%       | IM2 is complete, trigger by SIO       |
-| SIO                           | 10%       | Very basic implementation             |
+| SIO                           | 10%       | Very basic implementation, but works  |
 | CF card interface             | TBD       |                                       |
 | Breakpoints                   | TBD       |                                       |
 | Disassembler                  | TBD       |                                       |

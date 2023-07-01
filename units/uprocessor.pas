@@ -590,21 +590,31 @@ end;
 
 procedure TProcessor.ExecADDHLr16(_w: Word; _doadc: boolean = False); inline;
 var _cf: Word;
+    flags: byte;
+    _src: Word;
+    _dst: Word;
 begin
-  pregF^ := pregF^ and NOT_FLAG_SUBTRACT;
-  if _doadc and ((pregF^ and FLAG_CARRY) <> 0) then
+  _src := pregHL^;
+  flags := pregF^;
+  if _doadc and ((flags and FLAG_CARRY) <> 0) then
     _cf := 1
   else
     _cf := 0;
-  if ((pregHL^ and $0FFF) + (_w and $0FFF) + _cf) >= $1000 then
-    pregF^ := pregF^ or FLAG_HALFCARRY
-  else
-    pregF^ := pregF^ and NOT_FLAG_HALFCARRY;
-  if integer(pregHL^) + integer(_w) + _cf >= $10000 then
-    pregF^ := pregF^ or FLAG_CARRY
-  else
-    pregF^ := pregF^ and NOT_FLAG_CARRY;
-  pregHL^ := pregHL^ + _w + _cf;
+  flags := flags and NOT_FLAG_SUBTRACT and NOT_FLAG_HALFCARRY and NOT_FLAG_CARRY and NOT_FLAG_ZERO and NOT_FLAG_PV and NOT_FLAG_NEGATIVE;
+  if ((_src and $0FFF) + (_w and $0FFF) + _cf) >= $1000 then
+    flags := flags or FLAG_HALFCARRY;
+  if integer(_src) + integer(_w) + _cf >= $10000 then
+    flags := flags or FLAG_CARRY;
+  _dst := _src + _w + _cf;
+  if ((_src xor _w) and $8000) = 0 then // check for alike signs
+      if ((_src xor _dst) and $8000) <> $00 then
+        flags := flags or FLAG_PV;
+  if (_dst and $8000) <> 0 then
+    flags := flags or FLAG_NEGATIVE;
+  if (_dst = 0) then
+    flags := flags or FLAG_ZERO;
+  pregHL^ := _dst;
+  pregF^ := Flags;
   Inc(t_states,11);
   if _doadc then
     Inc(t_states,4); // Total 15 t states for ADC
