@@ -61,19 +61,19 @@ which are supported by the Lazarus ecosystem in 32 and 64 bit flavours, includin
 
 ## Development status
 | Item                          | Complete  | Notes                                 |
-| ----                          | --------:  | -----                                 |
-| Dual thread Z80 core      | <span style="color:darkblue">100%</span>      |                                       |
-| Standard Z80 instructions     | <span style="color:darkgreen">96%</span>       | Needs to be run against a test suite  |
-| All Z80 instructions          | <span style="color:darkorange">46%</span>       | Very little done on CB/DD/ED/FD       |
-| Terminal output               | <span style="color:darkorange">50%</span>       | Vanilla, some ctrl codes, needs ANSI  |
-| Interrupt processing          | <span style="color:darkorange">33%</span>       | IM2 is complete, trigger by SIO       |
-| SIO                           | <span style="color:darkred">10%</span>   | Very basic implementation             |
-| CF card interface             | TBD | |
-| Breakpoints | TBD |  |
+| ----                          | --------: | -----                                 |
+| Dual thread Z80 core          | 100%      |                                       |
+| Standard Z80 instructions     | 100%      | Needs to be run against a test suite  |
+| All Z80 instructions          | 47%       | Very little done on CB/DD/ED/FD       |
+| Terminal output               | 50%       | Vanilla, some ctrl codes, needs ANSI  |
+| Interrupt processing          | 33%       | IM2 is complete, trigger by SIO       |
+| SIO                           | 10%       | Very basic implementation             |
+| CF card interface             | TBD       |                                       |
+| Breakpoints                   | TBD       |                                       |
 | Disassembler                  | TBD       |                                       |
 | Watch window                  | TBD       |                                       |
-| Use of debug files | TBD | XA80 needs to create these first :) |
-| Documentation | TBD | |
+| Use of debug files            | TBD       | XA80 needs to create these first :)   |
+| Documentation                 | TBD       |                                       |
 
 ## Licence and acknowledgements
 All trademarks are acknowledged as belonging to their respective owners.  

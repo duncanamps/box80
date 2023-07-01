@@ -82,6 +82,7 @@ type
       inst_cb:      array[byte] of TExecProc;
       inst_dd:      array[byte] of TExecProc;
       inst_ed:      array[byte] of TExecProc;
+      inst_fd:      array[byte] of TExecProc;
       int_flag:     boolean;
       int_vec:      byte;
       t_states:     int64;
@@ -152,6 +153,7 @@ type
       procedure ExecADDHLDE; inline;
       procedure ExecADDHLHL; inline;
       procedure ExecADDHLSP; inline;
+      procedure ExecADDimm; inline;
       procedure ExecADDL; inline;
       procedure ExecADDM; inline;
       procedure ExecADCB; inline;
@@ -159,6 +161,7 @@ type
       procedure ExecADCD; inline;
       procedure ExecADCE; inline;
       procedure ExecADCH; inline;
+      procedure ExecADCimm; inline;
       procedure ExecADCL; inline;
       procedure ExecADCM; inline;
       procedure ExecADCA; inline;
@@ -224,6 +227,8 @@ type
       procedure ExecEXAFAF_; inline;
       procedure ExecEXDEHL; inline;
       procedure ExecEXSPindHL; inline;
+      procedure ExecEXX; inline;
+      procedure ExecFd; inline;
       procedure ExecHALT; inline;
       procedure ExecINAport; inline;
       procedure ExecINC8(_m: PByte; _states: integer);
@@ -240,6 +245,7 @@ type
       procedure ExecINCM; inline;
       procedure ExecINCSP; inline;
       procedure ExecJPC; inline;
+      procedure ExecJPHLind; inline;
       procedure ExecJPM; inline;
       procedure ExecJPNC; inline;
       procedure ExecJPNZ; inline;
@@ -255,6 +261,7 @@ type
       procedure ExecJRNZ; inline;
       procedure ExecJRZ; inline;
       procedure ExecJRcond(_mask, _required: byte); inline;
+      procedure ExecLDAA; inline;
       procedure ExecLDAB; inline;
       procedure ExecLDABCind; inline;
       procedure ExecLDAC; inline;
@@ -345,6 +352,7 @@ type
       procedure ExecORD; inline;
       procedure ExecORE; inline;
       procedure ExecORH; inline;
+      procedure ExecORimm; inline;
       procedure ExecORL; inline;
       procedure ExecORM; inline;
       procedure ExecOUTportA; inline;
@@ -405,6 +413,7 @@ type
       procedure ExecXORD; inline;
       procedure ExecXORE; inline;
       procedure ExecXORH; inline;
+      procedure ExecXORimm; inline;
       procedure ExecXORL; inline;
       procedure ExecXORM; inline;
       procedure Interrupt(_vec: byte);    // Perform interrupt, use vector
@@ -621,6 +630,11 @@ begin
   ExecAddHLr16(pregSP^);
 end;
 
+procedure TProcessor.ExecADDimm; inline;
+begin
+  ExecAdd(Fetch8,7);
+end;
+
 procedure TProcessor.ExecADDL; inline;
 begin
   ExecAdd(pregL^,4);
@@ -659,6 +673,11 @@ end;
 procedure TProcessor.ExecADCH; inline;
 begin
   ExecADD(pregH^,4,True);
+end;
+
+procedure TProcessor.ExecADCimm; inline;
+begin
+  ExecADD(Fetch8,7,True);
 end;
 
 procedure TProcessor.ExecADCL; inline;
@@ -856,8 +875,54 @@ begin
 end;
 
 procedure TProcessor.ExecDAA; inline;
+type
+  TDAAflags = (dfMSB0_2,dfMSB0_3,dfMSB0_8,dfMSB0_9,dfMSB6_F,dfMSB7_F,dfMSB9_F,
+               dfMSBA_F, dfLSB0_3, dfLSB0_9,dfLSB6_F,dfLSBA_F);
+  TDAAset = set of TDAAflags;
+var
+  myset: TDAAset;
+  nyb1:  byte;
+  nyb2:  byte;
+  iflag: byte;
+
+  procedure MakeRes(_add: byte; _c: byte);
+  begin
+    pregA^ := pregA^ + _add;
+    pregF^ := (pregF^ and NOT_FLAG_CARRY) or _c;
+  end;
+
 begin
-  error_flag := error_flag + [efIllegal];
+  iflag := ((pregF^ and FLAG_HALFCARRY) shr 2) or
+            (pregF^ and (FLAG_SUBTRACT or FLAG_CARRY));
+  myset := [];
+  nyb1 := pregA^ and $F0;
+  nyb2 := pregA^ and $0F;
+  if (nyb1 < $30) then myset := myset + [dfMSB0_2];
+  if (nyb1 < $40) then myset := myset + [dfMSB0_3];
+  if (nyb1 < $90) then myset := myset + [dfMSB0_8];
+  if (nyb1 < $A0) then myset := myset + [dfMSB0_9];
+  if (nyb1 > $50) then myset := myset + [dfMSB6_F];
+  if (nyb1 > $60) then myset := myset + [dfMSB7_F];
+  if (nyb1 > $80) then myset := myset + [dfMSB9_F];
+  if (nyb1 > $90) then myset := myset + [dfMSBA_F];
+  if (nyb2 < $04) then myset := myset + [dfLSB0_3];
+  if (nyb2 < $0A) then myset := myset + [dfLSB0_9];
+  if (nyb2 > $05) then myset := myset + [dfLSB6_F];
+  if (nyb2 > $09) then myset := myset + [dfLSBA_F];
+  if      (iflag = $00) and (dfMSB0_8 in myset) and (dfLSBA_F in myset) then MakeRes($06,0)
+  else if (iflag = $00) and (dfMSB0_9 in myset) and (dfLSB0_9 in myset) then MakeRes($00,0)
+  else if (iflag = $00) and (dfMSB9_F in myset) and (dfLSBA_F in myset) then MakeRes($66,1)
+  else if (iflag = $00) and (dfMSBA_F in myset) and (dfLSB0_9 in myset) then MakeRes($60,1)
+  else if (iflag = $01) and (dfMSB0_2 in myset) and (dfLSB0_9 in myset) then MakeRes($60,1)
+  else if (iflag = $01) and (dfMSB0_2 in myset) and (dfLSBA_F in myset) then MakeRes($66,1)
+  else if (iflag = $02) and (dfMSB0_9 in myset) and (dfLSB0_9 in myset) then MakeRes($00,0)
+  else if (iflag = $03) and (dfMSB0_9 in myset) and (dfLSB0_9 in myset) then MakeRes($00,0)
+  else if (iflag = $04) and (dfMSB0_9 in myset) and (dfLSB0_3 in myset) then MakeRes($06,0)
+  else if (iflag = $04) and (dfMSBA_F in myset) and (dfLSB0_3 in myset) then MakeRes($66,1)
+  else if (iflag = $05) and (dfMSB0_3 in myset) and (dfLSB0_3 in myset) then MakeRes($66,1)
+  else if (iflag = $06) and (dfMSB0_8 in myset) and (dfLSB6_F in myset) then MakeRes($FA,0)
+  else if (iflag = $07) and (dfMSB0_8 in myset) and (dfLSB6_F in myset) then MakeRes($FA,0);
+  Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecDEC8(_m: PByte; _states: integer);
@@ -999,6 +1064,15 @@ begin
   Inc(t_states,19);
 end;
 
+procedure TProcessor.ExecEXX; inline;
+var w: word;
+begin
+  w := pregBC^;  pregBC^ := pregBC_^;  pregBC_^ := w;
+  w := pregDE^;  pregBC^ := pregDE_^;  pregDE_^ := w;
+  w := pregHL^;  pregBC^ := pregHL_^;  pregHL_^ := w;
+  Inc(t_states,4);
+end;
+
 procedure TProcessor.ExecHALT; inline;
 begin
   error_flag := error_flag + [efHalt];
@@ -1122,6 +1196,13 @@ begin
   Inc(t_states,10);
 end;
 
+procedure TProcessor.ExecJPHLind; inline;
+var addr: Word;
+begin
+  pregPC^ := pregHL^;
+  Inc(t_states,4);
+end;
+
 procedure TProcessor.ExecJPM; inline;
 begin
   ExecJPcond(FLAG_NEGATIVE,FLAG_NEGATIVE);
@@ -1228,6 +1309,12 @@ procedure TProcessor.ExecLDAimm; inline;
 begin
   pregA^ := Fetch8;
   Inc(t_states,7);
+end;
+
+procedure TProcessor.ExecLDAA; inline;
+begin
+  pregA^ := pregA^;
+  Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecLDAB; inline;
@@ -1755,6 +1842,13 @@ begin
   Inc(t_states,4);
 end;
 
+procedure TProcessor.ExecORimm; inline;
+begin
+  pregA^ := pregA^ or Fetch8;
+  SetXORflags;
+  Inc(t_states,7);
+end;
+
 procedure TProcessor.ExecORL; inline;
 begin
   pregA^ := pregA^ or pregL^;
@@ -2137,6 +2231,13 @@ begin
   Inc(t_states,4);
 end;
 
+procedure TProcessor.ExecXORimm; inline;
+begin
+  pregA^ := pregA^ xor Fetch8;
+  SetXORflags;
+  Inc(t_states,7);
+end;
+
 procedure TProcessor.ExecXORL; inline;
 begin
   pregA^ := pregA^ xor pregL^;
@@ -2446,6 +2547,26 @@ begin
 end;
 
 
+//=============================================================================
+//
+// FD instructions
+//
+//=============================================================================
+
+procedure TProcessor.ExecFd; inline;
+var proc: TExecProc;
+begin
+  // Get byte to execute
+  opcode := ramarray[pregPC^];
+  Inc(pregPC^);
+  proc := inst_fd[opcode];
+  if proc <> nil then
+    proc
+  else
+    error_flag := error_flag + [efIllegal];
+end;
+
+
 //-----------------------------------------------------------------------------
 //
 // Processor main execution loop
@@ -2611,6 +2732,7 @@ begin
   for b in byte do inst_std[b] := nil;
   for b in byte do inst_cb[b]  := nil;
   for b in byte do inst_ed[b]  := nil;
+  for b in byte do inst_fd[b]  := nil;
   // Set up standard instructions
   inst_std[$00] := @ExecNOP;
   inst_std[$01] := @ExecLDBCimm;
@@ -2739,6 +2861,7 @@ begin
   inst_std[$7C] := @ExecLDAH;
   inst_std[$7D] := @ExecLDAL;
   inst_std[$7E] := @ExecLDAM;
+  inst_std[$7F] := @ExecLDAA;
   inst_std[$80] := @ExecADDB;
   inst_std[$81] := @ExecADDC;
   inst_std[$82] := @ExecADDD;
@@ -2809,6 +2932,7 @@ begin
   inst_std[$C3] := @ExecJPabs;
   inst_std[$C4] := @ExecCALLNZ;
   inst_std[$C5] := @ExecPUSHBC;
+  inst_std[$C6] := @ExecADDimm;
   inst_std[$C7] := @ExecRST00;
   inst_std[$C8] := @ExecRETZ;
   inst_std[$C9] := @ExecRET;
@@ -2816,6 +2940,7 @@ begin
   inst_std[$CB] := @ExecCb;
   inst_std[$CC] := @ExecCALLZ;
   inst_std[$CD] := @ExecCALLabs;
+  inst_std[$CE] := @ExecADCimm;
   inst_std[$CF] := @ExecRST08;
   inst_std[$D0] := @ExecRETNC;
   inst_std[$D1] := @ExecPOPDE;
@@ -2826,6 +2951,7 @@ begin
   inst_std[$D6] := @ExecSUBimm;
   inst_std[$D7] := @ExecRST10;
   inst_std[$D8] := @ExecRETC;
+  inst_std[$D9] := @ExecEXX;
   inst_std[$DA] := @ExecJPC;
   inst_std[$DB] := @ExecINAport;
   inst_std[$DC] := @ExecCALLC;
@@ -2841,10 +2967,12 @@ begin
   inst_std[$E6] := @ExecANDimm;
   inst_std[$E7] := @ExecRST20;
   inst_std[$E8] := @ExecRETPE;
+  inst_std[$E9] := @ExecJPHLind;
   inst_std[$EA] := @ExecJPPE;
   inst_std[$EB] := @ExecEXDEHL;
   inst_std[$EC] := @ExecCALLPE;
   inst_std[$ED] := @ExecEd;
+  inst_std[$EE] := @ExecXORimm;
   inst_std[$EF] := @ExecRST28;
   inst_std[$F0] := @ExecRETP;
   inst_std[$F1] := @ExecPOPAF;
@@ -2852,12 +2980,14 @@ begin
   inst_std[$F3] := @ExecDI;
   inst_std[$F4] := @ExecCALLP;
   inst_std[$F5] := @ExecPUSHAF;
+  inst_std[$F6] := @ExecORimm;
   inst_std[$F7] := @ExecRST30;
   inst_std[$F8] := @ExecRETM;
   inst_std[$F9] := @ExecLDSPHL;
   inst_std[$FA] := @ExecJPM;
   inst_std[$FB] := @ExecEI;
   inst_std[$FC] := @ExecCALLM;
+  inst_std[$FD] := @ExecFd;
   inst_std[$FE] := @ExecCPimm;
   inst_std[$FF] := @ExecRST38;
   // Set up CB instructions
