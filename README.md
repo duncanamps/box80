@@ -1,7 +1,7 @@
 ## Box80 V0.0
 **One liner:** Box80 - A cross-platform open-source Virtual Machine to run and debug Z80 code (very much work in progress)
 
-![screen_dump_windows_800](https://github.com/duncanamps/box80/assets/6016794/f7d92672-c2a2-4073-9274-6fb504f633af)
+![screen_dump_windows_800](https://github.com/duncanamps/box80/assets/6016794/a90fa355-68c8-4fba-a334-490dccfcb2f5)
 
 ## Description
 Box80 is a multi-platform virtual machine designed to execute Z80 code in a 64K code space. The main objective is to have a rich and capable cross-platform environment for debugging of CP/M assembly language programs, rather than to serve as Yet Another Emulator for CP/M.
