@@ -27,3 +27,4 @@ binaries/
 *.lps
 docs/instruction_coverage.xlsx
 docs/~$instruction_coverage.xlsx
+test_files/

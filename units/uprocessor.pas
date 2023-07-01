@@ -704,49 +704,49 @@ begin
   Inc(t_states,4);
 end;
 
-procedure TProcessor.ExecANDB;
+procedure TProcessor.ExecANDB; inline;
 begin
   pregA^ := pregA^ and pregB^;
   SetXORflags;
   Inc(t_states,4);
 end;
 
-procedure TProcessor.ExecANDC;
+procedure TProcessor.ExecANDC; inline;
 begin
   pregA^ := pregA^ and pregC^;
   SetXORflags;
   Inc(t_states,4);
 end;
 
-procedure TProcessor.ExecANDD;
+procedure TProcessor.ExecANDD; inline;
 begin
   pregA^ := pregA^ and pregD^;
   SetXORflags;
   Inc(t_states,4);
 end;
 
-procedure TProcessor.ExecANDE;
+procedure TProcessor.ExecANDE; inline;
 begin
   pregA^ := pregA^ and pregE^;
   SetXORflags;
   Inc(t_states,4);
 end;
 
-procedure TProcessor.ExecANDH;
+procedure TProcessor.ExecANDH; inline;
 begin
   pregA^ := pregA^ and pregH^;
   SetXORflags;
   Inc(t_states,4);
 end;
 
-procedure TProcessor.ExecANDL;
+procedure TProcessor.ExecANDL; inline;
 begin
   pregA^ := pregA^ and pregL^;
   SetXORflags;
   Inc(t_states,4);
 end;
 
-procedure TProcessor.ExecANDM;
+procedure TProcessor.ExecANDM; inline;
 begin
   pregA^ := pregA^ and ramarray[pregHL^];
   SetXORflags;
@@ -858,7 +858,7 @@ begin
 end;
 
 procedure TProcessor.ExecCPL; inline;
-begin  // Compare A,L
+begin
   ExecSub(pregL^,4,False);
 end;
 
@@ -1111,8 +1111,7 @@ end;
 
 procedure TProcessor.ExecINCA; inline;
 begin
-  Inc(pregA^);
-  Inc(t_states,4);
+  ExecINC8(pregA,4);
 end;
 
 procedure TProcessor.ExecINCB; inline;
@@ -1147,7 +1146,7 @@ end;
 
 procedure TProcessor.ExecINCM; inline;
 begin
-  ExecINC8(@ramarray[pregHL^],1);
+  ExecINC8(@ramarray[pregHL^],11);
 end;
 
 procedure TProcessor.ExecINCBC; inline;
@@ -2134,7 +2133,7 @@ begin
       if ((_a xor _c) and $80) <> 0 then
         flags := flags or FLAG_PV;
   flags := flags or FLAG_SUBTRACT;
-  if _b > _a then
+  if integer(_a) - integer(_b) - integer(_cf) < 0 then
     flags := flags or FLAG_CARRY
   else
     flags := flags and NOT_FLAG_CARRY;
