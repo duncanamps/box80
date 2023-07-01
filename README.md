@@ -1,5 +1,5 @@
 ## Box80 V0.0
-**One liner:** Box80 - A cross-platform open-source Virtual Machine to run and debug Z80 code (very much Work In Progress!)
+**One liner:** Box80 - A cross-platform open-source Virtual Machine to run and debug Z80 code (very much work in progress)
 
 ![screen_dump_windows_800](https://github.com/duncanamps/box80/assets/6016794/f7d92672-c2a2-4073-9274-6fb504f633af)
 
@@ -30,7 +30,7 @@ Box80 is a multi-platform virtual machine designed to execute Z80 code in a 64K 
 ## Dependencies
 To use a basic CP/M operating system, this software requires the following components:
 
-1. Monitor image to allow the initial boot. I'm using the Grant Searle version as it's popular with many retro-Z80 designs
+1. Monitor image to allow the initial boot. I'm favouring the Grant Searle version as it's popular with many retro-Z80 designs
 2. BIOS image to support the following
 	* Z80-ZIO using ports $00..$03
 	* Compact Flash IDE interface using ports $10..$17
@@ -41,8 +41,7 @@ To use a basic CP/M operating system, this software requires the following compo
         * CP/M CCP (Console Command Processor)
     * Something else
 
-None of the items above are included with this distribution as they have their own licensing terms which can be found on the website and in the source code
-for the different components. The documents section contains dependencies.pdf which explains how to download and assemble the four modules listed
+None of the items above can be included with this distribution as they have their own licensing terms. Terms for use of the software can be found on the respective websites and in the source code for the different components. The documents section contains dependencies.pdf which explains how to download and assemble the modules listed
 above (not implemented).
 
 ## Development Environment
@@ -59,6 +58,8 @@ which are supported by the Lazarus ecosystem in 32 and 64 bit flavours, includin
 * WinCE
 * Windows
 
+You will need at least a 32 bit Operating System, and some sort of multi-threaded environment.
+
 ## Development status
 | Item                          | Complete  | Notes                                 |
 | ----                          | --------: | -----                                 |
@@ -68,7 +69,7 @@ which are supported by the Lazarus ecosystem in 32 and 64 bit flavours, includin
 | Terminal output               | 50%       | Vanilla, some ctrl codes, needs ANSI  |
 | Interrupt processing          | 33%       | IM2 is complete, trigger by SIO       |
 | SIO                           | 10%       | Very basic implementation, but works  |
-| CF card interface             | TBD       |                                       |
+| CF card interface             | TBD       | Just about to start on this           |
 | Breakpoints                   | TBD       |                                       |
 | Disassembler                  | TBD       |                                       |
 | Watch window                  | TBD       |                                       |
