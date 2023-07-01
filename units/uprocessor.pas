@@ -459,6 +459,7 @@ implementation
 constructor TProcessor.Create;
 begin
   inherited Create(True);
+  cpu_speed := 4000000; // Default to 4MHz device
   FreeOnTerminate := True;
   FProcessorState := psNone;
   // Set up pointers to 16 bit registers
@@ -2590,7 +2591,6 @@ var i: word;
 begin
   SIO.Init;             // Initialise SIO
   t_states := 0;
-  cpu_speed := 4000000; // Default to 4MHz device
   pregIntE^ := 1;       // Enable interrupts
   pregIntM^ := 0;       // Interrupt mode 0 (IM0) like 8080
   for ri in TRegIndex do
