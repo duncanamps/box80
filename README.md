@@ -68,6 +68,7 @@ which are supported by the Lazarus ecosystem in 32 and 64 bit flavours, includin
 | Terminal output               | <span style="color:darkorange">50%</span>       | Vanilla, some ctrl codes, needs ANSI  |
 | Interrupt processing          | <span style="color:darkorange">33%</span>       | IM2 is complete, trigger by SIO       |
 | SIO                           | <span style="color:darkred">10%</span>   | Very basic implementation             |
+| CF card interface             | TBD | |
 | Breakpoints | TBD |  |
 | Disassembler                  | TBD       |                                       |
 | Watch window                  | TBD       |                                       |
