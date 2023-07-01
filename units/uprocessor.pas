@@ -197,6 +197,10 @@ type
       procedure ExecCPM; inline;
       procedure ExecCb; inline;
       procedure ExecCbBITreg; inline;
+      procedure ExecCbBITres; inline;
+      procedure ExecCbBITresorset(_set: boolean); inline;
+      procedure ExecCbBITset; inline;
+      procedure ExecCbShiftRotate; inline;
       procedure ExecDAA; inline;
       procedure ExecDd; inline;
       procedure ExecDdLDIXimm; inline;
@@ -2471,6 +2475,133 @@ begin
     Inc(t_states,12);
 end;
 
+procedure TProcessor.ExecCbBITresorset(_set: boolean); inline;
+var p: Pbyte;
+    _andmask: byte;
+    _ormask:  byte;
+    _reg: byte;
+    _bit: byte;
+begin
+  _bit:= (opcode shr 3) and $07;
+  _reg := opcode and $07;
+  p := pregB; // Keep compiler quiet
+  case _reg of
+    0: p := pregB;
+    1: p := pregC;
+    2: p := pregD;
+    3: p := pregE;
+    4: p := pregH;
+    5: p := pregL;
+    6: begin
+         p := @ramarray[pregHL^];
+         Inc(t_states,4); // Extra 4 t_states for RAM access
+       end;
+    7: p := pregA;
+  end;
+  case _set of
+    False: // Reset
+      begin
+        _andmask := (1 shl (_bit - 1)) xor $FF;
+        _ormask  := 0;
+      end;
+    True:  // Set
+      begin
+        _andmask := $FF;
+        _ormask  := 1 shl (_bit - 1);
+      end;
+  end;
+  // Set or Reset the bit
+  p^ := (p^ and _andmask) or _ormask;
+  // Bump the t_states
+  Inc(t_states,8);
+end;
+
+procedure TProcessor.ExecCbBITres; inline;
+begin
+  ExecCbBITresorset(False);
+end;
+
+procedure TProcessor.ExecCbBITset; inline;
+begin
+  ExecCbBITresorset(True);
+end;
+
+procedure TProcessor.ExecCbShiftRotate; inline;
+var p: PByte; // Pointer to the item to shift
+    style: byte;
+    regindex: byte;
+    bit0:     byte;
+    bit7:     byte;
+begin
+  regindex := opcode and $07; // BCDEHLMA
+  style    := (opcode and $38) shr 3; // Type of shift or rotate
+  p := pregB; // Keep compiler quiet
+  case regindex of
+    0: p := pregB;
+    1: p := pregC;
+    2: p := pregD;
+    3: p := pregE;
+    4: p := pregH;
+    5: p := pregL;
+    6: begin
+         p := @ramarray[pregHL^];
+         Inc(t_states,7);  // Extra 7 T states for mem fetch
+       end;
+    7: p := pregA;
+  end;
+  case style of
+    0: // RLC
+      begin
+        bit7 := p^ and $80;
+        p^ := ((p^ shl 1) or (bit7 shr 7)) and $00FF;
+        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or (bit7 shr 7); // Set C flag if reqd and reset H, N
+      end;
+    1: // RRC
+      begin
+        bit0 := p^ and $01;
+        p^ := ((p^ shr 1) or (bit0 shl 7));
+        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset H, N
+      end;
+    2: // RL
+      begin
+        bit7 := p^ and $80;
+        p^ := ((p^ shl 1) or (pregF^ and $01)) and $00FF;
+        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or (bit7 shr 7); // Set C flag if reqd and reset H, N
+      end;
+    3: // RR
+      begin
+        bit0 := p^ and $01;
+        p^ := ((p^ shr 1) or ((pregF^ and $01) shl 7));
+        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset H, N
+      end;
+    4: // SLA
+      begin
+        bit7 := p^ and $80;
+        p^ := (p^ shl 1) and $00FF;
+        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or (bit7 shr 7); // Set C flag if reqd and reset H, N
+      end;
+    5: // SRA
+      begin
+        bit0 := p^ and $01;
+        bit7 := p^ and $80;
+        p^ := ((p^ shr 1) and $7F) or bit7;
+        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset H, N
+      end;
+    6: // SLL (undocumented but implemented as for SLA)
+      begin
+        bit7 := p^ and $80;
+        p^ := (p^ shl 1) and $00FF;
+        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or (bit7 shr 7); // Set C flag if reqd and reset H, N
+      end;
+    7: // SRL
+      begin
+        bit0 := p^ and $01;
+        p^ := (p^ shr 1);
+        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset H, N
+      end;
+  end;
+  Inc(t_states,8);
+end;
 
 //=============================================================================
 //
@@ -3000,7 +3131,10 @@ begin
   inst_std[$FE] := @ExecCPimm;
   inst_std[$FF] := @ExecRST38;
   // Set up CB instructions
+  for b := $00 to $3F do inst_cb[b] := @ExecCbShiftRotate;
   for b := $40 to $7F do inst_cb[b] := @ExecCbBITreg;
+  for b := $80 to $BF do inst_cb[b] := @ExecCbBITres;
+  for b := $C0 to $FF do inst_cb[b] := @ExecCbBITset;
   // Set up DD instructions
   inst_dd[$21] := @ExecDdLDIXimm;
   // Set up ED instructions
@@ -3011,6 +3145,7 @@ begin
   inst_ed[$5E] := @ExecEdIM2;
   inst_ed[$6A] := @ExecEdADCHLHL;
   inst_ed[$7A] := @ExecEdADCHLSP;
+  // Set up FD instructions
 end;
 
 procedure TProcessor.Interrupt(_vec:byte);
