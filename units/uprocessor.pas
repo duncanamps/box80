@@ -2259,6 +2259,8 @@ end;
 procedure TProcessor.SetCPUspeed(_speed: int64);
 begin
   cpu_speed := _speed;
+  TStates := 0;
+  insts := 0;
   run_start_time := Now();
   run_start_cycles := TStates;
   run_start_instructions := insts;
