@@ -10,7 +10,7 @@ uses
   athreads,
   {$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, anchordockpkg, fbox80, uprocessor, usio, uterminal, fterminal
+  Forms, anchordockpkg, fbox80, uprocessor, usio, uterminal, fterminal, fabout
   { you can add units after this };
 
 {$R *.res}
@@ -21,6 +21,7 @@ begin
   Application.Initialize;
   Application.CreateForm(TfrmBox80, frmBox80);
   Application.CreateForm(TfrmTerminal, frmTerminal);
+  Application.CreateForm(TfrmHelpAbout, frmHelpAbout);
   Application.Run;
 end.
 

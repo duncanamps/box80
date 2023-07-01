@@ -904,6 +904,21 @@ object frmBox80: TfrmBox80
         Action = actDebugStop
       end
     end
+    object miHelp: TMenuItem
+      Caption = '&Help'
+      object MenuItem1: TMenuItem
+        Action = actHelpUserManual
+      end
+      object MenuItem2: TMenuItem
+        Action = actHelpWebsite
+      end
+      object miHelpSep1: TMenuItem
+        Caption = '-'
+      end
+      object MenuItem3: TMenuItem
+        Action = actHelpAbout
+      end
+    end
   end
   object ActionList1: TActionList
     Images = ImageList1
@@ -1050,6 +1065,22 @@ object frmBox80: TfrmBox80
       Caption = '100.0 MHz'
       Hint = 'Set CPU speed to 100.0 MHz'
       OnExecute = actVMCPU1000Execute
+    end
+    object actHelpAbout: TAction
+      Category = 'Help'
+      Caption = '&About'
+      Hint = 'About this application'
+      OnExecute = actHelpAboutExecute
+    end
+    object actHelpWebsite: TAction
+      Category = 'Help'
+      Caption = '&Website'
+      Hint = 'Link to the website'
+    end
+    object actHelpUserManual: TAction
+      Category = 'Help'
+      Caption = 'User &manual'
+      Hint = 'Display the user manual'
     end
   end
 end

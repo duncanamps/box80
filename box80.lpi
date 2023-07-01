@@ -108,6 +108,12 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
       </Unit>
+      <Unit>
+        <Filename Value="forms\fabout.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmHelpAbout"/>
+        <ResourceBaseClass Value="Form"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

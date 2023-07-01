@@ -29,6 +29,9 @@ type
     actDebugStepOver: TAction;
     actDebugStop: TAction;
     actFileExit: TAction;
+    actHelpAbout: TAction;
+    actHelpWebsite: TAction;
+    actHelpUserManual: TAction;
     actVMCPU1000: TAction;
     actVMCPU00: TAction;
     actVMCPU60: TAction;
@@ -102,6 +105,11 @@ type
     labF_7: TLabel;
     labStatus: TLabel;
     MainMenu1: TMainMenu;
+    MenuItem1: TMenuItem;
+    MenuItem2: TMenuItem;
+    MenuItem3: TMenuItem;
+    miHelpSep1: TMenuItem;
+    miHelp: TMenuItem;
     miVMCPU1000: TMenuItem;
     miVMCPU60: TMenuItem;
     miVMCPU00: TMenuItem;
@@ -141,6 +149,7 @@ type
     Splitter2: TSplitter;
     StatusBar1: TStatusBar;
     Timer1: TTimer;
+    procedure actHelpAboutExecute(Sender: TObject);
     procedure actVMCPU00Execute(Sender: TObject);
     procedure actVMCPU1000Execute(Sender: TObject);
     procedure actVMCPU100Execute(Sender: TObject);
@@ -197,7 +206,7 @@ implementation
 {$R *.lfm}
 
 uses
-  fterminal;
+  fterminal, fabout;
 
 { TfrmBox80 }
 
@@ -294,6 +303,11 @@ end;
 procedure TfrmBox80.actVMCPU00Execute(Sender: TObject);
 begin
   FProcessor.CPUspeed := 32768;
+end;
+
+procedure TfrmBox80.actHelpAboutExecute(Sender: TObject);
+begin
+  frmHelpAbout.ShowModal;
 end;
 
 procedure TfrmBox80.actVMCPU1000Execute(Sender: TObject);

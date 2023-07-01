@@ -30,41 +30,41 @@ Box80 is a multi-platform virtual machine designed to execute Z80 code in a 64K 
 ## Dependencies
 To use a basic CP/M operating system, this software requires the following components:
 
-1. Monitor image to allow the initial boot
+1. Monitor image to allow the initial boot. I'm using the Grant Searle version as it's popular with many retro-Z80 designs
 2. BIOS image to support the following
 	* Z80-ZIO using ports $00..$03
 	* Compact Flash IDE interface using ports $10..$17
-3. A language or operating system, one or both of the following:
-    * Microsoft BASIC
+3. A language or operating system, one of the following:
+    * Microsoft BASIC image
     * CP/M image containing:
         * BDOS (Basic Disk Operating System)
         * CP/M CCP (Console Command Processor)
+    * Something else
 
 None of the items above are included with this distribution as they have their own licensing terms which can be found on the website and in the source code
 for the different components. The documents section contains dependencies.pdf which explains how to download and assemble the four modules listed
 above (not implemented).
 
 ## Development Environment
-To modify and compile this software, you will need [Lazarus](https://www.lazarus-ide.org/index.php?page=downloads) 2.1.0 or later. It has been
+Box80 is written in [Free PASCAL](https://www.freepascal.org/) hosted under the [Lazarus IDE](https://www.lazarus-ide.org/). To modify and compile this software, you will need [Lazarus](https://www.lazarus-ide.org/index.php?page=downloads) 2.1.0 or later. It has been
 tested on Windows. There are no "OS specific" twists, so it should be possible to recompile on other hosts
 which are supported by the Lazarus ecosystem in 32 and 64 bit flavours, including:
 
 * Android
 * FreeBSD
 * iOS
-* Linux
+* Linux (known to have problems at this time)
 * macOS
 * Raspberry Pi
 * WinCE
 * Windows
-
 
 ## Development status
 | Item                          | Complete  | Notes                                 |
 | ----                          | --------: | -----                                 |
 | Dual thread Z80 core          | 100%      | Windows OK, Linux causing fault       |
 | Standard Z80 instructions     | 100%      | Needs to be run against a test suite  |
-| All Z80 instructions          | 47%       | Very little done on CB/DD/ED/FD       |
+| All Z80 instructions          | 75%       | Many extended instructions remaining  |
 | Terminal output               | 50%       | Vanilla, some ctrl codes, needs ANSI  |
 | Interrupt processing          | 33%       | IM2 is complete, trigger by SIO       |
 | SIO                           | 10%       | Very basic implementation, but works  |
