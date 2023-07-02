@@ -7,16 +7,17 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
   ExtCtrls, Menus, ActnList, Buttons,
-{$ifdef unix}
-  cthreads,
-  cmem, // the c memory manager is on some systems much faster for multi-threading
-{$endif}
    uprocessor;
 
 const
-//MONITOR_BIN = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\test_files\validation\validate_shift_rotate.bin';
+{$IFDEF LINUX}
+  MONITOR_BIN = '/mnt/c/users/Duncan Munro/Dropbox/dev/lazarus/computing/z80/box80/imported/g_searle/source/monitor.bin';
+  BASIC_BIN   = '/mnt/c/users/Duncan Munro/Dropbox/dev/lazarus/computing/z80/box80/imported/g_searle/source/basic.bin';
+{$ENDIF}
+{$IFDEF WINDOWS}
   MONITOR_BIN = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\monitor.bin';
   BASIC_BIN   = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\basic.bin';
+{$ENDIF}
 
 
 type

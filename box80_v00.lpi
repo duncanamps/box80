@@ -16,6 +16,10 @@
     </General>
     <VersionInfo>
       <UseVersionInfo Value="True"/>
+      <AutoIncrementBuild Value="True"/>
+      <BuildNr Value="1"/>
+      <Language Value="0809"/>
+      <StringTable LegalCopyright="Copyright 2023 Duncan Munro" ProductName="Box80"/>
     </VersionInfo>
     <BuildModes>
       <Item Name="Debug" Default="True"/>
@@ -115,12 +119,6 @@
       <FormatVersion Value="2"/>
     </RunParams>
     <RequiredPackages>
-      <Item>
-        <PackageName Value="AnchorDocking"/>
-      </Item>
-      <Item>
-        <PackageName Value="BGRABitmapPack"/>
-      </Item>
       <Item>
         <PackageName Value="LCL"/>
       </Item>

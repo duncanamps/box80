@@ -7,6 +7,7 @@ interface
 uses
   Classes, SysUtils, usio;
 
+
 const
   FLAG_NEGATIVE  = $80;
   FLAG_ZERO      = $40;
