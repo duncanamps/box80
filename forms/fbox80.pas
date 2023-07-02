@@ -11,8 +11,8 @@ uses
 
 const
 {$IFDEF LINUX}
-  MONITOR_BIN = '/mnt/c/users/Duncan Munro/Dropbox/dev/lazarus/computing/z80/box80/imported/g_searle/source/monitor.bin';
-  BASIC_BIN   = '/mnt/c/users/Duncan Munro/Dropbox/dev/lazarus/computing/z80/box80/imported/g_searle/source/basic.bin';
+  MONITOR_BIN = '/home/duncan/Dropbox/dev/lazarus/computing/z80/box80/imported/g_searle/source/monitor.bin';
+  BASIC_BIN   = '/home/duncan/Dropbox/dev/lazarus/computing/z80/box80/imported/g_searle/source/basic.bin';
 {$ENDIF}
 {$IFDEF WINDOWS}
   MONITOR_BIN = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\monitor.bin';

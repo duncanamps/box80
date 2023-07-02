@@ -4,7 +4,7 @@ object frmBox80: TfrmBox80
   Top = 188
   Width = 838
   Caption = 'BOX80 - Z80 Virtual Machine'
-  ClientHeight = 580
+  ClientHeight = 582
   ClientWidth = 838
   Menu = MainMenu1
   OnActivate = FormActivate
@@ -13,8 +13,8 @@ object frmBox80: TfrmBox80
   LCLVersion = '2.2.0.4'
   object StatusBar1: TStatusBar
     Left = 0
-    Height = 21
-    Top = 559
+    Height = 19
+    Top = 563
     Width = 838
     Panels = <>
   end
@@ -129,12 +129,12 @@ object frmBox80: TfrmBox80
   end
   object pnlRegisters: TPanel
     Left = 0
-    Height = 532
+    Height = 536
     Top = 27
     Width = 179
     Align = alLeft
     Alignment = taRightJustify
-    ClientHeight = 532
+    ClientHeight = 536
     ClientWidth = 179
     ParentColor = False
     TabOrder = 2
@@ -142,7 +142,7 @@ object frmBox80: TfrmBox80
       Left = 8
       Height = 17
       Top = 26
-      Width = 17
+      Width = 18
       Caption = 'AF'
     end
     object Label2: TLabel
@@ -163,14 +163,14 @@ object frmBox80: TfrmBox80
       Left = 8
       Height = 17
       Top = 138
-      Width = 17
+      Width = 18
       Caption = 'HL'
     end
     object Label5: TLabel
       Left = 92
       Height = 17
       Top = 26
-      Width = 21
+      Width = 22
       Caption = 'AF'''
     end
     object Label6: TLabel
@@ -191,7 +191,7 @@ object frmBox80: TfrmBox80
       Left = 92
       Height = 17
       Top = 138
-      Width = 21
+      Width = 20
       Caption = 'HL'''
     end
     object Label9: TLabel
@@ -212,26 +212,26 @@ object frmBox80: TfrmBox80
       Left = 8
       Height = 17
       Top = 214
-      Width = 12
+      Width = 13
       Caption = 'IY'
     end
     object Label12: TLabel
       Left = 8
       Height = 17
       Top = 266
-      Width = 17
+      Width = 18
       Caption = 'PC'
     end
     object Label13: TLabel
       Left = 8
       Height = 17
       Top = 241
-      Width = 16
+      Width = 17
       Caption = 'SP'
     end
     object edtBC: TEdit
       Left = 34
-      Height = 25
+      Height = 34
       Top = 85
       Width = 37
       Font.Name = 'Lucida Sans Typewriter'
@@ -241,7 +241,7 @@ object frmBox80: TfrmBox80
     end
     object edtDE: TEdit
       Left = 34
-      Height = 25
+      Height = 34
       Top = 110
       Width = 37
       Font.Name = 'Lucida Sans Typewriter'
@@ -251,7 +251,7 @@ object frmBox80: TfrmBox80
     end
     object edtHL: TEdit
       Left = 34
-      Height = 25
+      Height = 34
       Top = 136
       Width = 37
       Font.Name = 'Lucida Sans Typewriter'
@@ -261,7 +261,7 @@ object frmBox80: TfrmBox80
     end
     object edtBC_: TEdit
       Left = 118
-      Height = 25
+      Height = 34
       Top = 85
       Width = 37
       Font.Name = 'Lucida Sans Typewriter'
@@ -271,7 +271,7 @@ object frmBox80: TfrmBox80
     end
     object edtDE_: TEdit
       Left = 118
-      Height = 25
+      Height = 34
       Top = 110
       Width = 37
       TabOrder = 4
@@ -279,7 +279,7 @@ object frmBox80: TfrmBox80
     end
     object edtHL_: TEdit
       Left = 118
-      Height = 25
+      Height = 34
       Top = 136
       Width = 37
       Font.Name = 'Lucida Sans Typewriter'
@@ -289,7 +289,7 @@ object frmBox80: TfrmBox80
     end
     object edtA: TEdit
       Left = 34
-      Height = 25
+      Height = 34
       Top = 25
       Width = 21
       Font.Name = 'Lucida Sans Typewriter'
@@ -299,7 +299,7 @@ object frmBox80: TfrmBox80
     end
     object edtA_: TEdit
       Left = 118
-      Height = 25
+      Height = 34
       Top = 25
       Width = 21
       Font.Name = 'Lucida Sans Typewriter'
@@ -517,7 +517,7 @@ object frmBox80: TfrmBox80
     end
     object edtIR: TEdit
       Left = 34
-      Height = 25
+      Height = 34
       Top = 162
       Width = 37
       Font.Name = 'Lucida Sans Typewriter'
@@ -527,7 +527,7 @@ object frmBox80: TfrmBox80
     end
     object edtIX: TEdit
       Left = 34
-      Height = 25
+      Height = 34
       Top = 187
       Width = 37
       Font.Name = 'Lucida Sans Typewriter'
@@ -537,7 +537,7 @@ object frmBox80: TfrmBox80
     end
     object edtIY: TEdit
       Left = 34
-      Height = 25
+      Height = 34
       Top = 213
       Width = 37
       Font.Name = 'Lucida Sans Typewriter'
@@ -547,7 +547,7 @@ object frmBox80: TfrmBox80
     end
     object edtSP: TEdit
       Left = 34
-      Height = 25
+      Height = 34
       Top = 239
       Width = 37
       Font.Name = 'Lucida Sans Typewriter'
@@ -557,7 +557,7 @@ object frmBox80: TfrmBox80
     end
     object edtPC: TEdit
       Left = 34
-      Height = 25
+      Height = 34
       Top = 264
       Width = 37
       Font.Name = 'Lucida Sans Typewriter'
@@ -574,7 +574,7 @@ object frmBox80: TfrmBox80
     end
     object edtAtPC: TEdit
       Left = 34
-      Height = 25
+      Height = 34
       Top = 290
       Width = 131
       Font.Name = 'Lucida Sans Typewriter'
@@ -592,7 +592,7 @@ object frmBox80: TfrmBox80
     end
     object edtT: TEdit
       Left = 34
-      Height = 25
+      Height = 34
       Top = 315
       Width = 131
       Alignment = taRightJustify
@@ -611,7 +611,7 @@ object frmBox80: TfrmBox80
     end
     object edtuS: TEdit
       Left = 34
-      Height = 25
+      Height = 34
       Top = 339
       Width = 131
       Alignment = taRightJustify
@@ -648,7 +648,7 @@ object frmBox80: TfrmBox80
       Left = 9
       Height = 17
       Top = 371
-      Width = 21
+      Width = 23
       Caption = 'VM'
     end
     object labMHz: TLabel
@@ -675,30 +675,30 @@ object frmBox80: TfrmBox80
       Left = 140
       Height = 17
       Top = 398
-      Width = 29
+      Width = 30
       Caption = 'MHz'
     end
     object Label24: TLabel
       Left = 138
       Height = 17
       Top = 422
-      Width = 32
+      Width = 34
       Caption = 'MIPS'
     end
   end
   object Splitter1: TSplitter
     Left = 179
-    Height = 532
+    Height = 536
     Top = 27
     Width = 5
   end
   object pnlDisassembler: TPanel
     Left = 184
-    Height = 532
+    Height = 536
     Top = 27
     Width = 305
     Align = alLeft
-    ClientHeight = 532
+    ClientHeight = 536
     ClientWidth = 305
     TabOrder = 4
     object Label18: TLabel
@@ -716,17 +716,17 @@ object frmBox80: TfrmBox80
   end
   object Splitter2: TSplitter
     Left = 489
-    Height = 532
+    Height = 536
     Top = 27
     Width = 5
   end
   object pnlWatch: TPanel
     Left = 494
-    Height = 532
+    Height = 536
     Top = 27
     Width = 344
     Align = alClient
-    ClientHeight = 532
+    ClientHeight = 536
     ClientWidth = 344
     TabOrder = 6
     object Label19: TLabel
