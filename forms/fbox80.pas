@@ -6,12 +6,12 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  ExtCtrls, Menus, ActnList, Buttons, AnchorDockPanel,
+  ExtCtrls, Menus, ActnList, Buttons,
 {$ifdef unix}
   cthreads,
   cmem, // the c memory manager is on some systems much faster for multi-threading
 {$endif}
-   uprocessor, uterminal;
+   uprocessor;
 
 const
 //MONITOR_BIN = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\test_files\validation\validate_shift_rotate.bin';
@@ -32,6 +32,7 @@ type
     actHelpAbout: TAction;
     actHelpWebsite: TAction;
     actHelpUserManual: TAction;
+    actVMCPUmax: TAction;
     actVMCPU1000: TAction;
     actVMCPU00: TAction;
     actVMCPU60: TAction;
@@ -108,6 +109,8 @@ type
     MenuItem1: TMenuItem;
     MenuItem2: TMenuItem;
     MenuItem3: TMenuItem;
+    miVMCPUmax: TMenuItem;
+    miVMCPUsep1: TMenuItem;
     miHelpSep1: TMenuItem;
     miHelp: TMenuItem;
     miVMCPU1000: TMenuItem;
@@ -162,21 +165,17 @@ type
     procedure actVMCPU60Execute(Sender: TObject);
     procedure actVMCPU73Execute(Sender: TObject);
     procedure actVMCPU80Execute(Sender: TObject);
+    procedure actVMCPUmaxExecute(Sender: TObject);
     procedure actVMResetExecute(Sender: TObject);
     procedure actDebugRunExecute(Sender: TObject);
     procedure actDebugStepIntoExecute(Sender: TObject);
     procedure actDebugStepOverExecute(Sender: TObject);
     procedure actDebugStopExecute(Sender: TObject);
     procedure actFileExitExecute(Sender: TObject);
-    procedure btnInitClick(Sender: TObject);
-    procedure btnRunClick(Sender: TObject);
-    procedure btnStepIntoClick(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
     procedure FormActivate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure FormKeyPress(Sender: TObject; var Key: char);
-    procedure pnlDisassemblerClick(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
   private
     CancelRequested: boolean;
@@ -209,11 +208,6 @@ uses
   fterminal, fabout;
 
 { TfrmBox80 }
-
-procedure TfrmBox80.btnInitClick(Sender: TObject);
-var strm: TFileStream;
-begin
-end;
 
 procedure TfrmBox80.actFileExitExecute(Sender: TObject);
 begin
@@ -266,10 +260,17 @@ begin
   FProcessor.CPUspeed := 8000000;
 end;
 
-procedure TfrmBox80.actVMResetExecute(Sender: TObject);
-var saved_state: TProcessorState;
+procedure TfrmBox80.actVMCPUmaxExecute(Sender: TObject);
 begin
-  saved_state := FProcessor.ProcessorState;
+  FProcessor.CPUspeed := 9999999999;
+end;
+
+procedure TfrmBox80.actVMResetExecute(Sender: TObject);
+{
+var saved_state: TProcessorState;
+}
+begin
+  // saved_state := FProcessor.ProcessorState;
   FProcessor.ProcessorState := psPaused;
   Sleep(50); // Wait for any activities to stop
   FProcessor.Init;
@@ -325,88 +326,6 @@ begin
   FProcessor.CPUspeed := 20000000;
 end;
 
-{$DEFINE REAL_SPEED}
-procedure TfrmBox80.btnRunClick(Sender: TObject);
-{$IFDEF REAL_SPEED}
-const FPS = 20;                    // Frames per second for terminal refresh
-      INST_BATCH = 100000;
-      REFR_CYCLE = (1/FPS) / 86400.0; // Seconds between terminal refresh
-      DISP_CYCLE = 0.25 / 86400.0;    // Seconds between register updates
-{$ELSE}
-const INST_BATCH = 50000000;
-      DISP_BATCH = 50000000;
-{$ENDIF}
-var saved_pc: word;
-    good: boolean;
-    instructions: int64;
-    instcount:    int64;
-    start_time: TDateTime;
-    disp_last:  TDateTime;
-    refr_last:  TDateTime;
-    start_t:    int64;  // Starting T states
-    t_elapsed:  int64;  // T states since start
-    elapsed:    double; // Elapsed time in reality
-    exp_time:   double; // Expected time in seconds since start
-begin
-  CancelRequested := False;
-  try
-    good := True;
-    instructions := 0;
-    instcount := 0;
-    start_time := Now();
-    disp_last := start_time;
-    refr_last := start_time;
-    start_t := FProcessor.TStates;
-    while good do
-      begin
-        saved_pc := FProcessor.PC;
-//        good := FProcessor.ExecuteStepInto;
-        Inc(instructions);
-        Inc(instcount);
-        if instcount > INST_BATCH then
-          begin
-            // Add 1mS worth of T states
-            instcount := 0;
-            t_elapsed := FProcessor.TStates - start_t;
-            exp_time := t_elapsed / 4.0 / FProcessor.CPUspeed;
-{$IFDEF REAL_SPEED}
-            repeat
-              elapsed := (Now() - start_time) * 86400.0;
-              if elapsed < exp_time then
-                Sleep(1);
-            until elapsed >= exp_time;
-{$ELSE}
-            elapsed := (Now() - start_time) * 86400.0;
-{$ENDIF}
-            if (Now() - disp_last) >= DISP_CYCLE then
-              begin
-                disp_last := disp_last + DISP_CYCLE;
-                ShowRegisters;
-                if elapsed > 0.0 then
-                  Status('MHz = %8.3f, MIPS = %8.3f',[t_elapsed / elapsed / 4.0 / 1000000.0 + 0.0005,instructions / elapsed / 1000000.0]);
-              end;
-            if (Now() - refr_last) >= REFR_CYCLE then
-              begin
-                refr_last := refr_last + REFR_CYCLE;
-                Application.ProcessMessages;
-                if CancelRequested then
-                  good := False
-              end;
-          end;
-      end;
-    if efIllegal in FProcessor.ErrorFlag then
-      MessageDlg('Error','Illegal instruction at ' + IntToHex(saved_pc),mtError,[mbOK],0);
-    if efHalt in FProcessor.ErrorFlag then
-      MessageDlg('Information','Processor halted at ' + IntToHex(saved_pc),mtInformation,[mbOK],0);
-    ShowRegisters;
-  finally
-  end;
-end;
-
-procedure TfrmBox80.btnStepIntoClick(Sender: TObject);
-begin
-end;
-
 procedure TfrmBox80.btnStopClick(Sender: TObject);
 begin
   CancelRequested := True;
@@ -441,15 +360,6 @@ begin
     Sleep(50);  // Wait until it's gone
 end;
 
-procedure TfrmBox80.FormKeyPress(Sender: TObject; var Key: char);
-begin
-end;
-
-procedure TfrmBox80.pnlDisassemblerClick(Sender: TObject);
-begin
-
-end;
-
 procedure TfrmBox80.GrabFocus;
 begin
   if FocusAllowed then
@@ -464,6 +374,8 @@ begin
       ShowRegisters;
       if efIllegal in FProcessor.ErrorFlag then
         MessageDlg('Error','Illegal instruction at ' + IntToHex(FProcessor.SavedPC),mtError,[mbOK],0);
+      if efUndocumented in FProcessor.ErrorFlag then
+        MessageDlg('Error','Undocumented instruction at ' + IntToHex(FProcessor.SavedPC),mtError,[mbOK],0);
       if efHalt in FProcessor.ErrorFlag then
         MessageDlg('Information','Processor halted at ' + IntToHex(FProcessor.SavedPC),mtInformation,[mbOK],0);
     end

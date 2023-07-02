@@ -11,7 +11,6 @@ object frmBox80: TfrmBox80
   OnActivate = FormActivate
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  OnKeyPress = FormKeyPress
   LCLVersion = '2.2.6.0'
   object StatusBar1: TStatusBar
     Left = 0
@@ -742,7 +741,6 @@ object frmBox80: TfrmBox80
     ClientHeight = 671
     ClientWidth = 381
     TabOrder = 4
-    OnClick = pnlDisassemblerClick
     object Label18: TLabel
       Left = 1
       Height = 21
@@ -881,6 +879,13 @@ object frmBox80: TfrmBox80
         object miVMCPU1000: TMenuItem
           Action = actVMCPU1000
         end
+        object miVMCPUsep1: TMenuItem
+          Caption = '-'
+        end
+        object miVMCPUmax: TMenuItem
+          Action = actVMCPUmax
+          AutoCheck = True
+        end
       end
       object miVMsep1: TMenuItem
         Caption = '-'
@@ -974,7 +979,7 @@ object frmBox80: TfrmBox80
     object actVMCPU40: TAction
       Category = 'VM'
       AutoCheck = True
-      Caption = '4.0 MHz'
+      Caption = '&4.0 MHz'
       Checked = True
       GroupIndex = 1
       Hint = 'Set speed to 4.0 MHz'
@@ -983,7 +988,7 @@ object frmBox80: TfrmBox80
     object actVMCPU25: TAction
       Category = 'VM'
       AutoCheck = True
-      Caption = '2.5 MHz'
+      Caption = '&2.5 MHz'
       GroupIndex = 1
       Hint = 'Set speed to 2.5 MHz'
       OnExecute = actVMCPU25Execute
@@ -991,7 +996,7 @@ object frmBox80: TfrmBox80
     object actVMCPU80: TAction
       Category = 'VM'
       AutoCheck = True
-      Caption = '8.0 MHz'
+      Caption = '&8.0 MHz'
       GroupIndex = 1
       Hint = 'Set CPU speed to 8.0 MHz'
       OnExecute = actVMCPU80Execute
@@ -1023,7 +1028,7 @@ object frmBox80: TfrmBox80
     object actVMCPU73: TAction
       Category = 'VM'
       AutoCheck = True
-      Caption = '7.3728 MHz'
+      Caption = '&7.3728 MHz'
       GroupIndex = 1
       Hint = 'Set CPU speed to 7.3728 MHz (64 x 115,200)'
       OnExecute = actVMCPU73Execute
@@ -1031,7 +1036,7 @@ object frmBox80: TfrmBox80
     object actVMCPU184: TAction
       Category = 'VM'
       AutoCheck = True
-      Caption = '18.432 MHz'
+      Caption = '&18.432 MHz'
       GroupIndex = 1
       Hint = 'Set CPU speed to 18.432 MHz (160 x 115,200)'
       OnExecute = actVMCPU184Execute
@@ -1047,7 +1052,7 @@ object frmBox80: TfrmBox80
     object actVMCPU60: TAction
       Category = 'VM'
       AutoCheck = True
-      Caption = '6.0 MHz'
+      Caption = '&6.0 MHz'
       GroupIndex = 1
       Hint = 'Set CPU speed to 6.0 MHz'
       OnExecute = actVMCPU60Execute
@@ -1081,6 +1086,14 @@ object frmBox80: TfrmBox80
       Category = 'Help'
       Caption = 'User &manual'
       Hint = 'Display the user manual'
+    end
+    object actVMCPUmax: TAction
+      Category = 'VM'
+      AutoCheck = True
+      Caption = '&Maximum'
+      GroupIndex = 1
+      Hint = 'Set CPU speed to maximum available on host'
+      OnExecute = actVMCPUmaxExecute
     end
   end
 end

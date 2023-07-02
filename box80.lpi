@@ -112,6 +112,7 @@
         <Filename Value="forms\fabout.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="frmHelpAbout"/>
+        <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
       </Unit>
     </Units>

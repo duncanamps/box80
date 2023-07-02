@@ -65,7 +65,7 @@ You will need at least a 32 bit Operating System, and some sort of multi-threade
 | ----                          | --------: | -----                                 |
 | Dual thread Z80 core          | 100%      | Windows OK, Linux causing fault       |
 | Standard Z80 instructions     | 100%      | Needs to be run against a test suite  |
-| All Z80 instructions          | 75%       | Many extended instructions remaining  |
+| All Z80 instructions          | 80%       | Many extended instructions remaining  |
 | Terminal output               | 50%       | Vanilla, some ctrl codes, needs ANSI  |
 | Interrupt processing          | 33%       | IM2 is complete, trigger by SIO       |
 | SIO                           | 10%       | Very basic implementation, but works  |
