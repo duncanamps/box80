@@ -5,7 +5,7 @@
     <PathDelim Value="\"/>
     <General>
       <SessionStorage Value="InProjectDir"/>
-      <Title Value="box80"/>
+      <Title Value="box80_v00"/>
       <Scaled Value="True"/>
       <ResourceType Value="res"/>
       <UseXPManifest Value="True"/>
@@ -24,12 +24,12 @@
           <Version Value="11"/>
           <PathDelim Value="\"/>
           <Target>
-            <Filename Value="binaries\release\$(TargetOS)-$(TargetCPU)\box80"/>
+            <Filename Value="binaries\release\$(TargetOS)-$(TargetCPU)\v00\box80"/>
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
             <OtherUnitFiles Value="forms;units"/>
-            <UnitOutputDirectory Value="lib\release\$(TargetOS)-$(TargetCPU)"/>
+            <UnitOutputDirectory Value="lib\release\$(TargetOS)-$(TargetCPU)\v00"/>
           </SearchPaths>
           <CodeGeneration>
             <SmartLinkUnit Value="True"/>
@@ -127,7 +127,7 @@
     </RequiredPackages>
     <Units>
       <Unit>
-        <Filename Value="box80.lpr"/>
+        <Filename Value="box80_v00.lpr"/>
         <IsPartOfProject Value="True"/>
       </Unit>
       <Unit>
@@ -169,12 +169,12 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <Target>
-      <Filename Value="binaries\debug\$(TargetOS)-$(TargetCPU)\box80"/>
+      <Filename Value="binaries\debug\$(TargetOS)-$(TargetCPU)\v00\box80"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
       <OtherUnitFiles Value="forms;units"/>
-      <UnitOutputDirectory Value="lib\debug\$(TargetOS)-$(TargetCPU)"/>
+      <UnitOutputDirectory Value="lib\debug\$(TargetOS)-$(TargetCPU)\v00"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>

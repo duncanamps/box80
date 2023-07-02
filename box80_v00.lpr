@@ -1,4 +1,4 @@
-program box80;
+program box80_v00;
 
 {$mode objfpc}{$H+}
 
