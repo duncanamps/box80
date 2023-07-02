@@ -76,6 +76,33 @@ You will need at least a 32 bit Operating System, and some sort of multi-threade
 | Use of debug files            | TBD       | XA80 needs to create these first :)   |
 | Documentation                 | TBD       |                                       |
 
+## History
+The Box80 application is part of a small, but growing ecosystem I've been putting together.
+
+40+ years ago, I wrote
+assemblers in BASIC, then moved to writing them assembler itself, for machines like the Apple II and 
+Sinclair ZX81. I didn't understand the concept of parsers and the processing was crude. But they worked
+and I learnt a lot from them.
+
+As part of my journey, I've been making more of an effort to understand the science of how these things
+operate and in 2020 wrote [LaCoGen](https://github.com/duncanamps/lacogen1), an open-source **La**zarus **Co**mpiler **Gen**erator.
+It was basically my own home-brewed version of LEX and YACC, the famous compiler generator tools
+from the C fraternity, to enable me to have this facility on my favourite Lazarus environment.
+
+Using this tool, I was able to write [XA80](https://github.com/duncanamps/xa80), an open-source cross-platform
+assembler for x80 processors; 8080, 8085, Z80 and Z180. It contains an opcode compiler which was, itself, developed
+with LaCoGen.
+
+I own a number of Z80 based SBCs; the RC2014, the SC131 and have recently acquired the AgonLight 2 SBC
+from Olimex. This is a 24 bit EZ80 processor and will undoubtedly result in enhancements to XA80 to cover 24 bit
+activities. But that's for another day...
+
+For now, it seemed like a good idea to write a simulator to mimic one of the SBCs so that I could eventually integrate
+this all into an IDE with a Z80 virtual machine, assembler, debugger, etc. This will make it so much easier to work the
+bugs out of my code, and will drastically shorten the development cycle.
+
+That's the history so far; XA80 is working well and in fact was used to assemble the monitor, CP/M, MS BASIC, etc. Box80 is only part complete but is showing promising results so far.
+
 ## Licence and acknowledgements
 All trademarks are acknowledged as belonging to their respective owners.  
 
