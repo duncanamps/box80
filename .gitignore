@@ -10,6 +10,7 @@
 *.lst
 *.map
 *.nev
+*.res
 *.tx2
 *.tx3
 *.txt
@@ -21,4 +22,4 @@ docs/~$instruction_coverage.xlsx
 imported/
 lib/
 test_files/
-*.res
+test_prog/
