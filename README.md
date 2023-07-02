@@ -63,7 +63,7 @@ You will need at least a 32 bit Operating System, and some sort of multi-threade
 ## Development status
 | Item                          | Complete  | Notes                                 |
 | ----                          | --------: | -----                                 |
-| Dual thread Z80 core          | 100%      | Windows OK, Linux causing fault       |
+| Dual thread Z80 core          | 100%      | Windows OK ~~Linux causing fault~~    |
 | Standard Z80 instructions     | 100%      | Needs to be run against a test suite  |
 | All Z80 instructions          | 80%       | Many extended instructions remaining  |
 | Terminal output               | 50%       | Vanilla, some ctrl codes, needs ANSI  |
