@@ -87,7 +87,8 @@ and I learnt a lot from them.
 As part of my journey, I've been making more of an effort to understand the science of how these things
 operate and in 2020 wrote [LaCoGen](https://github.com/duncanamps/lacogen1), an open-source **La**zarus **Co**mpiler **Gen**erator.
 It was basically my own home-brewed version of LEX and YACC, the famous compiler generator tools
-from the C fraternity, to enable me to have this facility on my favourite Lazarus environment.
+from the C fraternity, to enable me to have this facility on my favourite Lazarus environment. It was written from
+the ground up using first principles and knowledge I gained from the [Dragon book](https://en.wikipedia.org/wiki/Compilers:_Principles,_Techniques,_and_Tools).
 
 Using this tool, I was able to write [XA80](https://github.com/duncanamps/xa80), an open-source cross-platform
 assembler for x80 processors; 8080, 8085, Z80 and Z180. It contains an opcode compiler which was, itself, developed

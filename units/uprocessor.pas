@@ -227,15 +227,23 @@ type
       procedure ExecEdADCHLDE; inline;
       procedure ExecEdADCHLHL; inline;
       procedure ExecEdADCHLSP; inline;
+      procedure ExecEdCPD; inline;
+      procedure ExecEdCPDR; inline;
+      procedure ExecEdCPI; inline;
+      procedure ExecEdCPIR; inline;
       procedure ExecEdIM0; inline;
       procedure ExecEdIM1; inline;
       procedure ExecEdIM2; inline;
       procedure ExecEdINACind; inline;
       procedure ExecEdINBCind; inline;
       procedure ExecEdINCCind; inline;
+      procedure ExecEdIND; inline;
       procedure ExecEdINDCind; inline;
+      procedure ExecEdINDR; inline;
       procedure ExecEdINECind; inline;
       procedure ExecEdINHCind; inline;
+      procedure ExecEdINI; inline;
+      procedure ExecEdINIR; inline;
       procedure ExecEdINLCind; inline;
       procedure ExecEdINFCind; inline;
       procedure ExecEdLDAI; inline;
@@ -243,7 +251,11 @@ type
       procedure ExecEdLDBCind; inline;
       procedure ExecEdLDDEind; inline;
       procedure ExecEdLDHLind; inline;
+      procedure ExecEdLDD; inline;
+      procedure ExecEdLDDR; inline;
+      procedure ExecEdLDI; inline;
       procedure ExecEdLDIA; inline;
+      procedure ExecEdLDIR; inline;
       procedure ExecEdLDindBC; inline;
       procedure ExecEdLDindDE; inline;
       procedure ExecEdLDindHL; inline;
@@ -259,8 +271,13 @@ type
       procedure ExecEdOUTCindH; inline;
       procedure ExecEdOUTCindL; inline;
       procedure ExecEdOUTCindZ; inline;
+      procedure ExecEdOUTD; inline;
+      procedure ExecEdOTDR; inline;
+      procedure ExecEdOUTI; inline;
+      procedure ExecEdOTIR; inline;
       procedure ExecEdRETI; inline;
       procedure ExecEdRETN; inline;
+      procedure ExecEdRLD; inline;
       procedure ExecEdRRD; inline;
       procedure ExecEdSBCHLBC; inline;
       procedure ExecEdSBCHLDE; inline;
@@ -2176,33 +2193,30 @@ end;
 
 procedure TProcessor.ExecSub(_b: byte; _states: integer; _save: boolean = True; _dosbc: boolean = False); inline;
 var _a,_c,_cf: byte;
-    flags: byte;
 begin
   _a    := pregA^;
-  flags := pregF^;
   _cf   := 0;
-  if _dosbc and ((flags and FLAG_CARRY) <> 0) then
+  if _dosbc and ((pregF^ and FLAG_CARRY) <> 0) then
     _cf := 1;
   _c := _a - _b - _cf;
-  flags := (flags and NOT_FLAG_NEGATIVE) or (_c and FLAG_NEGATIVE);
+  pregF^ := (pregF^ and NOT_FLAG_NEGATIVE) or (_c and FLAG_NEGATIVE);
   if _c = 0 then
-    flags := flags or FLAG_ZERO
+    pregF^ := pregF^ or FLAG_ZERO
   else
-    flags := flags and NOT_FLAG_ZERO;
+    pregF^ := pregF^ and NOT_FLAG_ZERO;
   if (_b and $0F) > (_a and $0F) then
-    flags := flags or FLAG_HALFCARRY
+    pregF^ := pregF^ or FLAG_HALFCARRY
   else
-    flags := flags and NOT_FLAG_HALFCARRY;
-  flags := flags and NOT_FLAG_PV; // Clear overflow for now
+    pregF^ := pregF^ and NOT_FLAG_HALFCARRY;
+  pregF^ := pregF^ and NOT_FLAG_PV; // Clear overflow for now
   if ((_a xor _b) and $80) <> 0 then // check for unalike signs
       if ((_a xor _c) and $80) <> 0 then
-        flags := flags or FLAG_PV;
-  flags := flags or FLAG_SUBTRACT;
+        pregF^ := pregF^ or FLAG_PV;
+  pregF^ := pregF^ or FLAG_SUBTRACT;
   if integer(_a) - integer(_b) - integer(_cf) < 0 then
-    flags := flags or FLAG_CARRY
+    pregF^ := pregF^ or FLAG_CARRY
   else
-    flags := flags and NOT_FLAG_CARRY;
-  pregF^ := flags;
+    pregF^ := pregF^ and NOT_FLAG_CARRY;
   if _save then
     pregA^ := _c;
   Inc(t_states,_states);
@@ -2781,6 +2795,50 @@ begin
   ExecADDHLr16(pregSP^,True);
 end;
 
+procedure TProcessor.ExecEdCPD; inline;
+var saved_c: byte;
+begin
+  saved_c := pregF^ and FLAG_CARRY; // Save incoming carry as ExecSub will set it
+  ExecSub(ramarray[pregHL^],16,False);
+  Dec(pregHL^);
+  Dec(pregBC^);
+  pregF^ := (pregF^ and NOT_FLAG_CARRY and NOT_FLAG_PV) or saved_c; // Restore incoming C flag
+  if pregBC^ = $FFFF then
+    pregF^ := pregF^ or FLAG_PV;
+end;
+
+procedure TProcessor.ExecEdCPDR; inline;
+begin
+  ExecEdCPD;
+  if (pregBC^ <> 0) and ((pregF^ and FLAG_ZERO) = 0) then
+    begin
+      pregPC^ := SavedPC; // Go back to start of instruction
+      Inc(t_states,5);     // Extra T states for looping back
+    end;
+end;
+
+procedure TProcessor.ExecEdCPI; inline;
+var saved_c: byte;
+begin
+  saved_c := pregF^ and FLAG_CARRY; // Save incoming carry as ExecSub will set it
+  ExecSub(ramarray[pregHL^],16,False);
+  Inc(pregHL^);
+  Dec(pregBC^);
+  pregF^ := (pregF^ and NOT_FLAG_CARRY and NOT_FLAG_PV) or saved_c; // Restore incoming C flag
+  if pregBC^ = $FFFF then
+    pregF^ := pregF^ or FLAG_PV;
+end;
+
+procedure TProcessor.ExecEdCPIR; inline;
+begin
+  ExecEdCPI;
+  if (pregBC^ <> 0) and ((pregF^ and FLAG_ZERO) = 0) then
+    begin
+      pregPC^ := SavedPC; // Go back to start of instruction
+      Inc(t_states,5);     // Extra T states for looping back
+    end;
+end;
+
 procedure TProcessor.ExecEdIM0; inline;
 begin
   pregIntM^ := 0;
@@ -2817,10 +2875,31 @@ begin
   Inc(t_states,12);
 end;
 
+procedure TProcessor.ExecEdIND; inline;
+begin
+  ramarray[pregHL^] := ProcessPortIn(pregC^);
+  Dec(pregHL^);
+  Dec(pregB^);
+  pregF^ := pregF^ and NOT_FLAG_PV;
+  if pregB^ = $FF then pregF^ := pregF^ or FLAG_PV;
+  pregF^ := pregF^ or FLAG_SUBTRACT;
+  Inc(t_states,16);
+end;
+
 procedure TProcessor.ExecEdINDCind; inline;
 begin
   pregD^ := ProcessPortIn(pregC^);
   Inc(t_states,12);
+end;
+
+procedure TProcessor.ExecEdINDR; inline;
+begin
+  ExecEdIND;
+  if pregBC^ <> 0 then
+    begin
+      pregPC^ := SavedPC; // Go back to start of instruction
+      Inc(t_states,5);     // Extra T states for looping back
+    end;
 end;
 
 procedure TProcessor.ExecEdINECind; inline;
@@ -2833,6 +2912,27 @@ procedure TProcessor.ExecEdINHCind; inline;
 begin
   pregH^ := ProcessPortIn(pregC^);
   Inc(t_states,12);
+end;
+
+procedure TProcessor.ExecEdINI; inline;
+begin
+  ramarray[pregHL^] := ProcessPortIn(pregC^);
+  Inc(pregHL^);
+  Dec(pregB^);
+  pregF^ := pregF^ and NOT_FLAG_PV;
+  if pregB^ = $FF then pregF^ := pregF^ or FLAG_PV;
+  pregF^ := pregF^ or FLAG_SUBTRACT;
+  Inc(t_states,16);
+end;
+
+procedure TProcessor.ExecEdINIR; inline;
+begin
+  ExecEdINI;
+  if pregBC^ <> 0 then
+    begin
+      pregPC^ := SavedPC; // Go back to start of instruction
+      Inc(t_states,5);     // Extra T states for looping back
+    end;
 end;
 
 procedure TProcessor.ExecEdINLCind; inline;
@@ -2881,6 +2981,16 @@ begin
   Inc(t_states,20);
 end;
 
+procedure TProcessor.ExecEdLDDR; inline;
+begin
+  ExecEdLDD;
+  if pregBC^ <> 0 then
+    begin
+      pregPC^ := SavedPC; // Go back to start of instruction
+      Inc(t_states,5);     // Extra T states for looping back
+    end;
+end;
+
 procedure TProcessor.ExecEdLDHLind; inline;
 var pw: PWord;
 begin
@@ -2889,10 +2999,42 @@ begin
   Inc(t_states,20);
 end;
 
+procedure TProcessor.ExecEdLDD; inline;
+begin
+  ramarray[pregDE^] := ramarray[pregHL^];
+  Dec(pregDE^);
+  Dec(pregHL^);
+  Dec(pregBC^);
+  pregF^ := pregF^ and NOT_FLAG_HALFCARRY and NOT_FLAG_PV and NOT_FLAG_SUBTRACT;
+  if pregBC^ = $FFFF then pregF^ := pregF^ or FLAG_PV;
+  Inc(t_states,16);
+end;
+
+procedure TProcessor.ExecEdLDI; inline;
+begin
+  ramarray[pregDE^] := ramarray[pregHL^];
+  Inc(pregDE^);
+  Inc(pregHL^);
+  Dec(pregBC^);
+  pregF^ := pregF^ and NOT_FLAG_HALFCARRY and NOT_FLAG_PV and NOT_FLAG_SUBTRACT;
+  if pregBC^ = $FFFF then pregF^ := pregF^ or FLAG_PV;
+  Inc(t_states,16);
+end;
+
 procedure TProcessor.ExecEdLDIA; inline;
 begin
   pregI^ := pregA^;
   Inc(t_states,9);
+end;
+
+procedure TProcessor.ExecEdLDIR; inline;
+begin
+  ExecEdLDI;
+  if pregBC^ <> 0 then
+    begin
+      pregPC^ := SavedPC; // Go back to start of instruction
+      Inc(t_states,5);     // Extra T states for looping back
+    end;
 end;
 
 procedure TProcessor.ExecEdLDindBC; inline;
@@ -3007,6 +3149,48 @@ begin
   Inc(t_states,12);
 end;
 
+procedure TProcessor.ExecEdOUTD; inline;
+begin
+  ProcessPortOut(pregC^,ramarray[pregHL^]);
+  Dec(pregHL^);
+  Dec(pregB^);
+  pregF^ := pregF^ and NOT_FLAG_PV;
+  if pregB^ = $FF then pregF^ := pregF^ or FLAG_PV;
+  pregF^ := pregF^ or FLAG_SUBTRACT;
+  Inc(t_states,16);
+end;
+
+procedure TProcessor.ExecEdOTDR; inline;
+begin
+  ExecEdOUTD;
+  if pregBC^ <> 0 then
+    begin
+      pregPC^ := SavedPC; // Go back to start of instruction
+      Inc(t_states,5);     // Extra T states for looping back
+    end;
+end;
+
+procedure TProcessor.ExecEdOUTI; inline;
+begin
+  ProcessPortOut(pregC^,ramarray[pregHL^]);
+  Inc(pregHL^);
+  Dec(pregB^);
+  pregF^ := pregF^ and NOT_FLAG_PV;
+  if pregB^ = $FF then pregF^ := pregF^ or FLAG_PV;
+  pregF^ := pregF^ or FLAG_SUBTRACT;
+  Inc(t_states,16);
+end;
+
+procedure TProcessor.ExecEdOTIR; inline;
+begin
+  ExecEdIND;
+  if pregBC^ <> 0 then
+    begin
+      pregPC^ := SavedPC; // Go back to start of instruction
+      Inc(t_states,5);     // Extra T states for looping back
+    end;
+end;
+
 procedure TProcessor.ExecEdRETI; inline;
 begin  // @@@@@ Not coded to do anything over and above what RET would do
   pregPC^ := PopWord;
@@ -3019,6 +3203,21 @@ begin  // @@@@@ Not coded to do anything over and above what RET would do
   Inc(t_states,14);
 end;
 
+procedure TProcessor.ExecEdRLD; inline;
+var m: PByte;
+    newa: byte;
+begin
+  pregF^ := pregF^ and NOT_FLAG_NEGATIVE and NOT_FLAG_ZERO and NOT_FLAG_HALFCARRY and NOT_FLAG_PV and NOT_FLAG_SUBTRACT;
+  m := @ramarray[pregHL^];
+  newa := (pregA^ and $F0) or ((m^ and $F0) shr 4);
+  m^ := (m^ and $F0) shr 4;
+  m^ := ((m^ and $0F) shl 4) or (pregA^ and $0F);
+  pregA^ := newa;
+  SetNegZero;
+  pregF^ := pregF^ or parity_table[newa];
+  Inc(t_states,18);
+end;
+
 procedure TProcessor.ExecEdRRD; inline;
 var m: PByte;
     newa: byte;
@@ -3029,8 +3228,7 @@ begin
   m^ := (m^ and $F0) shr 4;
   m^ := (m^ and $0F) or ((pregA^ and $0F) shl 4);
   pregA^ := newa;
-  if (newa and $80) <> 0 then pregF^ := pregF^ or FLAG_NEGATIVE;
-  if newa = 0 then pregF^ := pregF^ or FLAG_ZERO;
+  SetNegZero;
   pregF^ := pregF^ or parity_table[newa];
   Inc(t_states,18);
 end;
@@ -3552,6 +3750,7 @@ begin
   inst_ed[$69] := @ExecEdOUTCindL;
   inst_ed[$6A] := @ExecEdADCHLHL;
   inst_ed[$6B] := @ExecEdLDHLind;
+  inst_ed[$6F] := @ExecEdRLD;
   inst_ed[$70] := @ExecEdINFCind;
   inst_ed[$71] := @ExecEdOUTCindZ;
   inst_ed[$72] := @ExecEdSBCHLSP;
@@ -3560,6 +3759,22 @@ begin
   inst_ed[$79] := @ExecEdOUTCindA;
   inst_ed[$7A] := @ExecEdADCHLSP;
   inst_ed[$7B] := @ExecEdLDSPind;
+  inst_ed[$A0] := @ExecEdLDI;
+  inst_ed[$A1] := @ExecEdCPI;
+  inst_ed[$A2] := @ExecEdINI;
+  inst_ed[$A3] := @ExecEdOUTI;
+  inst_ed[$A8] := @ExecEdLDD;
+  inst_ed[$A9] := @ExecEdCPD;
+  inst_ed[$AA] := @ExecEdIND;
+  inst_ed[$AB] := @ExecEdOUTD;
+  inst_ed[$B0] := @ExecEdLDIR;
+  inst_ed[$B1] := @ExecEdCPIR;
+  inst_ed[$B2] := @ExecEdINIR;
+  inst_ed[$B3] := @ExecEdOTIR;
+  inst_ed[$B8] := @ExecEdLDDR;
+  inst_ed[$B9] := @ExecEdCPDR;
+  inst_ed[$BA] := @ExecEdINDR;
+  inst_ed[$BB] := @ExecEdOTDR;
   // Set up FD instructions
 end;
 
