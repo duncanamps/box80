@@ -80,9 +80,9 @@ type
       parity_table: array[byte] of byte;
       inst_std:     array[byte] of TExecProc;
       inst_cb:      array[byte] of TExecProc;
-      inst_dd:      array[byte] of TExecProc;
+      inst_ddfd:    array[byte] of TExecProc; // Handles DD and FD prefixes
+      inst_ddfdcb:  array[byte] of TExecProc; // Handles DD and FD prefixes followed by CB
       inst_ed:      array[byte] of TExecProc;
-      inst_fd:      array[byte] of TExecProc;
       undoc_cb:     array[byte] of boolean;
       undoc_ed:     array[byte] of boolean;
       int_flag:     boolean;
@@ -111,6 +111,7 @@ type
       pregIY:  PWord;
       pregSP:  PWord;
       pregPC:  PWord;
+      pregIXY: PWord; // Will point to IX or IY depending on prefix
       // Pointers 8 bit dest
       pregA:   PByte;
       pregB:   PByte;
@@ -137,8 +138,10 @@ type
       FOnStateChange: TStateChangeProc;
       FErrorString: string;
       // Procs / funcs
+      function  Add16u8s(_word: Word; _byte: byte): Word;
       function  Fetch16: Word; inline;
       function  Fetch8: byte; inline;
+      function  FetchIQPDindex: Word; inline;
       function  FetchOpcode: byte; inline;
       function  GetRegisterSet: TRegisterSet;
       function  GetPerfMIPS: double;
@@ -160,6 +163,7 @@ type
       procedure ExecADDimm; inline;
       procedure ExecADDL; inline;
       procedure ExecADDM; inline;
+      procedure ExecADDr16r16(_pdst: PWord; _w: Word; _states: integer; _doadc: boolean = False); inline;
       procedure ExecADCB; inline;
       procedure ExecADCC; inline;
       procedure ExecADCD; inline;
@@ -207,7 +211,38 @@ type
       procedure ExecCbShiftRotate; inline;
       procedure ExecDAA; inline;
       procedure ExecDd; inline;
-      procedure ExecDdLDIXimm; inline;
+      procedure ExecDdFdADCAIQpdind; inline;
+      procedure ExecDdFdADDAIQpdind; inline;
+      procedure ExecDdFdADDIQBC; inline;
+      procedure ExecDdFdADDIQDE; inline;
+      procedure ExecDdFdADDIQIQ; inline;
+      procedure ExecDdFdADDIQSP; inline;
+      procedure ExecDdFdANDAIQpdind; inline;
+      procedure ExecDdFdCb; inline;
+      procedure ExecDdFdCbBITIQpdind; inline;
+      procedure ExecDdFdCbRESIQpdind; inline;
+      procedure ExecDdFdCbSETIQpdind; inline;
+      procedure ExecDdFdCbShiftRotate; inline;
+      procedure ExecDdFdCPAIQpdind; inline;
+      procedure ExecDdFdDECIQ; inline;
+      procedure ExecDdFdDECIQpdind; inline;
+      procedure ExecDdFdEXSPindIQ; inline;
+      procedure ExecDdFdINCIQ; inline;
+      procedure ExecDdFdINCIQpdind; inline;
+      procedure ExecDdFdJPIQind; inline;
+      procedure ExecDdFdLDaddrIQ; inline;
+      procedure ExecDdFdLDIQaddr; inline;
+      procedure ExecDdFdLDIQimm; inline;
+      procedure ExecDdFdLDIQpdindimm; inline;
+      procedure ExecDdFdLDIQpdindr8; inline;
+      procedure ExecDdFdLDr8IQpdind; inline;
+      procedure ExecDdFdLDSPIQ; inline;
+      procedure ExecDdFdORAIQpdind; inline;
+      procedure ExecDdFdPOPIQ; inline;
+      procedure ExecDdFdPUSHIQ; inline;
+      procedure ExecDdFdSBCAIQpdind; inline;
+      procedure ExecDdFdSUBAIQpdind; inline;
+      procedure ExecDdFdXORAIQpdind; inline;
       procedure ExecDEC8(_m: PByte; _states: integer);
       procedure ExecDECA; inline;
       procedure ExecDECB; inline;
@@ -458,6 +493,7 @@ type
       procedure ExecSBCL; inline;
       procedure ExecSBCM; inline;
       procedure ExecSCF; inline;
+      procedure ExecShiftRotate(p: PByte; style: byte);
       procedure ExecSUBA; inline;
       procedure ExecSUBB; inline;
       procedure ExecSUBC; inline;
@@ -586,6 +622,14 @@ end;
 
 {$RANGECHECKS OFF}  // Range checking is off so we can roll over registers
 
+function TProcessor.Add16u8s(_word: Word; _byte: byte): Word;
+begin
+  if (_byte and $80) <> 0 then
+    Result := _word - $100 + _byte
+  else
+    Result := _word + _byte;
+end;
+
 procedure TProcessor.BreakpointsClearAll;
 var w: word;
 begin
@@ -663,35 +707,12 @@ begin
 end;
 
 procedure TProcessor.ExecADDHLr16(_w: Word; _doadc: boolean = False); inline;
-var _cf: Word;
-    flags: byte;
-    _src: Word;
-    _dst: Word;
+var _states: integer;
 begin
-  _src := pregHL^;
-  flags := pregF^;
-  if _doadc and ((flags and FLAG_CARRY) <> 0) then
-    _cf := 1
-  else
-    _cf := 0;
-  flags := flags and NOT_FLAG_SUBTRACT and NOT_FLAG_HALFCARRY and NOT_FLAG_CARRY and NOT_FLAG_ZERO and NOT_FLAG_PV and NOT_FLAG_NEGATIVE;
-  if ((_src and $0FFF) + (_w and $0FFF) + _cf) >= $1000 then
-    flags := flags or FLAG_HALFCARRY;
-  if integer(_src) + integer(_w) + _cf >= $10000 then
-    flags := flags or FLAG_CARRY;
-  _dst := _src + _w + _cf;
-  if ((_src xor _w) and $8000) = 0 then // check for alike signs
-      if ((_src xor _dst) and $8000) <> $00 then
-        flags := flags or FLAG_PV;
-  if (_dst and $8000) <> 0 then
-    flags := flags or FLAG_NEGATIVE;
-  if (_dst = 0) then
-    flags := flags or FLAG_ZERO;
-  pregHL^ := _dst;
-  pregF^ := Flags;
-  Inc(t_states,11);
+  _states := 11;
   if _doadc then
-    Inc(t_states,4); // Total 15 t states for ADC
+    _states := 15;
+  ExecADDr16r16(pregHL,_w,_states,_doadc);
 end;
 
 procedure TProcessor.ExecADDHLBC; inline;
@@ -727,6 +748,36 @@ end;
 procedure TProcessor.ExecADDM; inline;
 begin
   ExecAdd(ramarray[pregHL^],7);
+end;
+
+procedure TProcessor.ExecADDr16r16(_pdst: PWord; _w: Word; _states: integer; _doadc: boolean = False); inline;
+var _cf: Word;
+    flags: byte;
+    _src: Word;
+    _dst: Word;
+begin
+  _src := _pdst^;
+  flags := pregF^;
+  if _doadc and ((flags and FLAG_CARRY) <> 0) then
+    _cf := 1
+  else
+    _cf := 0;
+  flags := flags and NOT_FLAG_SUBTRACT and NOT_FLAG_HALFCARRY and NOT_FLAG_CARRY and NOT_FLAG_ZERO and NOT_FLAG_PV and NOT_FLAG_NEGATIVE;
+  if ((_src and $0FFF) + (_w and $0FFF) + _cf) >= $1000 then
+    flags := flags or FLAG_HALFCARRY;
+  if integer(_src) + integer(_w) + _cf >= $10000 then
+    flags := flags or FLAG_CARRY;
+  _dst := _src + _w + _cf;
+  if ((_src xor _w) and $8000) = 0 then // check for alike signs
+      if ((_src xor _dst) and $8000) <> $00 then
+        flags := flags or FLAG_PV;
+  if (_dst and $8000) <> 0 then
+    flags := flags or FLAG_NEGATIVE;
+  if (_dst = 0) then
+    flags := flags or FLAG_ZERO;
+  _pdst^ := _dst;
+  pregF^ := Flags;
+  Inc(t_states,_states);
 end;
 
 procedure TProcessor.ExecADCA; inline;
@@ -2192,6 +2243,63 @@ begin
   Inc(t_states,4);
 end;
 
+procedure TProcessor.ExecShiftRotate(p: PByte; style: byte);
+var bit0:  byte;
+    bit7:  byte;
+begin
+  case style of
+    0: // RLC
+      begin
+        bit7 := p^ and $80;
+        p^ := ((p^ shl 1) or (bit7 shr 7)) and $00FF;
+        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or (bit7 shr 7); // Set C flag if reqd and reset H, N
+      end;
+    1: // RRC
+      begin
+        bit0 := p^ and $01;
+        p^ := ((p^ shr 1) or (bit0 shl 7));
+        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset H, N
+      end;
+    2: // RL
+      begin
+        bit7 := p^ and $80;
+        p^ := ((p^ shl 1) or (pregF^ and $01)) and $00FF;
+        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or (bit7 shr 7); // Set C flag if reqd and reset H, N
+      end;
+    3: // RR
+      begin
+        bit0 := p^ and $01;
+        p^ := ((p^ shr 1) or ((pregF^ and $01) shl 7));
+        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset H, N
+      end;
+    4: // SLA
+      begin
+        bit7 := p^ and $80;
+        p^ := (p^ shl 1) and $00FF;
+        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or (bit7 shr 7); // Set C flag if reqd and reset H, N
+      end;
+    5: // SRA
+      begin
+        bit0 := p^ and $01;
+        bit7 := p^ and $80;
+        p^ := ((p^ shr 1) and $7F) or bit7;
+        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset H, N
+      end;
+    6: // SLL (undocumented but implemented as for SLA)
+      begin
+        bit7 := p^ and $80;
+        p^ := (p^ shl 1) and $00FF;
+        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or (bit7 shr 7); // Set C flag if reqd and reset H, N
+      end;
+    7: // SRL
+      begin
+        bit0 := p^ and $01;
+        p^ := (p^ shr 1);
+        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset H, N
+      end;
+  end;
+end;
+
 procedure TProcessor.ExecSub(_b: byte; _states: integer; _save: boolean = True; _dosbc: boolean = False); inline;
 var _a,_c,_cf: byte;
 begin
@@ -2379,6 +2487,11 @@ begin
   Inc(pregPC^);
 end;
 
+function TProcessor.FetchIQPDindex: Word; inline;
+begin
+  Result :=  Add16u8s(pregIXY^,Fetch8);
+end;
+
 function TProcessor.FetchOpcode: byte; inline;
 begin
   Result := Fetch8;
@@ -2515,14 +2628,8 @@ begin
 end;
 
 procedure TProcessor.SetPCrelative(_b: byte); inline;
-var newpc: Word;
 begin
-  newpc := pregPC^;  // Start off with current PC
-  if (_b and $80) <> 0 then
-    newpc := newpc + _b - $100
-  else
-    newpc := newpc + _b;
-  pregPC^ := newpc;
+  pregPC^ := Add16u8s(pregPC^,_b);
 end;
 
 procedure TProcessor.SetProcessorState(_ps: TProcessorState);
@@ -2652,8 +2759,6 @@ procedure TProcessor.ExecCbShiftRotate; inline;
 var p: PByte; // Pointer to the item to shift
     style: byte;
     regindex: byte;
-    bit0:     byte;
-    bit7:     byte;
 begin
   regindex := opcode and $07; // BCDEHLMA
   style    := (opcode and $38) shr 3; // Type of shift or rotate
@@ -2671,57 +2776,7 @@ begin
        end;
     7: p := pregA;
   end;
-  case style of
-    0: // RLC
-      begin
-        bit7 := p^ and $80;
-        p^ := ((p^ shl 1) or (bit7 shr 7)) and $00FF;
-        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or (bit7 shr 7); // Set C flag if reqd and reset H, N
-      end;
-    1: // RRC
-      begin
-        bit0 := p^ and $01;
-        p^ := ((p^ shr 1) or (bit0 shl 7));
-        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset H, N
-      end;
-    2: // RL
-      begin
-        bit7 := p^ and $80;
-        p^ := ((p^ shl 1) or (pregF^ and $01)) and $00FF;
-        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or (bit7 shr 7); // Set C flag if reqd and reset H, N
-      end;
-    3: // RR
-      begin
-        bit0 := p^ and $01;
-        p^ := ((p^ shr 1) or ((pregF^ and $01) shl 7));
-        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset H, N
-      end;
-    4: // SLA
-      begin
-        bit7 := p^ and $80;
-        p^ := (p^ shl 1) and $00FF;
-        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or (bit7 shr 7); // Set C flag if reqd and reset H, N
-      end;
-    5: // SRA
-      begin
-        bit0 := p^ and $01;
-        bit7 := p^ and $80;
-        p^ := ((p^ shr 1) and $7F) or bit7;
-        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset H, N
-      end;
-    6: // SLL (undocumented but implemented as for SLA)
-      begin
-        bit7 := p^ and $80;
-        p^ := (p^ shl 1) and $00FF;
-        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or (bit7 shr 7); // Set C flag if reqd and reset H, N
-      end;
-    7: // SRL
-      begin
-        bit0 := p^ and $01;
-        p^ := (p^ shr 1);
-        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset H, N
-      end;
-  end;
+  ExecShiftRotate(p,style);
   Inc(t_states,8);
 end;
 
@@ -2740,19 +2795,295 @@ begin
   opcode := ramarray[pregPC^];
   Inc(pregPC^);
   }
-  proc := inst_dd[opcode];
+  pregIXY := pregIX;
+  proc := inst_ddfd[opcode];
   if proc <> nil then
     proc
   else
     error_flag := error_flag + [efIllegal];
 end;
 
-procedure TProcessor.ExecDdLDIXimm; inline;
+procedure TProcessor.ExecDdFdCb; inline;
+var proc: TExecProc;
 begin
-  pregIX^ := Fetch16;
+  // Get byte to execute
+  opcode := FetchOpcode;
+  proc := inst_ddfdcb[opcode];
+  if proc <> nil then
+    proc
+  else
+    error_flag := error_flag + [efIllegal];
+end;
+
+
+procedure TProcessor.ExecDdFdADCAIQpdind; inline;
+var _index: Word;
+begin
+  _index := FetchIQPDindex;
+  ExecAdd(ramarray[_index],19,True);
+end;
+
+procedure TProcessor.ExecDdFdADDAIQpdind; inline;
+var _index: Word;
+begin
+  _index := FetchIQPDindex;
+  ExecAdd(ramarray[_index],19,False);
+end;
+
+procedure TProcessor.ExecDdFdADDIQBC; inline;
+begin
+  ExecADDr16r16(pregIXY,pregBC^,15,False);
+end;
+
+procedure TProcessor.ExecDdFdADDIQDE; inline;
+begin
+  ExecADDr16r16(pregIXY,pregDE^,15,False);
+end;
+
+procedure TProcessor.ExecDdFdADDIQIQ; inline;
+begin
+  ExecADDr16r16(pregIXY,pregIXY^,15,False);
+end;
+
+procedure TProcessor.ExecDdFdADDIQSP; inline;
+begin
+  ExecADDr16r16(pregIXY,pregSP^,15,False);
+end;
+
+procedure TProcessor.ExecDdFdANDAIQpdind; inline;
+var _index: Word;
+begin
+  _index := FetchIQPDindex;
+  pregA^ := pregA^ and ramarray[_index];
+  SetLogicalflags;
+  Inc(t_states,19);
+end;
+
+procedure TProcessor.ExecDdFdCbBITIQpdind; inline;
+var _src: byte;
+    _mask: byte;
+    _bit: byte;
+    flags: byte;
+begin
+  _bit:= (opcode shr 3) and $07;
+  _src := ramarray[FetchIQPDindex];
+  _mask := 1 shl (_bit - 1);
+  // Set the flags
+  flags := pregF^;
+  flags := flags and NOT_FLAG_ZERO and NOT_FLAG_SUBTRACT; // Reset flags
+  flags := flags or FLAG_HALFCARRY;
+  if (_src and _mask) = 0 then
+    flags := flags or FLAG_ZERO
+  else
+    flags := flags and NOT_FLAG_ZERO;
+  pregF^ := flags;
+  // Bump the t_states
+  Inc(t_states,20);
+end;
+
+procedure TProcessor.ExecDdFdCbRESIQpdind; inline;
+var _p:  Pbyte;
+    _mask: byte;
+    _bit: byte;
+    flags: byte;
+begin
+  _bit:= (opcode shr 3) and $07;
+  _p := @ramarray[FetchIQPDindex];
+  _mask := 1 shl (_bit - 1);
+  _p^ := _p^ and (_mask xor $FF);
+  // Bump the t_states
+  Inc(t_states,23);
+end;
+
+procedure TProcessor.ExecDdFdCbSETIQpdind; inline;
+var _p:  Pbyte;
+    _mask: byte;
+    _bit: byte;
+    flags: byte;
+begin
+  _bit:= (opcode shr 3) and $07;
+  _p := @ramarray[FetchIQPDindex];
+  _mask := 1 shl (_bit - 1);
+  _p^ := _p^ or _mask;
+  // Bump the t_states
+  Inc(t_states,23);
+end;
+
+procedure TProcessor.ExecDdFdCbShiftRotate; inline;
+begin
+  ExecShiftRotate(@ramarray[FetchIQPDindex],(opcode and $38) shr 3);
+  Inc(t_states,23);
+end;
+
+procedure TProcessor.ExecDdFdCPAIQpdind; inline;
+var _index: Word;
+begin
+  _index := FetchIQPDindex;
+  ExecSub(ramarray[_index],19,False,False);
+end;
+
+procedure TProcessor.ExecDdFdDECIQ; inline;
+begin
+  Dec(pregIXY^);
+  Inc(t_states,10);
+end;
+
+procedure TProcessor.ExecDdFdDECIQpdind; inline;
+var _index: Word;
+begin
+  _index := FetchIQPDindex;
+  ExecDEC8(@ramarray[_index],23);
+end;
+
+procedure TProcessor.ExecDdFdEXSPindIQ; inline;
+var psp: PWord;
+    tmp: Word;
+begin
+  psp := PWord(@ramarray[pregSP^]);
+  tmp := psp^;
+  psp^ := pregIXY^;
+  pregIXY^ := tmp;
+  Inc(t_states,23);
+end;
+
+procedure TProcessor.ExecDdFdINCIQ; inline;
+begin
+  Inc(pregIXY^);
+  Inc(t_states,10);
+end;
+
+procedure TProcessor.ExecDdFdINCIQpdind; inline;
+var _index: Word;
+begin
+  _index := FetchIQPDindex;
+  ExecINC8(@ramarray[_index],23);
+end;
+
+procedure TProcessor.ExecDdFdLDIQimm; inline;
+begin
+  pregIXY^ := Fetch16;
   Inc(t_states,14);
 end;
 
+procedure TProcessor.ExecDdFdJPIQind; inline;
+begin
+  pregPC^ := pregIXY^;
+  Inc(t_states,8);
+end;
+
+procedure TProcessor.ExecDdFdLDaddrIQ; inline;
+var addr: Word;
+    paddr: PWord;
+begin
+  addr := Fetch16;
+  paddr := PWord(@ramarray[addr]);
+  paddr^ := pregIXY^;
+  Inc(t_states,20);
+end;
+
+procedure TProcessor.ExecDdFdLDIQaddr; inline;
+var addr: Word;
+    paddr: PWord;
+begin
+  addr := Fetch16;
+  paddr := PWord(@ramarray[addr]);
+  pregIXY^ := paddr^;
+  Inc(t_states,20);
+end;
+
+procedure TProcessor.ExecDdFdLDIQpdindimm; inline;
+var _index: Word;
+begin
+  _index := FetchIQPDindex;
+  ramarray[_index] := Fetch8;
+  Inc(t_states,19);
+end;
+
+procedure TProcessor.ExecDdFdLDIQpdindr8; inline;
+var _b: PByte;
+    _index: Word;
+begin
+  _index := FetchIQPDindex;
+  _b := @ramarray[_index];
+  case opcode and $38 of
+    $70: _b^ := pregB^;
+    $71: _b^ := pregC^;
+    $72: _b^ := pregD^;
+    $73: _b^ := pregE^;
+    $74: _b^ := pregH^;
+    $75: _b^ := pregL^;
+    $77: _b^ := pregA^;
+  end;
+  Inc(t_states,19);
+end;
+
+procedure TProcessor.ExecDdFdLDr8IQpdind; inline;
+var _b: Byte;
+    _index: Word;
+begin
+  _index := FetchIQPDindex;
+  _b := ramarray[_index];
+  case opcode and $38 of
+    $46: pregB^ := _b;
+    $4E: pregC^ := _b;
+    $56: pregD^ := _b;
+    $5E: pregE^ := _b;
+    $66: pregH^ := _b;
+    $6E: pregL^ := _b;
+    $7E: pregA^ := _b;
+  end;
+  Inc(t_states,19);
+end;
+
+procedure TProcessor.ExecDdFdLDSPIQ; inline;
+begin
+  pregSP^ := pregIXY^;
+  Inc(t_states,10);
+end;
+
+procedure TProcessor.ExecDdFdORAIQpdind; inline;
+var _index: Word;
+begin
+  _index := FetchIQPDindex;
+  pregA^ := pregA^ or ramarray[_index];
+  SetLogicalflags;
+  Inc(t_states,19);
+end;
+
+procedure TProcessor.ExecDdFdPOPIQ; inline;
+begin
+  pregIXY^ := PopWord;
+  Inc(t_states,14);
+end;
+
+procedure TProcessor.ExecDdFdPUSHIQ; inline;
+begin
+  PushWord(pregIXY^);
+  Inc(t_states,14);
+end;
+
+procedure TProcessor.ExecDdFdSBCAIQpdind; inline;
+var _index: Word;
+begin
+  _index := FetchIQPDindex;
+  ExecSub(ramarray[_index],19,True,True);
+end;
+
+procedure TProcessor.ExecDdFdSUBAIQpdind; inline;
+var _index: Word;
+begin
+  _index := FetchIQPDindex;
+  ExecSub(ramarray[_index],19,True,False);
+end;
+
+procedure TProcessor.ExecDdFdXORAIQpdind; inline;
+var _index: Word;
+begin
+  _index := FetchIQPDindex;
+  pregA^ := pregA^ xor ramarray[_index];
+  SetLogicalflags;
+  Inc(t_states,19);
+end;
 
 //=============================================================================
 //
@@ -3266,11 +3597,13 @@ var proc: TExecProc;
 begin
   // Get byte to execute
   opcode := FetchOpcode;
-  {
-  opcode := ramarray[pregPC^];
-  Inc(pregPC^);
-  }
-  proc := inst_fd[opcode];
+  pregIXY := pregIY;
+  proc := inst_ddfd[opcode];
+  if proc <> nil then
+    proc
+  else
+    error_flag := error_flag + [efIllegal];
+  proc := inst_ddfd[opcode];
   if proc <> nil then
     proc
   else
@@ -3440,10 +3773,11 @@ begin
       parity_table[b] := (n shl 2) xor FLAG_PV;
     end;
 
-  for b in byte do inst_std[b] := nil;
-  for b in byte do inst_cb[b]  := nil;
-  for b in byte do inst_ed[b]  := nil;
-  for b in byte do inst_fd[b]  := nil;
+  for b in byte do inst_std[b]    := nil;
+  for b in byte do inst_cb[b]     := nil;
+  for b in byte do inst_ddfd[b]   := nil;
+  for b in byte do inst_ddfdcb[b] := nil;
+  for b in byte do inst_ed[b]     := nil;
   // Set up standard instructions
   inst_std[$00] := @ExecNOP;
   inst_std[$01] := @ExecLDBCimm;
@@ -3708,8 +4042,80 @@ begin
   for b := $40 to $7F do inst_cb[b] := @ExecCbBITreg;
   for b := $80 to $BF do inst_cb[b] := @ExecCbBITres;
   for b := $C0 to $FF do inst_cb[b] := @ExecCbBITset;
-  // Set up DD instructions
-  inst_dd[$21] := @ExecDdLDIXimm;
+  // Set up DD/FD instructions
+  inst_ddfd[$09] := @ExecDdFdADDIQBC;
+  inst_ddfd[$19] := @ExecDdFdADDIQDE;
+  inst_ddfd[$21] := @ExecDdFdLDIQimm;
+  inst_ddfd[$22] := @ExecDdFdLDaddrIQ;
+  inst_ddfd[$23] := @ExecDdFdINCIQ;
+  inst_ddfd[$29] := @ExecDdFdADDIQIQ;
+  inst_ddfd[$2A] := @ExecDdFdLDIQaddr;
+  inst_ddfd[$2B] := @ExecDdFdDECIQ;
+  inst_ddfd[$34] := @ExecDdFdINCIQpdind;
+  inst_ddfd[$35] := @ExecDdFdDECIQpdind;
+  inst_ddfd[$36] := @ExecDdFdLDIQpdindimm;
+  inst_ddfd[$39] := @ExecDdFdADDIQSP;
+  inst_ddfd[$46] := @ExecDdFdLDr8IQpdind;
+  inst_ddfd[$4E] := @ExecDdFdLDr8IQpdind;
+  inst_ddfd[$56] := @ExecDdFdLDr8IQpdind;
+  inst_ddfd[$5E] := @ExecDdFdLDr8IQpdind;
+  inst_ddfd[$66] := @ExecDdFdLDr8IQpdind;
+  inst_ddfd[$6E] := @ExecDdFdLDr8IQpdind;
+  inst_ddfd[$70] := @ExecDdFdLDIQpdindr8;
+  inst_ddfd[$71] := @ExecDdFdLDIQpdindr8;
+  inst_ddfd[$72] := @ExecDdFdLDIQpdindr8;
+  inst_ddfd[$73] := @ExecDdFdLDIQpdindr8;
+  inst_ddfd[$74] := @ExecDdFdLDIQpdindr8;
+  inst_ddfd[$75] := @ExecDdFdLDIQpdindr8;
+  inst_ddfd[$77] := @ExecDdFdLDIQpdindr8;
+  inst_ddfd[$7E] := @ExecDdFdLDr8IQpdind;
+  inst_ddfd[$86] := @ExecDdFdADDAIQpdind;
+  inst_ddfd[$8E] := @ExecDdFdADCAIQpdind;
+  inst_ddfd[$96] := @ExecDdFdSUBAIQpdind;
+  inst_ddfd[$9E] := @ExecDdFdSBCAIQpdind;
+  inst_ddfd[$A6] := @ExecDdFdANDAIQpdind;
+  inst_ddfd[$AE] := @ExecDdFdXORAIQpdind;
+  inst_ddfd[$B6] := @ExecDdFdORAIQpdind;
+  inst_ddfd[$BE] := @ExecDdFdCPAIQpdind;
+  inst_ddfd[$CB] := @ExecDdFdCb;
+  inst_ddfd[$E1] := @ExecDdFdPOPIQ;
+  inst_ddfd[$E3] := @ExecDdFdEXSPindIQ;
+  inst_ddfd[$E5] := @ExecDdFdPUSHIQ;
+  inst_ddfd[$E9] := @ExecDdFdJPIQind;
+  inst_ddfd[$F9] := @ExecDdFdLDSPIQ;
+  // Set up DD/FD + CB instructions
+  inst_ddfdcb[$06] := @ExecDdFdCbShiftRotate;
+  inst_ddfdcb[$0E] := @ExecDdFdCbShiftRotate;
+  inst_ddfdcb[$16] := @ExecDdFdCbShiftRotate;
+  inst_ddfdcb[$1E] := @ExecDdFdCbShiftRotate;
+  inst_ddfdcb[$26] := @ExecDdFdCbShiftRotate;
+  inst_ddfdcb[$2E] := @ExecDdFdCbShiftRotate;
+//inst_ddfdcb[$36] := @ExecDdFdCbShiftRotate; // Undocumented
+  inst_ddfdcb[$3E] := @ExecDdFdCbShiftRotate;
+  inst_ddfdcb[$46] := @ExecDdFdCbBITIQpdind;
+  inst_ddfdcb[$4E] := @ExecDdFdCbBITIQpdind;
+  inst_ddfdcb[$56] := @ExecDdFdCbBITIQpdind;
+  inst_ddfdcb[$5E] := @ExecDdFdCbBITIQpdind;
+  inst_ddfdcb[$66] := @ExecDdFdCbBITIQpdind;
+  inst_ddfdcb[$6E] := @ExecDdFdCbBITIQpdind;
+  inst_ddfdcb[$76] := @ExecDdFdCbBITIQpdind;
+  inst_ddfdcb[$7E] := @ExecDdFdCbBITIQpdind;
+  inst_ddfdcb[$86] := @ExecDdFdCbRESIQpdind;
+  inst_ddfdcb[$8E] := @ExecDdFdCbRESIQpdind;
+  inst_ddfdcb[$96] := @ExecDdFdCbRESIQpdind;
+  inst_ddfdcb[$9E] := @ExecDdFdCbRESIQpdind;
+  inst_ddfdcb[$A6] := @ExecDdFdCbRESIQpdind;
+  inst_ddfdcb[$AE] := @ExecDdFdCbRESIQpdind;
+  inst_ddfdcb[$B6] := @ExecDdFdCbRESIQpdind;
+  inst_ddfdcb[$BE] := @ExecDdFdCbRESIQpdind;
+  inst_ddfdcb[$C6] := @ExecDdFdCbSETIQpdind;
+  inst_ddfdcb[$CE] := @ExecDdFdCbSETIQpdind;
+  inst_ddfdcb[$D6] := @ExecDdFdCbSETIQpdind;
+  inst_ddfdcb[$DE] := @ExecDdFdCbSETIQpdind;
+  inst_ddfdcb[$E6] := @ExecDdFdCbSETIQpdind;
+  inst_ddfdcb[$EE] := @ExecDdFdCbSETIQpdind;
+  inst_ddfdcb[$F6] := @ExecDdFdCbSETIQpdind;
+  inst_ddfdcb[$FE] := @ExecDdFdCbSETIQpdind;
   // Set up ED instructions
   for b in byte do undoc_ed[b] := False;
     undoc_ed[$63] := True;

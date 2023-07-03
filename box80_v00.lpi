@@ -17,7 +17,7 @@
     <VersionInfo>
       <UseVersionInfo Value="True"/>
       <AutoIncrementBuild Value="True"/>
-      <BuildNr Value="1"/>
+      <BuildNr Value="2"/>
       <Language Value="0809"/>
       <StringTable LegalCopyright="Copyright 2023 Duncan Munro" ProductName="Box80"/>
     </VersionInfo>
