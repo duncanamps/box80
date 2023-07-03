@@ -77,10 +77,10 @@ You will need at least a 32 bit Operating System, and some sort of multi-threade
 | Use of debug files            | TBD       | XA80 needs to create these first :)    |
 | Documentation                 | TBD       |                                        |
 ### V0.1 future development
-| Item                          | Complete  | Notes                                  |
-| ----                          | --------: | -----                                  |
-| Undocumented instructions     | TBD       | 489 undocumented instructions to add   |
-| Create IDE                    | TBD       | Integrate Box80, XA80 and an IDE      |
+| Item                          | Complete  | Notes                                    |
+| ----                          | --------: | -----                                    |
+| Undocumented instructions     | TBD       | 489 undocumented instructions to add [#27](https://github.com/duncanamps/box80/issues/27) |
+| Create IDE                    | TBD       | Integrate Box80, XA80 and an IDE [#28](https://github.com/duncanamps/box80/issues/28)     |
 
 ## History
 The Box80 application is part of a small, but growing ecosystem I've been putting together.
