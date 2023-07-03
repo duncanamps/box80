@@ -67,12 +67,12 @@
           <Version Value="11"/>
           <PathDelim Value="\"/>
           <Target>
-            <Filename Value="binaries\debugprofile\box80"/>
+            <Filename Value="binaries\debugprofile\win64-x86_64\v00\box80"/>
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
             <OtherUnitFiles Value="forms;units"/>
-            <UnitOutputDirectory Value="lib\debugprofile"/>
+            <UnitOutputDirectory Value="lib\debugprofile\$(TargetOS)-$(TargetCPU)\v00"/>
           </SearchPaths>
           <Parsing>
             <SyntaxOptions>
