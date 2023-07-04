@@ -30,7 +30,7 @@ Box80 is a multi-platform virtual machine designed to execute Z80 code in a 64K 
 ## Dependencies
 To use a basic CP/M operating system, this software requires the following components:
 
-1. Monitor image to allow the initial boot. I'm favouring the Grant Searle version as it's popular with many retro-Z80 designs
+1. Monitor image to allow the initial boot. This will interface with the SIO chip and the CF card
 2. BIOS image to support the following
 	* Z80-ZIO using ports $00..$03
 	* Compact Flash IDE interface using ports $10..$17
@@ -79,8 +79,11 @@ You will need at least a 32 bit Operating System, and some sort of multi-threade
 ### V0.1 future development
 | Item                          | Complete  | Notes                                    |
 | ----                          | --------: | -----                                    |
-| Undocumented instructions     | TBD       | 489 undocumented instructions to add [#27](https://github.com/duncanamps/box80/issues/27) |
 | Create IDE                    | TBD       | Integrate Box80, XA80 and an IDE [#28](https://github.com/duncanamps/box80/issues/28)     |
+### V0.2 future development
+| Item                          | Complete  | Notes                                    |
+| ----                          | --------: | -----                                    |
+| Undocumented instructions     | TBD       | 489 undocumented instructions to add [#27](https://github.com/duncanamps/box80/issues/27) |
 
 ## History
 The Box80 application is part of a small, but growing ecosystem I've been putting together.
