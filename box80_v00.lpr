@@ -10,8 +10,8 @@ uses
   athreads,
   {$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, fbox80, uprocessor, usio, uterminal, fterminal, fabout, uglobals
-  { you can add units after this };
+  Forms, fbox80, uprocessor, usio, uterminal, fterminal, fabout, uglobals, 
+ucflash, uconfigdefs;
 
 {$R *.res}
 

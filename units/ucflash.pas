@@ -18,7 +18,7 @@
     Contact: Duncan Munro  duncan@duncanamps.com
 }
 
-unit uglobals;
+unit ucflash;
 
 {$mode ObjFPC}{$H+}
 
@@ -27,13 +27,17 @@ interface
 uses
   Classes, SysUtils;
 
-const
-  CF_BLOCK_SIZE = 4096;
-  CF_DEFAULT_SIZE_64  = (CF_BLOCK_SIZE * 2048 *  7 + CF_BLOCK_SIZE * 1280);
-  CF_DEFAULT_SIZE_128 = (CF_BLOCK_SIZE * 2048 * 15 + CF_BLOCK_SIZE *  512);
-  MAXIMUM_CPU_SPEED = 9999999999; // 10GHz
+type
+  TCompactFlashInterface = class(TObject)
+    public
+      procedure CreateAndAttach(_cfsize: integer; _force: boolean = False);
+  end;
 
 implementation
+
+procedure TCompactFlashInterface.CreateAndAttach(_cfsize: integer; _force: boolean = False);
+begin
+end;
 
 end.
 

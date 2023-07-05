@@ -26,8 +26,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  ExtCtrls, Menus, ActnList, Buttons,
-   uprocessor;
+  ExtCtrls, Menus, ActnList, Buttons, XMLPropStorage, uprocessor;
 
 const
 {$IFDEF LINUX}
@@ -55,6 +54,9 @@ type
     actHelpWebsite: TAction;
     actHelpUserManual: TAction;
     actHelpLicence: TAction;
+    actFileCFattach: TAction;
+    actFileCFcreate64: TAction;
+    actFileCFcreate128: TAction;
     actVMCPU5000: TAction;
     actVMCPU3333: TAction;
     actVMCPU2000: TAction;
@@ -135,6 +137,11 @@ type
     MenuItem1: TMenuItem;
     MenuItem2: TMenuItem;
     MenuItem3: TMenuItem;
+    MenuItem4: TMenuItem;
+    menuFileCFcreate: TMenuItem;
+    MenuItem5: TMenuItem;
+    MenuItem6: TMenuItem;
+    miFileCF: TMenuItem;
     miVMCPUSep1: TMenuItem;
     miHelpLicence: TMenuItem;
     miHelpUserManual: TMenuItem;
@@ -172,6 +179,7 @@ type
     pnlFileEnd: TPanel;
     pnlButton: TPanel;
     pnlFileEnd1: TPanel;
+    dlgCreateCF: TSaveDialog;
     SpeedButton1: TSpeedButton;
     SpeedButton2: TSpeedButton;
     SpeedButton3: TSpeedButton;
@@ -182,6 +190,9 @@ type
     Splitter2: TSplitter;
     StatusBar1: TStatusBar;
     Timer1: TTimer;
+    config: TXMLPropStorage;
+    procedure actFileCFcreate128Execute(Sender: TObject);
+    procedure actFileCFcreate64Execute(Sender: TObject);
     procedure actHelpAboutExecute(Sender: TObject);
     procedure actHelpLicenceExecute(Sender: TObject);
     procedure actHelpWebsiteExecute(Sender: TObject);
@@ -208,10 +219,10 @@ type
     procedure actDebugStopExecute(Sender: TObject);
     procedure actFileExitExecute(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
+    procedure configRestoreProperties(Sender: TObject);
     procedure FormActivate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure pnlDisassemblerClick(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
   private
     CancelRequested: boolean;
@@ -221,10 +232,13 @@ type
     last: TRegisterSet;
     localNeedsUpdate: boolean;
     localProcStatus: TProcessorState;
+    procedure CreateCF(_cfsize: integer);
+    function  GetConfig(_section,_name: string; _default: string = ''): string;
     procedure GrabFocus;
     procedure HandleSIOtransmitA(_b: byte);
     procedure ProcStateChange(_ps: TProcessorState);
     procedure ProcStateUpdate;
+    procedure PutConfig(_section,_name,_value: string);
     procedure ReadMonitorImage;
     procedure ShowRegisters;
     procedure Status(const _msg: string);
@@ -241,7 +255,7 @@ implementation
 {$R *.lfm}
 
 uses
-  fterminal, fabout, lclintf, uglobals;
+  fterminal, fabout, lclintf, uglobals, uconfigdefs;
 
 { TfrmBox80 }
 
@@ -357,6 +371,16 @@ begin
   frmHelpAbout.ShowModal;
 end;
 
+procedure TfrmBox80.actFileCFcreate64Execute(Sender: TObject);
+begin
+  CreateCF(CF_DEFAULT_SIZE_64);
+end;
+
+procedure TfrmBox80.actFileCFcreate128Execute(Sender: TObject);
+begin
+  CreateCF(CF_DEFAULT_SIZE_128);
+end;
+
 procedure TfrmBox80.actHelpLicenceExecute(Sender: TObject);
 begin
   OpenUrl('https://www.gnu.org/licenses/gpl-3.0.en.html');
@@ -392,6 +416,52 @@ begin
   CancelRequested := True;
 end;
 
+procedure TfrmBox80.configRestoreProperties(Sender: TObject);
+begin
+
+end;
+
+procedure TfrmBox80.CreateCF(_cfsize: integer);
+const BUFSIZE = 32768;
+var cfext:    string;
+    mbtext:   string;
+    strm:     TFileStream;
+    filename: string;
+    buf:      array[0..BUFSIZE-1] of byte;
+    blksize:  integer;
+    i:        integer;
+begin
+  case _cfsize of
+    CF_DEFAULT_SIZE_64:  mbtext := '64';
+    CF_DEFAULT_SIZE_128: mbtext := '128';
+    otherwise            mbtext := '';
+  end;
+  cfext := 'cf' + mbtext;
+  dlgCreateCF.DefaultExt := '.' + cfext;
+  dlgCreateCF.Filter := 'Compact Flash image|*.' + cfext;
+  dlgCreateCF.InitialDir := GetConfig(SECTION_MRUFOLDERS,CONFIG_FOLDER_CREATE_CF,'');
+  if dlgCreateCF.Execute then
+    begin
+      filename := dlgCreateCF.FileName;
+      PutConfig(SECTION_MRUFOLDERS,CONFIG_FOLDER_CREATE_CF,dlgCreateCF.InitialDir);
+      strm := TFileStream.Create(filename,fmCreate);
+      try
+        for i := 0 to BUFSIZE-1 do
+          buf[i] := 0;
+        while _cfsize > 0 do
+          begin
+            blksize := _cfsize;
+            if blksize > BUFSIZE then
+              blksize := BUFSIZE;
+            strm.Write(buf[0],blksize);
+            _cfsize := _cfsize - blksize;
+          end;
+      finally
+        FreeAndNil(strm);
+      end;
+    end;
+end;
+
 procedure TfrmBox80.FormActivate(Sender: TObject);
 begin
   frmTerminal.Processor := FProcessor;
@@ -400,6 +470,10 @@ end;
 
 procedure TfrmBox80.FormCreate(Sender: TObject);
 begin
+  // Set up some of the OS specific stuff
+  config.FileName := GetAppConfigDir(False) + 'config.xml';
+  ForceDirectories(ExtractFilePath(config.FileName));
+  // Set up the remaining items
   FTimerClicks := 0;
   FProcessor := TProcessor.Create;
   FProcessor.OnStateChange := @ProcStateChange;
@@ -421,9 +495,9 @@ begin
     Sleep(50);  // Wait until it's gone
 end;
 
-procedure TfrmBox80.pnlDisassemblerClick(Sender: TObject);
+function TfrmBox80.GetConfig(_section,_name: string; _default: string = ''): string;
 begin
-
+  Result := config.ReadString(_section + '/' + _name,_default);
 end;
 
 procedure TfrmBox80.GrabFocus;
@@ -529,6 +603,11 @@ begin
         GrabFocus;
       end;
   end;
+end;
+
+procedure TfrmBox80.PutConfig(_section,_name,_value: string);
+begin
+  config.WriteString(_section + '/' + _name, _value);
 end;
 
 procedure TfrmBox80.ReadMonitorImage;
