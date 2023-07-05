@@ -27,7 +27,7 @@ interface
 uses
   Classes, SysUtils, uprocessor, uterminal;
 
-procedure LoadVM(const _filename: string; _proc: TProcessor; _terminal: TTerminal);
+function  LoadVM(const _filename: string; _proc: TProcessor; _terminal: TTerminal): boolean;
 procedure SaveVM(const _filename: string; _proc: TProcessor; _terminal: TTerminal);
 
 implementation
@@ -37,7 +37,7 @@ uses
 
 const BYTES_PER_LINE = 32;
 
-procedure LoadVM(const _filename: string; _proc: TProcessor; _terminal: TTerminal);
+function LoadVM(const _filename: string; _proc: TProcessor; _terminal: TTerminal): boolean;
 type PWord = ^word;
      PByte = ^byte;
 var doc: TXMLDocument;
@@ -46,6 +46,7 @@ var doc: TXMLDocument;
     i,j: integer;
     p: PByte;
     b: byte;
+    was_running: boolean;
 
   procedure GetWord(const _text: string; _pw: PWord);
   begin
@@ -72,12 +73,23 @@ var doc: TXMLDocument;
   end;
 
 begin
+  // Make sure we stop the processor first
+  if _proc.ProcessorState = psRunning then
+    begin
+      _proc.ExecuteStop;
+      while not _proc.Idle do
+        Sleep(5);
+    end;
   _proc.Init;
   try
     ReadXMLfile(doc, _filename);
     // Read the environment
     l1 := doc.DocumentElement.FindNode('environment');
-    l2 := l1.FindNode('attachment');
+    l2 := l1.FindNode('was_running');
+    if (l2 <> nil) and (l2.FirstChild.NodeValue <> '') then
+      was_running := StrToBool(l2.FirstChild.NodeValue)
+    else
+      was_running := False;;
     {attachmentvar := l2.FirstChild.NodeValue}
     // Read the registers
     l1 := doc.DocumentElement.FindNode('registers');
@@ -132,6 +144,9 @@ begin
   finally
     FreeAndNil(doc);
   end;
+  if was_running then
+    _proc.ExecuteRun;
+  Result := was_running;
 end;
 
 procedure SaveVM(const _filename: string; _proc: TProcessor; _terminal: TTerminal);
@@ -180,8 +195,8 @@ begin
     rootnode := doc.DocumentElement;
     // Create the environment section
     l1 := doc.CreateElement('environment');
-    l2 := doc.CreateElement('attachment');
-    l3 := doc.CreateTextNode('C:\blah blah');
+    l2 := doc.CreateElement('was_running');
+    l3 := doc.CreateTextNode(BoolToStr(was_running));
     l2.AppendChild(l3);
     l1.AppendChild(l2);
     rootnode.AppendChild(l1);
