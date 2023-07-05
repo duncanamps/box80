@@ -273,7 +273,7 @@ end;
 
 procedure TfrmBox80.actVMSaveExecute(Sender: TObject);
 begin
-  SaveVM('test.vm80',FProcessor);
+  SaveVM('test.vm80',FProcessor,frmTerminal.Terminal);
 end;
 
 procedure TfrmBox80.actDebugStopExecute(Sender: TObject);
@@ -334,7 +334,7 @@ end;
 
 procedure TfrmBox80.actVMLoadExecute(Sender: TObject);
 begin
-  LoadVM('test.vm80',FProcessor);
+  LoadVM('test.vm80',FProcessor,frmTerminal.Terminal);
   ShowRegisters;
 end;
 

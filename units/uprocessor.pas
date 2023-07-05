@@ -117,7 +117,6 @@ type
       run_start_time:         TDateTime;
       run_start_cycles:       int64;
       run_start_instructions: int64;
-      SIO:      TSIO;
       FOnTransmitA: TSIOtransmitProc;
       FOnStateChange: TStateChangeProc;
       FErrorString: string;
@@ -547,6 +546,7 @@ type
       pregIntE: PByte;
       pregIntM: PByte;
       SavedPC: Word;
+      SIO:      TSIO;
       constructor Create;
       destructor Destroy; override;
       procedure BreakpointsClearAll;
