@@ -845,6 +845,15 @@ object frmBox80: TfrmBox80
     end
     object miVM: TMenuItem
       Caption = '&VM'
+      object miVMLoad: TMenuItem
+        Action = actVMLoad
+      end
+      object miVMSave: TMenuItem
+        Action = actVMSave
+      end
+      object miVMsep2: TMenuItem
+        Caption = '-'
+      end
       object miVMCPU: TMenuItem
         Caption = 'CPU speed'
         object miVMCPU00: TMenuItem
@@ -1173,6 +1182,18 @@ object frmBox80: TfrmBox80
       Caption = '128 MB'
       Hint = 'Create an empty 128MB virtual CF'
       OnExecute = actFileCFcreate128Execute
+    end
+    object actVMLoad: TAction
+      Category = 'VM'
+      Caption = 'Load'
+      Hint = 'Load a previously saved virtual machine'
+      OnExecute = actVMLoadExecute
+    end
+    object actVMSave: TAction
+      Category = 'VM'
+      Caption = 'Save'
+      Hint = 'Save the virtual machine'
+      OnExecute = actVMSaveExecute
     end
   end
   object dlgCreateCF: TSaveDialog

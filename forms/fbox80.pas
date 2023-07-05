@@ -57,6 +57,8 @@ type
     actFileCFattach: TAction;
     actFileCFcreate64: TAction;
     actFileCFcreate128: TAction;
+    actVMLoad: TAction;
+    actVMSave: TAction;
     actVMCPU5000: TAction;
     actVMCPU3333: TAction;
     actVMCPU2000: TAction;
@@ -141,6 +143,9 @@ type
     menuFileCFcreate: TMenuItem;
     MenuItem5: TMenuItem;
     MenuItem6: TMenuItem;
+    miVMSave: TMenuItem;
+    miVMLoad: TMenuItem;
+    miVMsep2: TMenuItem;
     miFileCF: TMenuItem;
     miVMCPUSep1: TMenuItem;
     miHelpLicence: TMenuItem;
@@ -212,12 +217,14 @@ type
     procedure actVMCPU73Execute(Sender: TObject);
     procedure actVMCPU80Execute(Sender: TObject);
     procedure actVMCPUmaxExecute(Sender: TObject);
+    procedure actVMLoadExecute(Sender: TObject);
     procedure actVMResetExecute(Sender: TObject);
     procedure actDebugRunExecute(Sender: TObject);
     procedure actDebugStepIntoExecute(Sender: TObject);
     procedure actDebugStepOverExecute(Sender: TObject);
     procedure actDebugStopExecute(Sender: TObject);
     procedure actFileExitExecute(Sender: TObject);
+    procedure actVMSaveExecute(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
     procedure configRestoreProperties(Sender: TObject);
     procedure FormActivate(Sender: TObject);
@@ -255,13 +262,18 @@ implementation
 {$R *.lfm}
 
 uses
-  fterminal, fabout, lclintf, uglobals, uconfigdefs;
+  fterminal, fabout, lclintf, uglobals, uconfigdefs, uvirtual;
 
 { TfrmBox80 }
 
 procedure TfrmBox80.actFileExitExecute(Sender: TObject);
 begin
   Close;
+end;
+
+procedure TfrmBox80.actVMSaveExecute(Sender: TObject);
+begin
+  SaveVM('test.vm80',FProcessor);
 end;
 
 procedure TfrmBox80.actDebugStopExecute(Sender: TObject);
@@ -318,6 +330,12 @@ end;
 procedure TfrmBox80.actVMCPUmaxExecute(Sender: TObject);
 begin
   FProcessor.CPUspeed := MAXIMUM_CPU_SPEED;
+end;
+
+procedure TfrmBox80.actVMLoadExecute(Sender: TObject);
+begin
+  LoadVM('test.vm80',FProcessor);
+  ShowRegisters;
 end;
 
 procedure TfrmBox80.actVMResetExecute(Sender: TObject);
@@ -423,13 +441,14 @@ end;
 
 procedure TfrmBox80.CreateCF(_cfsize: integer);
 const BUFSIZE = 32768;
-var cfext:    string;
-    mbtext:   string;
-    strm:     TFileStream;
-    filename: string;
-    buf:      array[0..BUFSIZE-1] of byte;
-    blksize:  integer;
-    i:        integer;
+var cfext:     string;
+    mbtext:    string;
+    strm:      TFileStream;
+    filename:  string;
+    buf:       array[0..BUFSIZE-1] of byte;
+    blksize:   integer;
+    i:         integer;
+    saved_cur: TCursor;
 begin
   case _cfsize of
     CF_DEFAULT_SIZE_64:  mbtext := '64';
@@ -445,6 +464,8 @@ begin
       filename := dlgCreateCF.FileName;
       PutConfig(SECTION_MRUFOLDERS,CONFIG_FOLDER_CREATE_CF,dlgCreateCF.InitialDir);
       strm := TFileStream.Create(filename,fmCreate);
+      saved_cur := Screen.Cursor;
+      Screen.Cursor := crHourglass;
       try
         for i := 0 to BUFSIZE-1 do
           buf[i] := 0;
@@ -457,6 +478,7 @@ begin
             _cfsize := _cfsize - blksize;
           end;
       finally
+        Screen.Cursor := saved_cur;
         FreeAndNil(strm);
       end;
     end;
@@ -542,25 +564,28 @@ begin
 end;
 
 procedure TfrmBox80.ProcStateUpdate;
+var stopped: set of TProcessorState;
 begin
   localNeedsUpdate := False;
+  stopped := [psPaused,psFault,psBreak];
+  actDebugRun.Enabled        := localProcStatus in stopped;
+  actDebugStepInto.Enabled   := localProcStatus in stopped;
+  actDebugStepOver.Enabled   := localProcStatus in stopped;
+  actDebugStop.Enabled       := localProcStatus in [psRunning];
+  actFileCFattach.Enabled    := localProcStatus in stopped;
+  actFileCFcreate64.Enabled  := localProcStatus in stopped;
+  actFileCFcreate128.Enabled := localProcStatus in stopped;
+  actVMLoad.Enabled          := localProcStatus in stopped;
+  actVMSave.Enabled          := localProcStatus in stopped;
   case localProcStatus of
     psNone:
       begin
-        actDebugStepInto.Enabled := False;
-        actDebugStepOver.Enabled := False;
-        actDebugRun.Enabled      := False;
-        actDebugStop.Enabled     := False;
         labStatus.Caption := 'Not Started';
         labStatus.Color := clSilver;
         labStatus.Font.Color := clDefault;
       end;
     psPaused:
       begin
-        actDebugStepInto.Enabled := True;
-        actDebugStepOver.Enabled := True;
-        actDebugRun.Enabled      := True;
-        actDebugStop.Enabled     := False;
         labStatus.Caption := 'PAUSED';
         labStatus.Color := clOlive;
         labStatus.Font.Color := clWhite;
@@ -569,10 +594,6 @@ begin
       end;
     psRunning:
       begin
-        actDebugStepInto.Enabled := False;
-        actDebugStepOver.Enabled := False;
-        actDebugRun.Enabled      := False;
-        actDebugStop.Enabled     := True;
         labStatus.Caption := 'Running';
         labStatus.Color := clGreen;
         labStatus.Font.Color := clWhite;
@@ -580,10 +601,6 @@ begin
       end;
     psFault:
       begin
-        actDebugStepInto.Enabled := True;
-        actDebugStepOver.Enabled := True;
-        actDebugRun.Enabled      := True;
-        actDebugStop.Enabled     := False;
         labStatus.Caption := 'FAULT';
         labStatus.Color := clRed;
         labStatus.Font.Color := clWhite;

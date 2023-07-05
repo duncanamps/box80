@@ -11,7 +11,7 @@ uses
   {$ENDIF}
   Interfaces, // this includes the LCL widgetset
   Forms, fbox80, uprocessor, usio, uterminal, fterminal, fabout, uglobals, 
-ucflash, uconfigdefs;
+ucflash, uconfigdefs, uvirtual;
 
 {$R *.res}
 
