@@ -396,7 +396,8 @@ begin
   if dlgOpenVM.Execute and (dlgOpenVM.FileName <> '') then
     begin
       VMName := dlgOpenVM.FileName;
-      LoadVM(VMName,FProcessor,frmTerminal.Terminal);
+      if LoadVM(VMName,FProcessor,frmTerminal.Terminal) then
+        frmTerminal.SetFocus;
       FMRU.AddMRU(VMName);
       ShowRegisters;
     end;
@@ -509,8 +510,15 @@ begin
 end;
 
 procedure TfrmBox80.FileMRU00Click(Sender: TObject);
+var index: integer;
 begin
-
+  with Sender as TMenuItem do
+    index := StrToInt(Copy(Caption,2,1));
+  VMName := FMRU.Items[index].Filename;
+  if LoadVM(VMName,FProcessor,frmTerminal.Terminal) then
+    frmTerminal.SetFocus;
+  FMRU.AddMRU(VMName);
+  ShowRegisters;
 end;
 
 
