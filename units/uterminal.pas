@@ -26,7 +26,7 @@ interface
 
 uses
   Classes, SysUtils, ExtCtrls, Controls,
-  graphics;
+  graphics, DOM, XMLWrite, XMLRead;
 
 const
   MAX_TERMINAL_COLS = 132;
@@ -68,6 +68,7 @@ type
       procedure CmdFF;        // Character #12
       procedure CmdCR;        // Character #13
       procedure CmdScrollUp;  // Scroll the screen up by one line
+      procedure ReadFromXml(doc: TXmlDocument);
       procedure WriteChar(_ch: char);
       procedure WriteString(_s: string);
       property  CursorCol: integer   read FCursorCol  write FCursorCol;
@@ -79,6 +80,9 @@ type
   end;
 
 implementation
+
+uses
+  uxml;
 
 constructor TTerminal.Create(AOwner: TComponent; _cols: integer; _rows: integer);
 begin
@@ -212,6 +216,27 @@ begin
     end;
   // Finally...
   inherited Paint;
+end;
+
+procedure TTerminal.ReadFromXml(doc: TXmlDocument);
+var node: TDOMnode;
+    p:    PByte;
+    i,j:  integer;
+    s:    string;
+begin
+  node := doc.DocumentElement.FindNode('terminal');
+  CursorCol := GetXmlByte(node,'cursor_col');
+  CursorRow := GetXmlByte(node,'cursor_row');
+  p := @Screen[0];
+  for i := 0 to 24 do
+    begin
+      s := GetXmlText(node,'terminal_' + IntToHex(i,2));
+      for j := 0 to 79 do
+        begin
+          p^ := StrToInt('$' + Copy(s,1+j*2,2));
+          Inc(p);
+        end;
+    end;
 end;
 
 procedure TTerminal.RefreshScreen;

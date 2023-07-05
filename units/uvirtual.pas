@@ -33,45 +33,17 @@ procedure SaveVM(const _filename: string; _proc: TProcessor; _terminal: TTermina
 implementation
 
 uses
-  DOM, XMLWrite, XMLRead, usio;
-
-const BYTES_PER_LINE = 32;
+  DOM, XMLWrite, XMLRead, usio, uxml, uglobals;
 
 function LoadVM(const _filename: string; _proc: TProcessor; _terminal: TTerminal): boolean;
 type PWord = ^word;
      PByte = ^byte;
 var doc: TXMLDocument;
-    rootnode, l1, l2, l3: TDOMNode;
+    {%H-}rootnode, l1, l2: TDOMNode;
     s: string;
     i,j: integer;
     p: PByte;
-    b: byte;
     was_running: boolean;
-
-  procedure GetWord(const _text: string; _pw: PWord);
-  begin
-    l2 := l1.FindNode(_text);
-    s := l2.FirstChild.NodeValue;
-    _pw^ := StrToInt('$' + s);
-  end;
-
-  procedure GetByte(const _text: string; _pb: PByte);
-  begin
-    l2 := l1.FindNode(_text);
-    s := l2.FirstChild.NodeValue;
-    _pb^ := StrToInt('$' + s);
-  end;
-
-  procedure LoadSIOchannel(const _text: string; _chan: TSIOchannel);
-  var r: integer;
-  begin
-    l1 := doc.DocumentElement.FindNode('sio' + _text);
-    for r := 0 to 2 do
-      GetByte('read' + IntToStr(r), @_chan.RegRead[r]);
-    for r := 0 to 7 do
-      GetByte('write' + IntToStr(r), @_chan.RegWrite[r]);
-  end;
-
 begin
   // Make sure we stop the processor first
   if _proc.ProcessorState = psRunning then
@@ -85,62 +57,11 @@ begin
     ReadXMLfile(doc, _filename);
     // Read the environment
     l1 := doc.DocumentElement.FindNode('environment');
-    l2 := l1.FindNode('was_running');
-    if (l2 <> nil) and (l2.FirstChild.NodeValue <> '') then
-      was_running := StrToBool(l2.FirstChild.NodeValue)
-    else
-      was_running := False;;
-    {attachmentvar := l2.FirstChild.NodeValue}
-    // Read the registers
-    l1 := doc.DocumentElement.FindNode('registers');
-    GetWord('reg__af',_proc.pregAF);
-    GetWord('reg__bc',_proc.pregBC);
-    GetWord('reg__de',_proc.pregDE);
-    GetWord('reg__hl',_proc.pregHL);
-    GetWord('reg_xaf',_proc.pregAF_);
-    GetWord('reg_xbc',_proc.pregBC_);
-    GetWord('reg_xde',_proc.pregDE_);
-    GetWord('reg_xhl',_proc.pregHL_);
-    GetWord('reg__ir',_proc.pregIR);
-    GetWord('reg__ix',_proc.pregIX);
-    GetWord('reg__iy',_proc.pregIY);
-    GetWord('reg__sp',_proc.pregSP);
-    GetWord('reg__pc',_proc.pregPC);
-    GetByte('int_enabled',_proc.pregIntE);
-    GetByte('int_mode',_proc.pregIntM);
-    // Read the memory
-    l1 := doc.DocumentElement.FindNode('memory');
-    i := 0;
-    p := @_proc.RAM[0];
-    while i < 65536 do
-      begin
-        l2 := l1.FindNode(Format('memory_%4.4X',[i]));
-        s := l2.FirstChild.NodeValue;
-        for j := 0 to BYTES_PER_LINE-1 do
-          begin
-            p^ := StrToInt('$' + Copy(s,1+j*2,2));
-            Inc(p);
-            Inc(i);
-          end;
-      end;
-    // Load the SIO sections
-    LoadSIOchannel('a',_proc.SIO.ChannelA);
-    LoadSIOchannel('b',_proc.SIO.ChannelB);
+    was_running := GetXmlBoolean(l1,'was_running',False);
+    // Read the processor
+    _proc.ReadFromXml(doc);
     // Read the terminal
-    l1 := doc.DocumentElement.FindNode('terminal');
-    GetByte('cursor_col',@b); _terminal.CursorCol := b;
-    GetByte('cursor_row',@b); _terminal.CursorRow := b;
-    p := @_terminal.Screen[0];
-    for i := 0 to 24 do
-      begin
-        l2 := l1.FindNode(Format('terminal_%2.2X',[i]));
-        s := l2.FirstChild.NodeValue;
-        for j := 0 to 79 do
-          begin
-            p^ := StrToInt('$' + Copy(s,1+j*2,2));
-            Inc(p);
-          end;
-      end;
+    _terminal.ReadFromXml(doc);
   finally
     FreeAndNil(doc);
   end;
