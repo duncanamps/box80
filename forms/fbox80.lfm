@@ -741,6 +741,7 @@ object frmBox80: TfrmBox80
     ClientHeight = 671
     ClientWidth = 381
     TabOrder = 4
+    OnClick = pnlDisassemblerClick
     object Label18: TLabel
       Left = 1
       Height = 21
@@ -912,16 +913,19 @@ object frmBox80: TfrmBox80
     end
     object miHelp: TMenuItem
       Caption = '&Help'
-      object MenuItem1: TMenuItem
+      object miHelpUserManual: TMenuItem
         Action = actHelpUserManual
       end
-      object MenuItem2: TMenuItem
+      object miHelpWebsite: TMenuItem
         Action = actHelpWebsite
       end
       object miHelpSep1: TMenuItem
         Caption = '-'
       end
-      object MenuItem3: TMenuItem
+      object miHelpLicence: TMenuItem
+        Action = actHelpLicence
+      end
+      object miHelpAbout: TMenuItem
         Action = actHelpAbout
       end
     end
@@ -1082,6 +1086,7 @@ object frmBox80: TfrmBox80
       Category = 'Help'
       Caption = '&Website'
       Hint = 'Link to the website'
+      OnExecute = actHelpWebsiteExecute
     end
     object actHelpUserManual: TAction
       Category = 'Help'
@@ -1095,6 +1100,12 @@ object frmBox80: TfrmBox80
       GroupIndex = 1
       Hint = 'Set CPU speed to maximum available on host'
       OnExecute = actVMCPUmaxExecute
+    end
+    object actHelpLicence: TAction
+      Category = 'Help'
+      Caption = 'Licence'
+      Hint = 'Display the licence for this software'
+      OnExecute = actHelpLicenceExecute
     end
   end
 end

@@ -1,3 +1,23 @@
+{
+    BOX80 - Z80 Virtual Machine
+    Copyright (C)2023 Duncan Munro
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+    Contact: Duncan Munro  duncan@duncanamps.com
+}
+
 unit fbox80;
 
 {$mode objfpc}{$H+}
@@ -34,6 +54,7 @@ type
     actHelpAbout: TAction;
     actHelpWebsite: TAction;
     actHelpUserManual: TAction;
+    actHelpLicence: TAction;
     actVMCPUmax: TAction;
     actVMCPU1000: TAction;
     actVMCPU00: TAction;
@@ -108,9 +129,10 @@ type
     labF_7: TLabel;
     labStatus: TLabel;
     MainMenu1: TMainMenu;
-    MenuItem1: TMenuItem;
-    MenuItem2: TMenuItem;
-    MenuItem3: TMenuItem;
+    miHelpLicence: TMenuItem;
+    miHelpUserManual: TMenuItem;
+    miHelpWebsite: TMenuItem;
+    miHelpAbout: TMenuItem;
     miVMCPUmax: TMenuItem;
     miVMCPUsep1: TMenuItem;
     miHelpSep1: TMenuItem;
@@ -155,6 +177,8 @@ type
     StatusBar1: TStatusBar;
     Timer1: TTimer;
     procedure actHelpAboutExecute(Sender: TObject);
+    procedure actHelpLicenceExecute(Sender: TObject);
+    procedure actHelpWebsiteExecute(Sender: TObject);
     procedure actVMCPU00Execute(Sender: TObject);
     procedure actVMCPU1000Execute(Sender: TObject);
     procedure actVMCPU100Execute(Sender: TObject);
@@ -178,6 +202,7 @@ type
     procedure FormActivate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure pnlDisassemblerClick(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
   private
     CancelRequested: boolean;
@@ -207,7 +232,7 @@ implementation
 {$R *.lfm}
 
 uses
-  fterminal, fabout;
+  fterminal, fabout, lclintf;
 
 { TfrmBox80 }
 
@@ -313,6 +338,16 @@ begin
   frmHelpAbout.ShowModal;
 end;
 
+procedure TfrmBox80.actHelpLicenceExecute(Sender: TObject);
+begin
+  OpenUrl('https://www.gnu.org/licenses/gpl-3.0.en.html');
+end;
+
+procedure TfrmBox80.actHelpWebsiteExecute(Sender: TObject);
+begin
+  OpenUrl('https://github.com/duncanamps/box80');
+end;
+
 procedure TfrmBox80.actVMCPU1000Execute(Sender: TObject);
 begin
   FProcessor.CPUspeed := 100000000;
@@ -360,6 +395,11 @@ begin
   FProcessor.Terminate;   // Will delete its own instance
   while not FProcessor.Finished do
     Sleep(50);  // Wait until it's gone
+end;
+
+procedure TfrmBox80.pnlDisassemblerClick(Sender: TObject);
+begin
+
 end;
 
 procedure TfrmBox80.GrabFocus;
