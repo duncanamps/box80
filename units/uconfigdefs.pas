@@ -18,7 +18,7 @@
     Contact: Duncan Munro  duncan@duncanamps.com
 }
 
-unit uglobals;
+unit uconfigdefs;
 
 {$mode ObjFPC}{$H+}
 
@@ -28,10 +28,9 @@ uses
   Classes, SysUtils;
 
 const
-  CF_BLOCK_SIZE = 4096;
-  CF_DEFAULT_SIZE_64  = (CF_BLOCK_SIZE * 2048 *  7 + CF_BLOCK_SIZE * 1280);
-  CF_DEFAULT_SIZE_128 = (CF_BLOCK_SIZE * 2048 * 15 + CF_BLOCK_SIZE *  512);
-  MAXIMUM_CPU_SPEED = 9999999999; // 10GHz
+  SECTION_MRUFOLDERS = 'Folders';
+
+  CONFIG_FOLDER_CREATE_CF = 'ConfigFolderCreateCF';
 
 implementation
 

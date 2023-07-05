@@ -2,10 +2,10 @@ object frmBox80: TfrmBox80
   Left = 379
   Height = 759
   Top = 188
-  Width = 1048
+  Width = 1099
   Caption = 'box80 - Z80 Virtual Machine'
   ClientHeight = 734
-  ClientWidth = 1048
+  ClientWidth = 1099
   DesignTimePPI = 120
   Menu = MainMenu1
   OnActivate = FormActivate
@@ -16,17 +16,17 @@ object frmBox80: TfrmBox80
     Left = 0
     Height = 29
     Top = 705
-    Width = 1048
+    Width = 1099
     Panels = <>
   end
   object pnlButton: TPanel
     Left = 0
     Height = 34
     Top = 0
-    Width = 1048
+    Width = 1099
     Align = alTop
     ClientHeight = 34
-    ClientWidth = 1048
+    ClientWidth = 1099
     ParentColor = False
     TabOrder = 1
     object SpeedButton1: TSpeedButton
@@ -741,7 +741,6 @@ object frmBox80: TfrmBox80
     ClientHeight = 671
     ClientWidth = 381
     TabOrder = 4
-    OnClick = pnlDisassemblerClick
     object Label18: TLabel
       Left = 1
       Height = 21
@@ -767,7 +766,6 @@ object frmBox80: TfrmBox80
     Height = 671
     Top = 34
     Width = 431
-    Align = alClient
     ClientHeight = 671
     ClientWidth = 431
     TabOrder = 6
@@ -826,6 +824,21 @@ object frmBox80: TfrmBox80
     Top = 194
     object miFile: TMenuItem
       Caption = '&File'
+      object miFileCF: TMenuItem
+        Caption = 'Compact Flash'
+        object MenuItem4: TMenuItem
+          Action = actFileCFattach
+        end
+        object menuFileCFcreate: TMenuItem
+          Caption = 'Create new image'
+          object MenuItem5: TMenuItem
+            Action = actFileCFcreate64
+          end
+          object MenuItem6: TMenuItem
+            Action = actFileCFcreate128
+          end
+        end
+      end
       object miFileExit: TMenuItem
         Action = actFileExit
       end
@@ -1144,5 +1157,34 @@ object frmBox80: TfrmBox80
       Hint = 'Set CPU speed to 500.0 MHz'
       OnExecute = actVMCPU5000Execute
     end
+    object actFileCFattach: TAction
+      Category = 'File'
+      Caption = 'Attach...'
+      Hint = 'Attach virtual Compact Flash drive'
+    end
+    object actFileCFcreate64: TAction
+      Category = 'File'
+      Caption = '64 MB'
+      Hint = 'Create an empty 64MB virtual CF'
+      OnExecute = actFileCFcreate64Execute
+    end
+    object actFileCFcreate128: TAction
+      Category = 'File'
+      Caption = '128 MB'
+      Hint = 'Create an empty 128MB virtual CF'
+      OnExecute = actFileCFcreate128Execute
+    end
+  end
+  object dlgCreateCF: TSaveDialog
+    Title = 'Create new CF image'
+    Options = [ofOverwritePrompt, ofEnableSizing, ofViewDetail]
+    Left = 330
+    Top = 268
+  end
+  object config: TXMLPropStorage
+    StoredValues = <>
+    OnRestoreProperties = configRestoreProperties
+    Left = 384
+    Top = 352
   end
 end
