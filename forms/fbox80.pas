@@ -57,7 +57,8 @@ type
     actFileCFattach: TAction;
     actFileCFcreate64: TAction;
     actFileCFcreate128: TAction;
-    actVMLoad: TAction;
+    actVMSaveAs: TAction;
+    actVMOpen: TAction;
     actVMSave: TAction;
     actVMCPU5000: TAction;
     actVMCPU3333: TAction;
@@ -143,6 +144,7 @@ type
     menuFileCFcreate: TMenuItem;
     MenuItem5: TMenuItem;
     MenuItem6: TMenuItem;
+    miVMSaveAs: TMenuItem;
     miVMSave: TMenuItem;
     miVMLoad: TMenuItem;
     miVMsep2: TMenuItem;
@@ -178,6 +180,7 @@ type
     miVMCPU80: TMenuItem;
     miVMReset: TMenuItem;
     miVMsep1: TMenuItem;
+    dlgOpenVM: TOpenDialog;
     pnlWatch: TPanel;
     pnlDisassembler: TPanel;
     pnlRegisters: TPanel;
@@ -185,6 +188,7 @@ type
     pnlButton: TPanel;
     pnlFileEnd1: TPanel;
     dlgCreateCF: TSaveDialog;
+    dlgCreateVM: TSaveDialog;
     SpeedButton1: TSpeedButton;
     SpeedButton2: TSpeedButton;
     SpeedButton3: TSpeedButton;
@@ -217,25 +221,28 @@ type
     procedure actVMCPU73Execute(Sender: TObject);
     procedure actVMCPU80Execute(Sender: TObject);
     procedure actVMCPUmaxExecute(Sender: TObject);
-    procedure actVMLoadExecute(Sender: TObject);
+    procedure actVMOpenExecute(Sender: TObject);
     procedure actVMResetExecute(Sender: TObject);
     procedure actDebugRunExecute(Sender: TObject);
     procedure actDebugStepIntoExecute(Sender: TObject);
     procedure actDebugStepOverExecute(Sender: TObject);
     procedure actDebugStopExecute(Sender: TObject);
     procedure actFileExitExecute(Sender: TObject);
+    procedure actVMSaveAsExecute(Sender: TObject);
     procedure actVMSaveExecute(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
     procedure configRestoreProperties(Sender: TObject);
     procedure FormActivate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure pnlDisassemblerClick(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
   private
     CancelRequested: boolean;
     FocusAllowed: boolean;
     FProcessor: TProcessor;
     FTimerClicks: integer;
+    FVMName: string;
     last: TRegisterSet;
     localNeedsUpdate: boolean;
     localProcStatus: TProcessorState;
@@ -247,9 +254,12 @@ type
     procedure ProcStateUpdate;
     procedure PutConfig(_section,_name,_value: string);
     procedure ReadMonitorImage;
+    procedure SetActions;
+    procedure SetVmName(const _s: string);
     procedure ShowRegisters;
     procedure Status(const _msg: string);
     procedure Status(const _fmt: string; const _args: array of const);
+    property VMName: string read FVMName write SetVMName;
   public
 
   end;
@@ -262,7 +272,7 @@ implementation
 {$R *.lfm}
 
 uses
-  fterminal, fabout, lclintf, uglobals, uconfigdefs, uvirtual;
+  fterminal, fabout, lclintf, uglobals, uconfigdefs, uvirtual, FileCtrl;
 
 { TfrmBox80 }
 
@@ -271,9 +281,21 @@ begin
   Close;
 end;
 
+procedure TfrmBox80.actVMSaveAsExecute(Sender: TObject);
+begin
+  dlgCreateVM.InitialDir := GetConfig(SECTION_MRUFOLDERS,CONFIG_FOLDER_VM,'');
+  if dlgCreateVM.Execute then
+    begin
+      VMName := dlgCreateVM.FileName;
+      PutConfig(SECTION_MRUFOLDERS,CONFIG_FOLDER_VM,dlgCreateVM.InitialDir);
+      actVMSaveExecute(Self);
+    end;
+end;
+
 procedure TfrmBox80.actVMSaveExecute(Sender: TObject);
 begin
-  SaveVM('test.vm80',FProcessor,frmTerminal.Terminal);
+  if VMName <> '' then
+    SaveVM(VMName,FProcessor,frmTerminal.Terminal);
 end;
 
 procedure TfrmBox80.actDebugStopExecute(Sender: TObject);
@@ -332,10 +354,15 @@ begin
   FProcessor.CPUspeed := MAXIMUM_CPU_SPEED;
 end;
 
-procedure TfrmBox80.actVMLoadExecute(Sender: TObject);
+procedure TfrmBox80.actVMOpenExecute(Sender: TObject);
 begin
-  LoadVM('test.vm80',FProcessor,frmTerminal.Terminal);
-  ShowRegisters;
+  dlgOpenVM.InitialDir := GetConfig(SECTION_MRUFOLDERS,CONFIG_FOLDER_VM,'');
+  if dlgOpenVM.Execute and (dlgOpenVM.FileName <> '') then
+    begin
+      VMName := dlgOpenVM.FileName;
+      LoadVM(VMName,FProcessor,frmTerminal.Terminal);
+      ShowRegisters;
+    end;
 end;
 
 procedure TfrmBox80.actVMResetExecute(Sender: TObject);
@@ -458,11 +485,11 @@ begin
   cfext := 'cf' + mbtext;
   dlgCreateCF.DefaultExt := '.' + cfext;
   dlgCreateCF.Filter := 'Compact Flash image|*.' + cfext;
-  dlgCreateCF.InitialDir := GetConfig(SECTION_MRUFOLDERS,CONFIG_FOLDER_CREATE_CF,'');
+  dlgCreateCF.InitialDir := GetConfig(SECTION_MRUFOLDERS,CONFIG_FOLDER_CF,'');
   if dlgCreateCF.Execute then
     begin
       filename := dlgCreateCF.FileName;
-      PutConfig(SECTION_MRUFOLDERS,CONFIG_FOLDER_CREATE_CF,dlgCreateCF.InitialDir);
+      PutConfig(SECTION_MRUFOLDERS,CONFIG_FOLDER_CF,dlgCreateCF.InitialDir);
       strm := TFileStream.Create(filename,fmCreate);
       saved_cur := Screen.Cursor;
       Screen.Cursor := crHourglass;
@@ -496,6 +523,7 @@ begin
   config.FileName := GetAppConfigDir(False) + 'config.xml';
   ForceDirectories(ExtractFilePath(config.FileName));
   // Set up the remaining items
+  VMName := '';
   FTimerClicks := 0;
   FProcessor := TProcessor.Create;
   FProcessor.OnStateChange := @ProcStateChange;
@@ -515,6 +543,11 @@ begin
   FProcessor.Terminate;   // Will delete its own instance
   while not FProcessor.Finished do
     Sleep(50);  // Wait until it's gone
+end;
+
+procedure TfrmBox80.pnlDisassemblerClick(Sender: TObject);
+begin
+
 end;
 
 function TfrmBox80.GetConfig(_section,_name: string; _default: string = ''): string;
@@ -564,19 +597,9 @@ begin
 end;
 
 procedure TfrmBox80.ProcStateUpdate;
-var stopped: set of TProcessorState;
 begin
   localNeedsUpdate := False;
-  stopped := [psPaused,psFault,psBreak];
-  actDebugRun.Enabled        := localProcStatus in stopped;
-  actDebugStepInto.Enabled   := localProcStatus in stopped;
-  actDebugStepOver.Enabled   := localProcStatus in stopped;
-  actDebugStop.Enabled       := localProcStatus in [psRunning];
-  actFileCFattach.Enabled    := localProcStatus in stopped;
-  actFileCFcreate64.Enabled  := localProcStatus in stopped;
-  actFileCFcreate128.Enabled := localProcStatus in stopped;
-  actVMLoad.Enabled          := localProcStatus in stopped;
-  actVMSave.Enabled          := localProcStatus in stopped;
+  SetActions;
   case localProcStatus of
     psNone:
       begin
@@ -609,10 +632,6 @@ begin
       end;
     psBreak:
       begin
-        actDebugStepInto.Enabled := True;
-        actDebugStepOver.Enabled := True;
-        actDebugRun.Enabled      := True;
-        actDebugStop.Enabled     := False;
         labStatus.Caption := 'Break';
         labStatus.Color := clMaroon;
         labStatus.Font.Color := clWhite;
@@ -644,6 +663,32 @@ begin
   finally
     FreeAndNil(strm);
   end;
+end;
+
+procedure TfrmBox80.SetActions;
+var stopped: set of TProcessorState;
+begin
+  stopped := [psPaused,psFault,psBreak];
+  actDebugRun.Enabled        := localProcStatus in stopped;
+  actDebugStepInto.Enabled   := localProcStatus in stopped;
+  actDebugStepOver.Enabled   := localProcStatus in stopped;
+  actDebugStop.Enabled       := localProcStatus in [psRunning];
+  actFileCFattach.Enabled    := localProcStatus in stopped;
+  actFileCFcreate64.Enabled  := localProcStatus in stopped;
+  actFileCFcreate128.Enabled := localProcStatus in stopped;
+  actVMOpen.Enabled          := True;
+  actVMSave.Enabled          := FVMName <> '';
+  actVMSaveAs.Enabled        := True;
+end;
+
+procedure TfrmBox80.SetVmName(const _s: string);
+begin
+  FVMName := _s;
+  if _s = '' then
+    Caption := '<unnamed>'
+  else
+    Caption := MinimizeName(FVMName,Self.Canvas,Width-32);
+  SetActions;
 end;
 
 procedure TfrmBox80.ShowRegisters;

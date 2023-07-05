@@ -545,6 +545,7 @@ type
       pregPCL: PByte;
       pregIntE: PByte;
       pregIntM: PByte;
+      Idle:     boolean;
       SavedPC: Word;
       SIO:      TSIO;
       constructor Create;
@@ -589,6 +590,7 @@ implementation
 constructor TProcessor.Create;
 begin
   inherited Create(True);
+  Idle := True;
   cpu_speed := 4000000; // Default to 4MHz device
   FAllowUndocumented := True;  // Allow undocumented instructions
   FreeOnTerminate := True;
@@ -3648,13 +3650,16 @@ begin
       case FProcessorState of
         psStepInto:
           begin
+            Idle := False;
             ExecuteOneInst;
             if error_flag <> [] then
               ProcessorState := psFault;
             ProcessorState := psPaused;
+            Idle := True;
           end;
         psRunning:
           begin
+            Idle := False;
             i := 0;
             if CPUspeed > 10000000 then
               check_every := 100000
@@ -3679,9 +3684,13 @@ begin
                 if simulated_time > elapsed_time then
                   sleep(Trunc((simulated_time-elapsed_time)*1000.0+0.5));
               end;
+            Idle := True;
           end;
         otherwise
-          sleep(20);
+          begin
+            Idle := True;
+            sleep(20);
+          end;
       end;
     end;
 end;

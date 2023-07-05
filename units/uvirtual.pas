@@ -139,6 +139,7 @@ var doc: TXMLDocument;
     rootnode, l1, l2, l3: TDOMNode;
     i,j: integer;
     s: string;
+    was_running: boolean;
 
   procedure PumpL3(const _text, _value: string);
   begin
@@ -165,6 +166,13 @@ var doc: TXMLDocument;
   end;
 
 begin
+  was_running := (_proc.ProcessorState = psRunning);
+  if was_running then
+    begin
+      _proc.ExecuteStop;
+      while not _proc.Idle do
+        Sleep(5);
+    end;
   doc := TXMLDocument.Create;
   try
     rootnode := doc.CreateElement('vm');
@@ -237,6 +245,8 @@ begin
   finally
     FreeAndNil(doc);
   end;
+  if was_running then
+    _proc.ExecuteRun;
 end;
 
 end.

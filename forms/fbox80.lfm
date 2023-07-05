@@ -741,6 +741,7 @@ object frmBox80: TfrmBox80
     ClientHeight = 671
     ClientWidth = 381
     TabOrder = 4
+    OnClick = pnlDisassemblerClick
     object Label18: TLabel
       Left = 1
       Height = 21
@@ -846,10 +847,13 @@ object frmBox80: TfrmBox80
     object miVM: TMenuItem
       Caption = '&VM'
       object miVMLoad: TMenuItem
-        Action = actVMLoad
+        Action = actVMOpen
       end
       object miVMSave: TMenuItem
         Action = actVMSave
+      end
+      object miVMSaveAs: TMenuItem
+        Action = actVMSaveAs
       end
       object miVMsep2: TMenuItem
         Caption = '-'
@@ -1183,17 +1187,25 @@ object frmBox80: TfrmBox80
       Hint = 'Create an empty 128MB virtual CF'
       OnExecute = actFileCFcreate128Execute
     end
-    object actVMLoad: TAction
+    object actVMOpen: TAction
       Category = 'VM'
-      Caption = 'Load'
-      Hint = 'Load a previously saved virtual machine'
-      OnExecute = actVMLoadExecute
+      Caption = 'Open ...'
+      Hint = 'Open a previously saved virtual machine'
+      OnExecute = actVMOpenExecute
     end
     object actVMSave: TAction
       Category = 'VM'
       Caption = 'Save'
       Hint = 'Save the virtual machine'
       OnExecute = actVMSaveExecute
+      ShortCut = 116
+    end
+    object actVMSaveAs: TAction
+      Category = 'VM'
+      Caption = 'Save As ...'
+      Hint = 'Save the virtual machine under a specific name'
+      OnExecute = actVMSaveAsExecute
+      ShortCut = 8308
     end
   end
   object dlgCreateCF: TSaveDialog
@@ -1207,5 +1219,20 @@ object frmBox80: TfrmBox80
     OnRestoreProperties = configRestoreProperties
     Left = 384
     Top = 352
+  end
+  object dlgCreateVM: TSaveDialog
+    Title = 'Save virtual machine as'
+    DefaultExt = '.box80'
+    Filter = 'box Virtual Machine|*.box80'
+    Options = [ofOverwritePrompt, ofEnableSizing, ofViewDetail]
+    Left = 297
+    Top = 386
+  end
+  object dlgOpenVM: TOpenDialog
+    Title = 'Open existing virtual machine'
+    DefaultExt = '.box80'
+    Filter = 'box80 virtual machine|*.box80'
+    Left = 383
+    Top = 432
   end
 end
