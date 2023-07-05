@@ -57,9 +57,9 @@ type
     actFileCFattach: TAction;
     actFileCFcreate64: TAction;
     actFileCFcreate128: TAction;
-    actVMSaveAs: TAction;
-    actVMOpen: TAction;
-    actVMSave: TAction;
+    actFileSaveAs: TAction;
+    actFileOpen: TAction;
+    actFileSave: TAction;
     actVMCPU5000: TAction;
     actVMCPU3333: TAction;
     actVMCPU2000: TAction;
@@ -138,16 +138,17 @@ type
     labStatus: TLabel;
     MainMenu1: TMainMenu;
     MenuItem1: TMenuItem;
+    miFileOpen: TMenuItem;
     MenuItem2: TMenuItem;
     MenuItem3: TMenuItem;
     MenuItem4: TMenuItem;
     menuFileCFcreate: TMenuItem;
     MenuItem5: TMenuItem;
     MenuItem6: TMenuItem;
-    miVMSaveAs: TMenuItem;
-    miVMSave: TMenuItem;
-    miVMLoad: TMenuItem;
-    miVMsep2: TMenuItem;
+    miFileSep2: TMenuItem;
+    miFileSaveAs: TMenuItem;
+    miFileSave: TMenuItem;
+    miFileSep1: TMenuItem;
     miFileCF: TMenuItem;
     miVMCPUSep1: TMenuItem;
     miHelpLicence: TMenuItem;
@@ -204,6 +205,7 @@ type
     procedure actFileCFcreate64Execute(Sender: TObject);
     procedure actHelpAboutExecute(Sender: TObject);
     procedure actHelpLicenceExecute(Sender: TObject);
+    procedure actHelpUserManualExecute(Sender: TObject);
     procedure actHelpWebsiteExecute(Sender: TObject);
     procedure actVMCPU00Execute(Sender: TObject);
     procedure actVMCPU1000Execute(Sender: TObject);
@@ -221,15 +223,15 @@ type
     procedure actVMCPU73Execute(Sender: TObject);
     procedure actVMCPU80Execute(Sender: TObject);
     procedure actVMCPUmaxExecute(Sender: TObject);
-    procedure actVMOpenExecute(Sender: TObject);
+    procedure actFileOpenExecute(Sender: TObject);
     procedure actVMResetExecute(Sender: TObject);
     procedure actDebugRunExecute(Sender: TObject);
     procedure actDebugStepIntoExecute(Sender: TObject);
     procedure actDebugStepOverExecute(Sender: TObject);
     procedure actDebugStopExecute(Sender: TObject);
     procedure actFileExitExecute(Sender: TObject);
-    procedure actVMSaveAsExecute(Sender: TObject);
-    procedure actVMSaveExecute(Sender: TObject);
+    procedure actFileSaveAsExecute(Sender: TObject);
+    procedure actFileSaveExecute(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
     procedure configRestoreProperties(Sender: TObject);
     procedure FormActivate(Sender: TObject);
@@ -281,18 +283,18 @@ begin
   Close;
 end;
 
-procedure TfrmBox80.actVMSaveAsExecute(Sender: TObject);
+procedure TfrmBox80.actFileSaveAsExecute(Sender: TObject);
 begin
   dlgCreateVM.InitialDir := GetConfig(SECTION_MRUFOLDERS,CONFIG_FOLDER_VM,'');
   if dlgCreateVM.Execute then
     begin
       VMName := dlgCreateVM.FileName;
       PutConfig(SECTION_MRUFOLDERS,CONFIG_FOLDER_VM,dlgCreateVM.InitialDir);
-      actVMSaveExecute(Self);
+      actFileSaveExecute(Self);
     end;
 end;
 
-procedure TfrmBox80.actVMSaveExecute(Sender: TObject);
+procedure TfrmBox80.actFileSaveExecute(Sender: TObject);
 begin
   if VMName <> '' then
     SaveVM(VMName,FProcessor,frmTerminal.Terminal);
@@ -354,7 +356,7 @@ begin
   FProcessor.CPUspeed := MAXIMUM_CPU_SPEED;
 end;
 
-procedure TfrmBox80.actVMOpenExecute(Sender: TObject);
+procedure TfrmBox80.actFileOpenExecute(Sender: TObject);
 begin
   dlgOpenVM.InitialDir := GetConfig(SECTION_MRUFOLDERS,CONFIG_FOLDER_VM,'');
   if dlgOpenVM.Execute and (dlgOpenVM.FileName <> '') then
@@ -429,6 +431,11 @@ end;
 procedure TfrmBox80.actHelpLicenceExecute(Sender: TObject);
 begin
   OpenUrl('https://www.gnu.org/licenses/gpl-3.0.en.html');
+end;
+
+procedure TfrmBox80.actHelpUserManualExecute(Sender: TObject);
+begin
+  OpenUrl('https://github.com/duncanamps/box80/tree/v0.0/docs/box80_vm_user_manual_0.0.pdf');
 end;
 
 procedure TfrmBox80.actHelpWebsiteExecute(Sender: TObject);
@@ -676,9 +683,9 @@ begin
   actFileCFattach.Enabled    := localProcStatus in stopped;
   actFileCFcreate64.Enabled  := localProcStatus in stopped;
   actFileCFcreate128.Enabled := localProcStatus in stopped;
-  actVMOpen.Enabled          := True;
-  actVMSave.Enabled          := FVMName <> '';
-  actVMSaveAs.Enabled        := True;
+  actFileOpen.Enabled          := True;
+  actFileSave.Enabled          := FVMName <> '';
+  actFileSaveAs.Enabled        := True;
 end;
 
 procedure TfrmBox80.SetVmName(const _s: string);
