@@ -852,6 +852,50 @@ object frmBox80: TfrmBox80
           end
         end
       end
+      object miFileSepMRU: TMenuItem
+        Caption = '-'
+        Visible = False
+      end
+      object FileMRU00: TMenuItem
+        Visible = False
+        OnClick = FileMRU00Click
+      end
+      object FileMRU01: TMenuItem
+        Visible = False
+        OnClick = FileMRU00Click
+      end
+      object FileMRU02: TMenuItem
+        Visible = False
+        OnClick = FileMRU00Click
+      end
+      object FileMRU03: TMenuItem
+        Visible = False
+        OnClick = FileMRU00Click
+      end
+      object FileMRU04: TMenuItem
+        Visible = False
+        OnClick = FileMRU00Click
+      end
+      object FileMRU05: TMenuItem
+        Visible = False
+        OnClick = FileMRU00Click
+      end
+      object FileMRU06: TMenuItem
+        Visible = False
+        OnClick = FileMRU00Click
+      end
+      object FileMRU07: TMenuItem
+        Visible = False
+        OnClick = FileMRU00Click
+      end
+      object FIleMRU08: TMenuItem
+        Visible = False
+        OnClick = FileMRU00Click
+      end
+      object FileMRU09: TMenuItem
+        Visible = False
+        OnClick = FileMRU00Click
+      end
       object miFileSep1: TMenuItem
         Caption = '-'
       end

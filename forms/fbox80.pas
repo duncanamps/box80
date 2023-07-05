@@ -26,7 +26,8 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  ExtCtrls, Menus, ActnList, Buttons, XMLPropStorage, uprocessor;
+  ExtCtrls, Menus, ActnList, Buttons, XMLPropStorage, uprocessor,
+  generics.collections, uglobals;
 
 const
 {$IFDEF LINUX}
@@ -41,6 +42,23 @@ const
 
 
 type
+
+  TMRUObject = class(TObject)
+    public
+      Filename: string;
+  end;
+
+  TMRU = class(specialize TObjectList<TMRUObject>)
+    private
+      menu_array: array[0..MAXIMUM_MRU-1] of TMenuItem;
+    public
+      constructor Create;
+      procedure AddMRU(const _filename: string);
+      function  IndexOf(const _s: string): integer; reintroduce;
+      procedure Load;
+      procedure Save;
+      procedure Sync;
+  end;
 
   { TfrmBox80 }
 
@@ -138,6 +156,17 @@ type
     labStatus: TLabel;
     MainMenu1: TMainMenu;
     MenuItem1: TMenuItem;
+    FileMRU06: TMenuItem;
+    FileMRU05: TMenuItem;
+    FileMRU04: TMenuItem;
+    FileMRU03: TMenuItem;
+    FileMRU02: TMenuItem;
+    FileMRU01: TMenuItem;
+    FileMRU00: TMenuItem;
+    FileMRU09: TMenuItem;
+    FIleMRU08: TMenuItem;
+    FileMRU07: TMenuItem;
+    miFileSepMRU: TMenuItem;
     miFileOpen: TMenuItem;
     MenuItem2: TMenuItem;
     MenuItem3: TMenuItem;
@@ -234,6 +263,7 @@ type
     procedure actFileSaveExecute(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
     procedure configRestoreProperties(Sender: TObject);
+    procedure FileMRU00Click(Sender: TObject);
     procedure FormActivate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -242,6 +272,7 @@ type
   private
     CancelRequested: boolean;
     FocusAllowed: boolean;
+    FMRU: TMRU;
     FProcessor: TProcessor;
     FTimerClicks: integer;
     FVMName: string;
@@ -274,7 +305,7 @@ implementation
 {$R *.lfm}
 
 uses
-  fterminal, fabout, lclintf, uglobals, uconfigdefs, uvirtual, FileCtrl;
+  fterminal, fabout, lclintf, uconfigdefs, uvirtual, FileCtrl;
 
 { TfrmBox80 }
 
@@ -285,11 +316,11 @@ end;
 
 procedure TfrmBox80.actFileSaveAsExecute(Sender: TObject);
 begin
-  dlgCreateVM.InitialDir := GetConfig(SECTION_MRUFOLDERS,CONFIG_FOLDER_VM,'');
+  dlgCreateVM.InitialDir := GetConfig(SECTION_FOLDERS,CONFIG_FOLDER_VM,'');
   if dlgCreateVM.Execute then
     begin
       VMName := dlgCreateVM.FileName;
-      PutConfig(SECTION_MRUFOLDERS,CONFIG_FOLDER_VM,dlgCreateVM.InitialDir);
+      PutConfig(SECTION_FOLDERS,CONFIG_FOLDER_VM,dlgCreateVM.InitialDir);
       actFileSaveExecute(Self);
     end;
 end;
@@ -297,7 +328,10 @@ end;
 procedure TfrmBox80.actFileSaveExecute(Sender: TObject);
 begin
   if VMName <> '' then
-    SaveVM(VMName,FProcessor,frmTerminal.Terminal);
+    begin
+      SaveVM(VMName,FProcessor,frmTerminal.Terminal);
+      FMRU.AddMRU(VMName);
+    end;
 end;
 
 procedure TfrmBox80.actDebugStopExecute(Sender: TObject);
@@ -358,11 +392,12 @@ end;
 
 procedure TfrmBox80.actFileOpenExecute(Sender: TObject);
 begin
-  dlgOpenVM.InitialDir := GetConfig(SECTION_MRUFOLDERS,CONFIG_FOLDER_VM,'');
+  dlgOpenVM.InitialDir := GetConfig(SECTION_FOLDERS,CONFIG_FOLDER_VM,'');
   if dlgOpenVM.Execute and (dlgOpenVM.FileName <> '') then
     begin
       VMName := dlgOpenVM.FileName;
       LoadVM(VMName,FProcessor,frmTerminal.Terminal);
+      FMRU.AddMRU(VMName);
       ShowRegisters;
     end;
 end;
@@ -473,6 +508,12 @@ begin
 
 end;
 
+procedure TfrmBox80.FileMRU00Click(Sender: TObject);
+begin
+
+end;
+
+
 procedure TfrmBox80.CreateCF(_cfsize: integer);
 const BUFSIZE = 32768;
 var cfext:     string;
@@ -492,11 +533,11 @@ begin
   cfext := 'cf' + mbtext;
   dlgCreateCF.DefaultExt := '.' + cfext;
   dlgCreateCF.Filter := 'Compact Flash image|*.' + cfext;
-  dlgCreateCF.InitialDir := GetConfig(SECTION_MRUFOLDERS,CONFIG_FOLDER_CF,'');
+  dlgCreateCF.InitialDir := GetConfig(SECTION_FOLDERS,CONFIG_FOLDER_CF,'');
   if dlgCreateCF.Execute then
     begin
       filename := dlgCreateCF.FileName;
-      PutConfig(SECTION_MRUFOLDERS,CONFIG_FOLDER_CF,dlgCreateCF.InitialDir);
+      PutConfig(SECTION_FOLDERS,CONFIG_FOLDER_CF,dlgCreateCF.InitialDir);
       strm := TFileStream.Create(filename,fmCreate);
       saved_cur := Screen.Cursor;
       Screen.Cursor := crHourglass;
@@ -542,10 +583,14 @@ begin
   Timer1.Enabled := True;
   ShowRegisters;
   ProcStateUpdate;
+  FMRU := TMRU.Create;
+  FMRU.Load;
 end;
 
 procedure TfrmBox80.FormDestroy(Sender: TObject);
 begin
+  FMRU.Save;
+  FreeAndNil(FMRU);
   Timer1.Enabled := False;
   FProcessor.Terminate;   // Will delete its own instance
   while not FProcessor.Finished do
@@ -811,6 +856,100 @@ end;
 procedure TfrmBox80.Status(const _fmt: string; const _args: array of const);
 begin
   Status(Format(_fmt,_args));
+end;
+
+
+
+//----------------------------------------------------------------------------
+//
+//  TMRU code
+//
+//----------------------------------------------------------------------------
+
+constructor TMRU.Create;
+begin
+  inherited Create;
+  // There's probably a better way of doing this...
+  menu_array[0] := frmBox80.FileMRU00;
+  menu_array[1] := frmBox80.FileMRU01;
+  menu_array[2] := frmBox80.FileMRU02;
+  menu_array[3] := frmBox80.FileMRU03;
+  menu_array[4] := frmBox80.FileMRU04;
+  menu_array[5] := frmBox80.FileMRU05;
+  menu_array[6] := frmBox80.FileMRU06;
+  menu_array[7] := frmBox80.FileMRU07;
+  menu_array[8] := frmBox80.FileMRU08;
+  menu_array[9] := frmBox80.FileMRU09;
+end;
+
+procedure TMRU.AddMRU(const _filename: string);
+var obj: TMRUObject;
+begin
+  // Check if filename already in list and delete it if so
+  if IndexOf(_filename) >= 0 then
+    Delete(IndexOf(_filename));
+  // Make a space if we need to
+  if Count >= MAXIMUM_MRU then
+    Delete(MAXIMUM_MRU-1); // Remove the end of the list
+  // Now create the new object and add it
+  obj := TMRUObject.Create;
+  obj.Filename := _filename;
+  Insert(0,obj);
+  Sync;
+end;
+
+function TMRU.IndexOf(const _s: string): integer;
+var i: integer;
+begin
+  i := 0;
+  while (i < Count) and (Items[i].Filename <> _s) do
+    Inc(i);
+  if i >= Count then
+    Result := -1
+  else
+    Result := i;
+end;
+
+procedure TMRU.Load;
+var i: integer;
+    fn: string;
+begin
+  for i := MAXIMUM_MRU-1 downto 0 do
+    begin
+      fn := frmBox80.GetConfig(SECTION_MRU,CONFIG_MRU_PREFIX+IntToStr(i),'');
+      if fn <> '' then
+        AddMRU(fn);
+    end;
+  Sync;
+end;
+
+procedure TMRU.Sync;
+var i: integer;
+    prefix: string;
+begin
+  frmBox80.miFileSepMRU.Visible := (Count > 0);
+  for i := 0 to MAXIMUM_MRU-1 do
+    if i < Count then
+      begin
+        if i < 10 then
+          prefix := '&' + IntToStr(i) + ' '
+        else
+          prefix := '';
+        menu_array[i].Caption := prefix + MinimizeName(Items[i].Filename,frmBox80.Canvas,frmBox80.Width div 3);
+        menu_array[i].Visible := True;
+      end
+    else
+      menu_array[i].Visible := False;
+end;
+
+procedure TMRU.Save;
+var i: integer;
+begin
+  for i := 0 to MAXIMUM_MRU-1 do
+    if i < Count then
+      frmBox80.PutConfig(SECTION_MRU,CONFIG_MRU_PREFIX+IntToStr(i),Items[i].Filename)
+    else
+      frmBox80.PutConfig(SECTION_MRU,CONFIG_MRU_PREFIX+IntToStr(i),'');
 end;
 
 end.

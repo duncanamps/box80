@@ -28,10 +28,12 @@ uses
   Classes, SysUtils;
 
 const
-  SECTION_MRUFOLDERS = 'Folders';
+  SECTION_FOLDERS = 'Folders';
+  SECTION_MRU     = 'MRU';
 
-  CONFIG_FOLDER_CF = 'ConfigFolderCF';
-  CONFIG_FOLDER_VM = 'ConfigFolderVM';
+  CONFIG_FOLDER_CF  = 'ConfigFolderCF';
+  CONFIG_FOLDER_VM  = 'ConfigFolderVM';
+  CONFIG_MRU_PREFIX = 'MRU';
 
 implementation
 
