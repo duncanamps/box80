@@ -35,6 +35,9 @@ type
 
   TSIO = class; // Preliminary designation
 
+  TSIOreadArray  = array[0..2] of byte;
+  TSIOwriteArray = array[0..7] of byte;
+
   TSIOchannel = class(TObject)
     private
       FDesignator: TSIOchanneldes;
@@ -43,8 +46,8 @@ type
       FOnTransmit: TSIOTransmitProc;
       FParent:     TSIO;
       FReceived:   byte;
-      FRegRead:    array[0..2] of byte;
-      FRegWrite:   array[0..7] of byte;
+      FRegRead:    TSIOreadArray;
+      FRegWrite:   TSIOwriteArray;
       function GetControl: byte;
       function GetData: byte;
       procedure SetControl(_b: byte);
@@ -60,6 +63,8 @@ type
       property Data: byte    read GetData    write SetData;
       property OnTransmit: TSIOTransmitProc  write FOnTransmit;
       property Received: byte read FReceived write SetReceived;
+      property RegRead: TSIOreadArray    read FRegRead;
+      property RegWrite: TSIOwriteArray  read FRegWrite;
   end;
 
   TSIO = class(TObject)

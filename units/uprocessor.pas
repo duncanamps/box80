@@ -117,43 +117,6 @@ type
       run_start_time:         TDateTime;
       run_start_cycles:       int64;
       run_start_instructions: int64;
-      // Pointers 16 bit dest
-      pregAF:  PWord;
-      pregBC:  PWord;
-      pregDE:  PWord;
-      pregHL:  PWord;
-      pregAF_: PWord;
-      pregBC_: PWord;
-      pregDE_: PWord;
-      pregHL_: PWord;
-      pregIR:  PWord;
-      pregIX:  PWord;
-      pregIY:  PWord;
-      pregSP:  PWord;
-      pregPC:  PWord;
-      pregIXY: PWord; // Will point to IX or IY depending on prefix
-      // Pointers 8 bit dest
-      pregA:   PByte;
-      pregB:   PByte;
-      pregC:   PByte;
-      pregD:   PByte;
-      pregE:   PByte;
-      pregH:   PByte;
-      pregL:   PByte;
-      pregF:   PByte;
-      pregI:   PByte;
-      pregR:   PByte;
-      pregIXH: PByte;
-      pregIXL: PByte;
-      pregIYH: PByte;
-      pregIYL: PByte;
-      pregSPH: PByte;
-      pregSPL: PByte;
-      pregPCH: PByte;
-      pregPCL: PByte;
-      pregIntE: PByte;
-      pregIntM: PByte;
-      SIO:      TSIO;
       FOnTransmitA: TSIOtransmitProc;
       FOnStateChange: TStateChangeProc;
       FErrorString: string;
@@ -546,7 +509,44 @@ type
     protected
       procedure Execute; override;
     public
+      // Pointers 16 bit dest
+      pregAF:  PWord;
+      pregBC:  PWord;
+      pregDE:  PWord;
+      pregHL:  PWord;
+      pregAF_: PWord;
+      pregBC_: PWord;
+      pregDE_: PWord;
+      pregHL_: PWord;
+      pregIR:  PWord;
+      pregIX:  PWord;
+      pregIY:  PWord;
+      pregSP:  PWord;
+      pregPC:  PWord;
+      pregIXY: PWord; // Will point to IX or IY depending on prefix
+      // Pointers 8 bit dest
+      pregA:   PByte;
+      pregB:   PByte;
+      pregC:   PByte;
+      pregD:   PByte;
+      pregE:   PByte;
+      pregH:   PByte;
+      pregL:   PByte;
+      pregF:   PByte;
+      pregI:   PByte;
+      pregR:   PByte;
+      pregIXH: PByte;
+      pregIXL: PByte;
+      pregIYH: PByte;
+      pregIYL: PByte;
+      pregSPH: PByte;
+      pregSPL: PByte;
+      pregPCH: PByte;
+      pregPCL: PByte;
+      pregIntE: PByte;
+      pregIntM: PByte;
       SavedPC: Word;
+      SIO:      TSIO;
       constructor Create;
       destructor Destroy; override;
       procedure BreakpointsClearAll;

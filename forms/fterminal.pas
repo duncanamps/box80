@@ -45,6 +45,7 @@ type
     procedure Init;
     procedure WriteChar(_ch: char);
     property Processor: TProcessor write FProcessor;
+    property Terminal: TTerminal read FTerminal;
   end;
 
 var
