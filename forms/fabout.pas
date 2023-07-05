@@ -37,8 +37,6 @@ type
     Label1: TLabel;
     Label2: TLabel;
     Label3: TLabel;
-    procedure Image1Click(Sender: TObject);
-    procedure Label2Click(Sender: TObject);
   private
 
   public
@@ -53,16 +51,6 @@ implementation
 {$R *.lfm}
 
 { TfrmHelpAbout }
-
-procedure TfrmHelpAbout.Image1Click(Sender: TObject);
-begin
-
-end;
-
-procedure TfrmHelpAbout.Label2Click(Sender: TObject);
-begin
-
-end;
 
 end.
 

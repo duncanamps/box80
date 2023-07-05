@@ -3,6 +3,7 @@
 *.bin
 *.com
 *.dbg
+*.docx
 *.hex
 *.ini
 *.log
@@ -14,6 +15,7 @@
 *.tx2
 *.tx3
 *.txt
+*.xcf
 backup/
 binaries/debug/
 binaries/debugprofile/
@@ -23,5 +25,3 @@ imported/
 lib/
 test_files/
 test_prog/
-*.xcf
-*.docx

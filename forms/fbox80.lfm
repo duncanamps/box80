@@ -3,7 +3,7 @@ object frmBox80: TfrmBox80
   Height = 759
   Top = 188
   Width = 1048
-  Caption = 'BOX80 - Z80 Virtual Machine'
+  Caption = 'box80 - Z80 Virtual Machine'
   ClientHeight = 734
   ClientWidth = 1048
   DesignTimePPI = 120
