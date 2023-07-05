@@ -23,3 +23,5 @@ imported/
 lib/
 test_files/
 test_prog/
+*.xcf
+*.docx
