@@ -30,7 +30,8 @@ uses
 const
   SECTION_MRUFOLDERS = 'Folders';
 
-  CONFIG_FOLDER_CREATE_CF = 'ConfigFolderCreateCF';
+  CONFIG_FOLDER_CF = 'ConfigFolderCF';
+  CONFIG_FOLDER_VM = 'ConfigFolderVM';
 
 implementation
 
