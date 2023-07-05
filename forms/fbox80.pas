@@ -55,6 +55,9 @@ type
     actHelpWebsite: TAction;
     actHelpUserManual: TAction;
     actHelpLicence: TAction;
+    actVMCPU5000: TAction;
+    actVMCPU3333: TAction;
+    actVMCPU2000: TAction;
     actVMCPUmax: TAction;
     actVMCPU1000: TAction;
     actVMCPU00: TAction;
@@ -129,12 +132,15 @@ type
     labF_7: TLabel;
     labStatus: TLabel;
     MainMenu1: TMainMenu;
+    MenuItem1: TMenuItem;
+    MenuItem2: TMenuItem;
+    MenuItem3: TMenuItem;
+    miVMCPUSep1: TMenuItem;
     miHelpLicence: TMenuItem;
     miHelpUserManual: TMenuItem;
     miHelpWebsite: TMenuItem;
     miHelpAbout: TMenuItem;
     miVMCPUmax: TMenuItem;
-    miVMCPUsep1: TMenuItem;
     miHelpSep1: TMenuItem;
     miHelp: TMenuItem;
     miVMCPU1000: TMenuItem;
@@ -183,10 +189,13 @@ type
     procedure actVMCPU1000Execute(Sender: TObject);
     procedure actVMCPU100Execute(Sender: TObject);
     procedure actVMCPU184Execute(Sender: TObject);
+    procedure actVMCPU2000Execute(Sender: TObject);
     procedure actVMCPU200Execute(Sender: TObject);
     procedure actVMCPU25Execute(Sender: TObject);
+    procedure actVMCPU3333Execute(Sender: TObject);
     procedure actVMCPU333Execute(Sender: TObject);
     procedure actVMCPU40Execute(Sender: TObject);
+    procedure actVMCPU5000Execute(Sender: TObject);
     procedure actVMCPU500Execute(Sender: TObject);
     procedure actVMCPU60Execute(Sender: TObject);
     procedure actVMCPU73Execute(Sender: TObject);
@@ -232,7 +241,7 @@ implementation
 {$R *.lfm}
 
 uses
-  fterminal, fabout, lclintf;
+  fterminal, fabout, lclintf, uglobals;
 
 { TfrmBox80 }
 
@@ -267,6 +276,11 @@ begin
   FProcessor.CPUspeed := 4000000;
 end;
 
+procedure TfrmBox80.actVMCPU5000Execute(Sender: TObject);
+begin
+  FProcessor.CPUspeed := 500000000;
+end;
+
 procedure TfrmBox80.actVMCPU500Execute(Sender: TObject);
 begin
   FProcessor.CPUspeed := 50000000;
@@ -289,7 +303,7 @@ end;
 
 procedure TfrmBox80.actVMCPUmaxExecute(Sender: TObject);
 begin
-  FProcessor.CPUspeed := 9999999999;
+  FProcessor.CPUspeed := MAXIMUM_CPU_SPEED;
 end;
 
 procedure TfrmBox80.actVMResetExecute(Sender: TObject);
@@ -316,6 +330,11 @@ end;
 procedure TfrmBox80.actVMCPU25Execute(Sender: TObject);
 begin
   FProcessor.CPUspeed := 2500000;
+end;
+
+procedure TfrmBox80.actVMCPU3333Execute(Sender: TObject);
+begin
+  FProcessor.CPUspeed := 333333333;
 end;
 
 procedure TfrmBox80.actVMCPU333Execute(Sender: TObject);
@@ -356,6 +375,11 @@ end;
 procedure TfrmBox80.actVMCPU184Execute(Sender: TObject);
 begin
   FProcessor.CPUspeed := 18432000;
+end;
+
+procedure TfrmBox80.actVMCPU2000Execute(Sender: TObject);
+begin
+  FProcessor.CPUspeed := 200000000;
 end;
 
 procedure TfrmBox80.actVMCPU200Execute(Sender: TObject);
@@ -621,7 +645,10 @@ begin
   edtAtPC.Text := s;
   // Update T and uS
   edtT.Text := Format('%12.0n',[double(FProcessor.TStates)]);
-  edtuS.Text := Format('%12.2n',[FProcessor.TStates / FProcessor.CpuSpeed * 1000000.0]);
+  if FProcessor.CPUspeed = MAXIMUM_CPU_SPEED then
+    edtuS.Text := 'Invalid'
+  else
+    edtuS.Text := Format('%12.2n',[FProcessor.TStates / FProcessor.CpuSpeed * 1000000.0]);
   labMHz.Caption := Format('%7.3f',[FProcessor.PerfMHz]);
   labMIPS.Caption := Format('%7.3f',[FProcessor.PerfMIPS]);
   // Update the "last" variables

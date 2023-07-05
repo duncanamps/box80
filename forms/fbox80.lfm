@@ -881,10 +881,22 @@ object frmBox80: TfrmBox80
         object miVMCPU1000: TMenuItem
           Action = actVMCPU1000
         end
-        object miVMCPUsep1: TMenuItem
+        object miVMCPUmax: TMenuItem
+          Action = actVMCPU2000
+          AutoCheck = True
+        end
+        object MenuItem1: TMenuItem
+          Action = actVMCPU3333
+          AutoCheck = True
+        end
+        object MenuItem2: TMenuItem
+          Action = actVMCPU5000
+          AutoCheck = True
+        end
+        object miVMCPUSep1: TMenuItem
           Caption = '-'
         end
-        object miVMCPUmax: TMenuItem
+        object MenuItem3: TMenuItem
           Action = actVMCPUmax
           AutoCheck = True
         end
@@ -989,6 +1001,7 @@ object frmBox80: TfrmBox80
       GroupIndex = 1
       Hint = 'Set speed to 4.0 MHz'
       OnExecute = actVMCPU40Execute
+      ShortCut = 16436
     end
     object actVMCPU25: TAction
       Category = 'VM'
@@ -1106,6 +1119,30 @@ object frmBox80: TfrmBox80
       Caption = 'Licence'
       Hint = 'Display the licence for this software'
       OnExecute = actHelpLicenceExecute
+    end
+    object actVMCPU2000: TAction
+      Category = 'VM'
+      AutoCheck = True
+      Caption = '200.0 MHz'
+      GroupIndex = 1
+      Hint = 'Set CPU speed to 200.0 MHz'
+      OnExecute = actVMCPU2000Execute
+    end
+    object actVMCPU3333: TAction
+      Category = 'VM'
+      AutoCheck = True
+      Caption = '333.3 MHz'
+      GroupIndex = 1
+      Hint = 'Set CPU speed to 333.3 MHz'
+      OnExecute = actVMCPU3333Execute
+    end
+    object actVMCPU5000: TAction
+      Category = 'VM'
+      AutoCheck = True
+      Caption = '500.0 MHz'
+      GroupIndex = 1
+      Hint = 'Set CPU speed to 500.0 MHz'
+      OnExecute = actVMCPU5000Execute
     end
   end
 end
