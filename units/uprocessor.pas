@@ -25,8 +25,7 @@ unit uprocessor;
 interface
 
 uses
-  Classes, SysUtils, usio;
-
+  Classes, SysUtils, usio, DOM, XMLWrite, XMLRead;
 
 const
   FLAG_NEGATIVE  = $80;
@@ -560,6 +559,8 @@ type
       procedure ExecuteStop;              // Stop processor if it's running
       procedure Init;                     // Initialise COLD
       procedure ReadFromStream(_strm: TStream; _start, _length: integer);
+      procedure ReadFromXml(doc: TXMLDocument);
+      procedure WriteToXml(doc: TXMLDocument);
       property AllowUndocumented: boolean read FAllowUndocumented write FAllowUndocumented;
       property CPUspeed: int64 read cpu_speed write SetCPUspeed;
       property ErrorFlag: TErrorFlags read error_flag;
@@ -586,6 +587,10 @@ var
 
 
 implementation
+
+uses
+  uglobals, uxml;
+
 
 constructor TProcessor.Create;
 begin
@@ -2613,6 +2618,50 @@ begin
   _strm.Read(ramarray[_start],_length);
 end;
 
+procedure TProcessor.ReadFromXml(doc: TXMLdocument);
+var node: TDOMnode;
+    i,j:  integer;
+    p:    PByte;
+    s:    string;
+begin
+  // Read the registers
+  node := doc.DocumentElement.FindNode('registers');
+  GetXmlWordP(node,'reg__af',pregAF,0);
+  GetXmlWordP(node,'reg__bc',pregBC,0);
+  GetXmlWordP(node,'reg__de',pregDE,0);
+  GetXmlWordP(node,'reg__hl',pregHL,0);
+  GetXmlWordP(node,'reg_xaf',pregAF_,0);
+  GetXmlWordP(node,'reg_xbc',pregBC_,0);
+  GetXmlWordP(node,'reg_xde',pregDE_,0);
+  GetXmlWordP(node,'reg_xhl',pregHL_,0);
+  GetXmlWordP(node,'reg__ir',pregIR,0);
+  GetXmlWordP(node,'reg__ix',pregIX,0);
+  GetXmlWordP(node,'reg__iy',pregIY,0);
+  GetXmlWordP(node,'reg__sp',pregSP,0);
+  GetXmlWordP(node,'reg__pc',pregPC,0);
+  GetXmlByteP(node,'int_enabled',pregIntE,0);
+  GetXmlByteP(node,'int_mode',pregIntM,0);
+  // Read the memory
+  node := doc.DocumentElement.FindNode('memory');
+  i := 0;
+  p := @RAM[0];
+  while i < 65536 do
+    begin
+      s := GetXmlText(node,'memory_' + IntToHex(i,4));
+      if Length(s) <> BYTES_PER_LINE * 2 then
+        raise Exception.Create('VM file memory corrupted');
+      for j := 0 to BYTES_PER_LINE-1 do
+        begin
+          p^ := StrToInt('$' + Copy(s,1+j*2,2));
+          Inc(p);
+          Inc(i);
+        end;
+    end;
+  // Load the SIO sections
+  SIO.ChannelA.ReadFromXml(doc,'a');
+  SIO.ChannelB.ReadFromXml(doc,'b');
+end;
+
 procedure TProcessor.SetCPUspeed(_speed: int64);
 begin
   cpu_speed := _speed;
@@ -2661,6 +2710,10 @@ begin
   FProcessorState := _ps;
 end;
 
+procedure TProcessor.WriteToXml(doc: TXMLDocument);
+begin
+ // @@@@@
+end;
 
 //=============================================================================
 //

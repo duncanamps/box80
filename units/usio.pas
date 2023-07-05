@@ -25,7 +25,7 @@ unit usio;
 interface
 
 uses
-  Classes, SysUtils;
+  Classes, SysUtils, uxml, DOM, XMLWrite, XMLRead;
 
 type
   TSIOInterruptProc = procedure(_b: byte) of object;
@@ -59,6 +59,7 @@ type
       procedure Init;
     public
       constructor Create(_parent: TSIO; _designator: TSIOchanneldes);
+      procedure ReadFromXml(doc: TXMLDocument; const _prefix: string);
       property Control: byte read GetControl write SetControl;
       property Data: byte    read GetData    write SetData;
       property OnTransmit: TSIOTransmitProc  write FOnTransmit;
@@ -123,6 +124,17 @@ begin
   for i := 0 to 2 do
     FRegRead[i] := 0;
   SetTXempty;
+end;
+
+procedure TSIOchannel.ReadFromXml(doc: TXMLDocument; const _prefix: string);
+var r: integer;
+    node: TDOMnode;
+begin
+  node := doc.DocumentElement.FindNode('sio' + _prefix{%H-});
+  for r := 0 to 2 do
+    GetXmlByteP(node,'read' + IntToStr(r),@RegRead[r]);
+  for r := 0 to 7 do
+    GetXmlByteP(node,'write' + IntToStr(r),@RegWrite[r]);
 end;
 
 procedure TSIOchannel.SetControl(_b: byte);
