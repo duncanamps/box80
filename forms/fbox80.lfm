@@ -825,6 +825,18 @@ object frmBox80: TfrmBox80
     Top = 194
     object miFile: TMenuItem
       Caption = '&File'
+      object miFileOpen: TMenuItem
+        Action = actFileOpen
+      end
+      object miFileSave: TMenuItem
+        Action = actFileSave
+      end
+      object miFileSaveAs: TMenuItem
+        Action = actFileSaveAs
+      end
+      object miFileSep2: TMenuItem
+        Caption = '-'
+      end
       object miFileCF: TMenuItem
         Caption = 'Compact Flash'
         object MenuItem4: TMenuItem
@@ -840,24 +852,59 @@ object frmBox80: TfrmBox80
           end
         end
       end
+      object miFileSepMRU: TMenuItem
+        Caption = '-'
+        Visible = False
+      end
+      object FileMRU00: TMenuItem
+        Visible = False
+        OnClick = FileMRU00Click
+      end
+      object FileMRU01: TMenuItem
+        Visible = False
+        OnClick = FileMRU00Click
+      end
+      object FileMRU02: TMenuItem
+        Visible = False
+        OnClick = FileMRU00Click
+      end
+      object FileMRU03: TMenuItem
+        Visible = False
+        OnClick = FileMRU00Click
+      end
+      object FileMRU04: TMenuItem
+        Visible = False
+        OnClick = FileMRU00Click
+      end
+      object FileMRU05: TMenuItem
+        Visible = False
+        OnClick = FileMRU00Click
+      end
+      object FileMRU06: TMenuItem
+        Visible = False
+        OnClick = FileMRU00Click
+      end
+      object FileMRU07: TMenuItem
+        Visible = False
+        OnClick = FileMRU00Click
+      end
+      object FIleMRU08: TMenuItem
+        Visible = False
+        OnClick = FileMRU00Click
+      end
+      object FileMRU09: TMenuItem
+        Visible = False
+        OnClick = FileMRU00Click
+      end
+      object miFileSep1: TMenuItem
+        Caption = '-'
+      end
       object miFileExit: TMenuItem
         Action = actFileExit
       end
     end
     object miVM: TMenuItem
       Caption = '&VM'
-      object miVMLoad: TMenuItem
-        Action = actVMOpen
-      end
-      object miVMSave: TMenuItem
-        Action = actVMSave
-      end
-      object miVMSaveAs: TMenuItem
-        Action = actVMSaveAs
-      end
-      object miVMsep2: TMenuItem
-        Caption = '-'
-      end
       object miVMCPU: TMenuItem
         Caption = 'CPU speed'
         object miVMCPU00: TMenuItem
@@ -1131,6 +1178,7 @@ object frmBox80: TfrmBox80
       Category = 'Help'
       Caption = 'User &manual'
       Hint = 'Display the user manual'
+      OnExecute = actHelpUserManualExecute
     end
     object actVMCPUmax: TAction
       Category = 'VM'
@@ -1187,24 +1235,24 @@ object frmBox80: TfrmBox80
       Hint = 'Create an empty 128MB virtual CF'
       OnExecute = actFileCFcreate128Execute
     end
-    object actVMOpen: TAction
-      Category = 'VM'
+    object actFileOpen: TAction
+      Category = 'File'
       Caption = 'Open ...'
       Hint = 'Open a previously saved virtual machine'
-      OnExecute = actVMOpenExecute
+      OnExecute = actFileOpenExecute
     end
-    object actVMSave: TAction
-      Category = 'VM'
+    object actFileSave: TAction
+      Category = 'File'
       Caption = 'Save'
       Hint = 'Save the virtual machine'
-      OnExecute = actVMSaveExecute
+      OnExecute = actFileSaveExecute
       ShortCut = 116
     end
-    object actVMSaveAs: TAction
-      Category = 'VM'
+    object actFileSaveAs: TAction
+      Category = 'File'
       Caption = 'Save As ...'
       Hint = 'Save the virtual machine under a specific name'
-      OnExecute = actVMSaveAsExecute
+      OnExecute = actFileSaveAsExecute
       ShortCut = 8308
     end
   end
