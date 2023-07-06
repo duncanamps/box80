@@ -26,7 +26,7 @@ interface
 
 uses
   Classes, SysUtils, ExtCtrls, Controls,
-  graphics, DOM, XMLWrite, XMLRead;
+  graphics, DOM;
 
 const
   MAX_TERMINAL_COLS = 132;
@@ -71,6 +71,7 @@ type
       procedure ReadFromXml(doc: TXmlDocument);
       procedure WriteChar(_ch: char);
       procedure WriteString(_s: string);
+      procedure WriteToXml(doc: TXmlDocument);
       property  CursorCol: integer   read FCursorCol  write FCursorCol;
       property  CursorRow: integer   read FCursorRow  write FCursorRow;
       property  CursorLit:   boolean read FCursorLit   write FCursorLit;
@@ -301,6 +302,34 @@ begin
     WriteChar(_s[i]);
 end;
 
+procedure TTerminal.WriteToXml(doc: TXmlDocument);
+var node: TDOMnode;
+    node_line: TDOMnode;
+    node_text: TDOMnode;
+    p:    PByte;
+    i,j:  integer;
+    s:    string;
+begin
+  node := doc.CreateElement('terminal');
+  PutXmlByte(node,'cursor_col',CursorCol);
+  PutXmlByte(node,'cursor_row',CursorRow);
+  p := @Screen[0];
+  for i := 0 to 24 do
+    begin
+      s := '';
+      node_line := doc.CreateElement('terminal_' + IntToHex(i,2){%H-});
+      s := GetXmlText(node,'terminal_' + IntToHex(i,2));
+      for j := 0 to 79 do
+        begin
+          s := s + IntToHex(p^,2);
+          Inc(p);
+        end;
+      node_text := doc.CreateTextNode(s{%H-});
+      node_line.AppendChild(node_text);
+      node.AppendChild(node_line);
+    end;
+  doc.ChildNodes[0].AppendChild(node);
+end;
 
 end.
 

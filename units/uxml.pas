@@ -34,6 +34,9 @@ procedure GetXmlByteP(_parent: TDOMnode; const _label: string; _pb: PByte; const
 function  GetXmlText(_parent: TDOMnode; const _label: string; const _default: string = ''): string;
 function  GetXmlWord(_parent: TDOMnode; const _label: string; _default: Word = 0): Word;
 procedure GetXmlWordP(_parent: TDOMnode; const _label: string; _pw: PWord; _default: Word = 0);
+procedure PutXmlByte(_parent: TDOMnode; const _label: string; _b: Byte);
+procedure PutXmlString(_parent: TDOMnode; const _label: string; const _s: string);
+procedure PutXmlWord(_parent: TDOMnode; const _label: string; _w: Word);
 
 
 implementation
@@ -87,6 +90,36 @@ var w: Word;
 begin
   w := GetXmlWord(_parent,_label,_default);
   _pw^ := w;
+end;
+
+procedure PutXmlByte(_parent: TDOMnode; const _label: string; _b: Byte);
+var node_title: TDOMnode;
+    node_text:  TDOMnode;
+begin
+  node_title := _parent.OwnerDocument.CreateElement(_label);
+  node_text  := _parent.OwnerDocument.CreateTextNode(IntToHex(_b,2));
+  node_title.AppendChild(node_text);
+  _parent.AppendChild(node_title);
+end;
+
+procedure PutXmlString(_parent: TDOMnode; const _label: string; const _s: string);
+var node_title: TDOMnode;
+    node_text:  TDOMnode;
+begin
+  node_title := _parent.OwnerDocument.CreateElement(_label);
+  node_text  := _parent.OwnerDocument.CreateTextNode(_s);
+  node_title.AppendChild(node_text);
+  _parent.AppendChild(node_title);
+end;
+
+procedure PutXmlWord(_parent: TDOMnode; const _label: string; _w: Word);
+var node_title: TDOMnode;
+    node_text:  TDOMnode;
+begin
+  node_title := _parent.OwnerDocument.CreateElement(_label);
+  node_text  := _parent.OwnerDocument.CreateTextNode(IntToHex(_w,4));
+  node_title.AppendChild(node_text);
+  _parent.AppendChild(node_title);
 end;
 
 end.

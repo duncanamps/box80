@@ -33,16 +33,11 @@ procedure SaveVM(const _filename: string; _proc: TProcessor; _terminal: TTermina
 implementation
 
 uses
-  DOM, XMLWrite, XMLRead, usio, uxml, uglobals;
+  DOM, XMLWrite, XMLRead, uxml;
 
 function LoadVM(const _filename: string; _proc: TProcessor; _terminal: TTerminal): boolean;
-type PWord = ^word;
-     PByte = ^byte;
 var doc: TXMLDocument;
-    {%H-}rootnode, l1, l2: TDOMNode;
-    s: string;
-    i,j: integer;
-    p: PByte;
+    l1: TDOMnode;
     was_running: boolean;
 begin
   // Make sure we stop the processor first
@@ -73,34 +68,7 @@ end;
 procedure SaveVM(const _filename: string; _proc: TProcessor; _terminal: TTerminal);
 var doc: TXMLDocument;
     rootnode, l1, l2, l3: TDOMNode;
-    i,j: integer;
-    s: string;
     was_running: boolean;
-
-  procedure PumpL3(const _text, _value: string);
-  begin
-    l2 := doc.CreateElement(_text);
-    l3 := doc.CreateTextNode(_value);
-    l2.AppendChild(l3);
-    l1.AppendChild(l2);
-  end;
-
-  procedure PumpL3hex(const _text: string; _word: Word; _digits: integer = 4);
-  begin
-    PumpL3(_text,IntToHex(_word,_digits));
-  end;
-
-  procedure SaveSIOchannel(const _id: string; _chan: TSIOchannel);
-  var r: integer;
-  begin
-    l1 := doc.CreateElement('sio' + _id);
-    for r := 0 to 2 do
-      PumpL3hex('read' + IntToStr(r), _chan.RegRead[r], 2);
-    for r := 0 to 7 do
-      PumpL3hex('write' + IntToStr(r), _chan.RegWrite[r], 2);
-    rootnode.AppendChild(l1);
-  end;
-
 begin
   was_running := (_proc.ProcessorState = psRunning);
   if was_running then
@@ -117,65 +85,14 @@ begin
     // Create the environment section
     l1 := doc.CreateElement('environment');
     l2 := doc.CreateElement('was_running');
-    l3 := doc.CreateTextNode(BoolToStr(was_running));
+    l3 := doc.CreateTextNode(BoolToStr(was_running){%H-});
     l2.AppendChild(l3);
     l1.AppendChild(l2);
     rootnode.AppendChild(l1);
     // Create the register section
-    l1 := doc.CreateElement('registers');
-    PumpL3hex('reg__af',_proc.RegisterSet.registers[regAF]);
-    PumpL3hex('reg__bc',_proc.RegisterSet.registers[regBC]);
-    PumpL3hex('reg__de',_proc.RegisterSet.registers[regDE]);
-    PumpL3hex('reg__hl',_proc.RegisterSet.registers[regHL]);
-    PumpL3hex('reg_xaf',_proc.RegisterSet.registers[regAF_]);
-    PumpL3hex('reg_xbc',_proc.RegisterSet.registers[regBC_]);
-    PumpL3hex('reg_xde',_proc.RegisterSet.registers[regDE_]);
-    PumpL3hex('reg_xhl',_proc.RegisterSet.registers[regHL_]);
-    PumpL3hex('reg__ir',_proc.RegisterSet.registers[regIR]);
-    PumpL3hex('reg__ix',_proc.RegisterSet.registers[regIX]);
-    PumpL3hex('reg__iy',_proc.RegisterSet.registers[regIY]);
-    PumpL3hex('reg__sp',_proc.RegisterSet.registers[regSP]);
-    PumpL3hex('reg__pc',_proc.RegisterSet.registers[regPC]);
-    PumpL3hex('int_enabled',_proc.RegisterSet.int_enabled,2);
-    PumpL3hex('int_mode',_proc.RegisterSet.int_mode,2);
-    rootnode.AppendChild(l1);
-    // Create the memory section
-    l1 := doc.CreateElement('memory');
-    i := 0;
-    while (i < 65536) do
-      begin
-        l2 := doc.CreateElement(Format('memory_%4.4X',[i]));
-        s := '';
-        for j := 0 to BYTES_PER_LINE-1 do
-          begin
-            s := s + IntToHex(_proc.RAM[i]);
-            Inc(i);
-          end;
-        l3 := doc.CreateTextNode(s);
-        l2.AppendChild(l3);
-        l1.AppendChild(l2);
-      end;
-    rootnode.AppendChild(l1);
-    // Save the SIO sections
-    SaveSIOchannel('a',_proc.SIO.ChannelA);
-    SaveSIOchannel('b',_proc.SIO.ChannelB);
+    _proc.WriteToXml(doc);
     // Create the terminal section
-    l1 := doc.CreateElement('terminal');
-    PumpL3hex('cursor_col',_terminal.CursorCol);
-    PumpL3hex('cursor_row',_terminal.CursorRow);
-    for i := 0 to 24 do
-      begin
-        l2 := doc.CreateElement(Format('terminal_%2.2X',[i]));
-        s := '';
-        for j := 0 to 79 do
-          begin
-            s := s + IntToHex(_terminal.Screen[j + i*80]);
-          end;
-        l3 := doc.CreateTextNode(s);
-        l2.AppendChild(l3);
-        l1.AppendChild(l2);
-      end;
-    rootnode.AppendChild(l1);
+    _terminal.WriteToXml(doc);
     // Finally save the file
     writeXMLFile(doc,_filename);
   finally

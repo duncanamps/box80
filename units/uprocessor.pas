@@ -25,7 +25,7 @@ unit uprocessor;
 interface
 
 uses
-  Classes, SysUtils, usio, DOM, XMLWrite, XMLRead;
+  Classes, SysUtils, usio, DOM;
 
 const
   FLAG_NEGATIVE  = $80;
@@ -2710,10 +2710,57 @@ begin
   FProcessorState := _ps;
 end;
 
-procedure TProcessor.WriteToXml(doc: TXMLDocument);
+
+procedure TProcessor.WriteToXml(doc: TXMLdocument);
+var node: TDOMnode;
+    node_line: TDOMnode;
+    node_text: TDOMnode;
+    i,j:  integer;
+    p:    PByte;
+    s:    string;
 begin
- // @@@@@
+  // Write the registers
+  node := doc.CreateElement('registers');
+  PutXmlWord(node,'reg__af',pregAF^);
+  PutXmlWord(node,'reg__bc',pregBC^);
+  PutXmlWord(node,'reg__de',pregDE^);
+  PutXmlWord(node,'reg__hl',pregHL^);
+  PutXmlWord(node,'reg_xaf',pregAF_^);
+  PutXmlWord(node,'reg_xbc',pregBC_^);
+  PutXmlWord(node,'reg_xde',pregDE_^);
+  PutXmlWord(node,'reg_xhl',pregHL_^);
+  PutXmlWord(node,'reg__ir',pregIR^);
+  PutXmlWord(node,'reg__ix',pregIX^);
+  PutXmlWord(node,'reg__iy',pregIY^);
+  PutXmlWord(node,'reg__sp',pregSP^);
+  PutXmlWord(node,'reg__pc',pregPC^);
+  PutXmlByte(node,'int_enabled',pregIntE^);
+  PutXmlByte(node,'int_mode',pregIntM^);
+  doc.ChildNodes[0].AppendChild(node);
+  // Write the memory
+  node := doc.CreateElement('memory');
+  i := 0;
+  p := @RAM[0];
+  while i < 65536 do
+    begin
+      s := '';
+      node_line := doc.CreateElement(Format('memory_%4.4X',[i]){%H-});
+      for j := 0 to BYTES_PER_LINE-1 do
+        begin
+          s := s + IntToHex(p^,2);
+          Inc(p);
+          Inc(i);
+        end;
+      node_text := doc.CreateTextNode(s{%H-});
+      node_line.AppendChild(node_text);
+      node.AppendChild(node_line);
+    end;
+  doc.ChildNodes[0].AppendChild(node);
+  // Load the SIO sections
+  SIO.ChannelA.WriteToXml(doc,'a');
+  SIO.ChannelB.WriteToXml(doc,'b');
 end;
+
 
 //=============================================================================
 //
@@ -2960,7 +3007,6 @@ procedure TProcessor.ExecDdFdCbRESIQpdind; inline;
 var _p:  Pbyte;
     _mask: byte;
     _bit: byte;
-    flags: byte;
 begin
   _bit:= (opcode shr 3) and $07;
   _p := @ramarray[FetchIQPDindex];
@@ -2974,7 +3020,6 @@ procedure TProcessor.ExecDdFdCbSETIQpdind; inline;
 var _p:  Pbyte;
     _mask: byte;
     _bit: byte;
-    flags: byte;
 begin
   _bit:= (opcode shr 3) and $07;
   _p := @ramarray[FetchIQPDindex];
