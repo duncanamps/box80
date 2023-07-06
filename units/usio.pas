@@ -60,6 +60,7 @@ type
     public
       constructor Create(_parent: TSIO; _designator: TSIOchanneldes);
       procedure ReadFromXml(doc: TXMLDocument; const _prefix: string);
+      procedure WriteToXml(doc: TXMLDocument; const _prefix: string);
       property Control: byte read GetControl write SetControl;
       property Data: byte    read GetData    write SetData;
       property OnTransmit: TSIOTransmitProc  write FOnTransmit;
@@ -173,6 +174,18 @@ end;
 procedure TSIOchannel.SetTXfull;
 begin
   FRegRead[0] := FRegRead[0] and $FD; // Clear bit 2
+end;
+
+procedure TSIOchannel.WriteToXml(doc: TXMLDocument; const _prefix: string);
+var r: integer;
+    node: TDOMnode;
+begin
+  node := doc.CreateElement('sio' + _prefix{%H-});
+  for r := 0 to 2 do
+    PutXmlByte(node,'read' + IntToStr(r),RegRead[r]);
+  for r := 0 to 7 do
+    PutXmlByte(node,'write' + IntToStr(r),RegWrite[r]);
+  doc.ChildNodes[0].AppendChild(node)
 end;
 
 //-----------------------------------------------------------------------------
