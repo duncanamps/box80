@@ -42,17 +42,14 @@ var doc: TXMLDocument;
 begin
   // Make sure we stop the processor first
   if _proc.ProcessorState = psRunning then
-    begin
-      _proc.ExecuteStop;
-      while not _proc.Idle do
-        Sleep(5);
-    end;
+    _proc.WaitForStop;
   _proc.Init;
   try
     ReadXMLfile(doc, _filename);
     // Read the environment
     l1 := doc.DocumentElement.FindNode('environment');
     was_running := GetXmlBoolean(l1,'was_running',False);
+    _proc.CFlash.Filename := GetXmlString(l1,'attached_cf');
     // Read the processor
     _proc.ReadFromXml(doc);
     // Read the terminal
@@ -67,7 +64,7 @@ end;
 
 procedure SaveVM(const _filename: string; _proc: TProcessor; _terminal: TTerminal);
 var doc: TXMLDocument;
-    rootnode, l1, l2, l3: TDOMNode;
+    rootnode, l1: TDOMNode;
     was_running: boolean;
 begin
   was_running := (_proc.ProcessorState = psRunning);
@@ -84,10 +81,8 @@ begin
     rootnode := doc.DocumentElement;
     // Create the environment section
     l1 := doc.CreateElement('environment');
-    l2 := doc.CreateElement('was_running');
-    l3 := doc.CreateTextNode(BoolToStr(was_running){%H-});
-    l2.AppendChild(l3);
-    l1.AppendChild(l2);
+    PutXMLString(l1,'was_running',BoolToStr(was_running));
+    PutXMLString(l1,'attached_cf',_proc.CFlash.filename);
     rootnode.AppendChild(l1);
     // Create the register section
     _proc.WriteToXml(doc);

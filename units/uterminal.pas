@@ -231,7 +231,7 @@ begin
   p := @Screen[0];
   for i := 0 to 24 do
     begin
-      s := GetXmlText(node,'terminal_' + IntToHex(i,2));
+      s := GetXmlString(node,'terminal_' + IntToHex(i,2));
       for j := 0 to 79 do
         begin
           p^ := StrToInt('$' + Copy(s,1+j*2,2));
@@ -318,7 +318,7 @@ begin
     begin
       s := '';
       node_line := doc.CreateElement('terminal_' + IntToHex(i,2){%H-});
-      s := GetXmlText(node,'terminal_' + IntToHex(i,2));
+      s := GetXmlString(node,'terminal_' + IntToHex(i,2));
       for j := 0 to 79 do
         begin
           s := s + IntToHex(p^,2);

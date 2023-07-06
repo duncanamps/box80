@@ -25,7 +25,7 @@ unit uprocessor;
 interface
 
 uses
-  Classes, SysUtils, usio, DOM;
+  Classes, SysUtils, usio, DOM, ucflash;
 
 const
   FLAG_NEGATIVE  = $80;
@@ -112,6 +112,7 @@ type
       error_flag:   TErrorFlags;
       opcode:       byte;
       FAllowUndocumented: boolean;
+      FCFlash:      TCompactFlashInterface;
       FProcessorState:  TProcessorState;
       run_start_time:         TDateTime;
       run_start_cycles:       int64;
@@ -125,11 +126,13 @@ type
       function  Fetch8: byte; inline;
       function  FetchIQPDindex: Word; inline;
       function  FetchOpcode: byte; inline;
+      function  GetCFPortBase: byte;
       function  GetRegisterSet: TRegisterSet;
       function  GetPerfMIPS: double;
       function  GetPerfMHz: double;
       function  PopWord: Word; inline;
       function  ProcessPortIn(_port: byte): byte;
+      procedure SetCFPortBase(_b: byte);
       procedure ExecAdd(_b: byte; _states: integer; _doadc: boolean = False); inline;
       procedure ExecADDA; inline;
       procedure ExecADDB; inline;
@@ -560,8 +563,10 @@ type
       procedure Init;                     // Initialise COLD
       procedure ReadFromStream(_strm: TStream; _start, _length: integer);
       procedure ReadFromXml(doc: TXMLDocument);
+      procedure WaitForStop;
       procedure WriteToXml(doc: TXMLDocument);
       property AllowUndocumented: boolean read FAllowUndocumented write FAllowUndocumented;
+      property CFlash: TCompactFlashInterface read FCFlash;
       property CPUspeed: int64 read cpu_speed write SetCPUspeed;
       property ErrorFlag: TErrorFlags read error_flag;
       property ErrorString: string read FErrorString;
@@ -639,10 +644,13 @@ begin
   // Set up SIO
   SIO := TSIO.Create;
   SIO.OnInterrupt := @Interrupt;
+  // Set up CF card
+  FCFlash := TCompactFlashInterface.Create;
 end;
 
 destructor TProcessor.Destroy;
 begin
+  FreeAndNil(FCFlash);
   FreeAndNil(SIO);
   inherited Destroy;
 end;
@@ -2527,6 +2535,11 @@ begin
 {$ENDIF}
 end;
 
+function TProcessor.GetCFPortBase: byte;
+begin
+  Result := FCFlash.PortBase;
+end;
+
 function TProcessor.GetRegisterSet: TRegisterSet;
 begin
   Result := regset;
@@ -2577,32 +2590,39 @@ end;
 function TProcessor.ProcessPortIn(_port: byte): byte;
 begin
   Result := 0;
-  case _port of
-    SIOA_D: Result := SIO.ChannelA.Data;        // Port 00
-    SIOB_D: Result := SIO.ChannelB.Data;        // Port 01
-    SIOA_C: Result := SIO.ChannelA.Control;     // Port 02
-    SIOB_C: Result := SIO.ChannelB.Control;     // Port 03
-    otherwise
-      begin
-        FErrorString := Format('Input port $%2.2X not catered for',[_port]);
-        error_flag := error_flag + [efBadPortIn];
-      end;
-  end;
+  if (_port and $F8) = FCFlash.PortBase then
+    Result := FCFlash.PortRead(_port - FCFlash.PortBase)
+  else
+    case _port of
+      SIOA_D: Result := SIO.ChannelA.Data;        // Port 00
+      SIOB_D: Result := SIO.ChannelB.Data;        // Port 01
+      SIOA_C: Result := SIO.ChannelA.Control;     // Port 02
+      SIOB_C: Result := SIO.ChannelB.Control;     // Port 03
+      otherwise
+        begin
+          FErrorString := Format('Input port $%2.2X not catered for',[_port]);
+          error_flag := error_flag + [efBadPortIn];
+        end;
+    end;
 end;
 
 procedure TProcessor.ProcessPortOut(_port, _byte: byte);
 begin
-  case _port of
-    SIOA_D: SIO.ChannelA.Data := _byte;        // Port 00
-    SIOB_D: SIO.ChannelB.Data := _byte;        // Port 01
-    SIOA_C: SIO.ChannelA.Control := _byte;     // Port 02
-    SIOB_C: SIO.ChannelB.Control := _byte;     // Port 03
-    otherwise
-      begin
-        FErrorString := Format('Output port $%2.2X not catered for',[_port]);
-        error_flag := error_flag + [efBadPortOut];
-      end;
-  end;
+  // Check if in CF port space first
+  if (_port and $F8) = FCFlash.PortBase then
+    FCFlash.PortWrite(_port-FCFlash.PortBase,_byte)
+  else // Try for serial
+    case _port of
+      SIOA_D: SIO.ChannelA.Data := _byte;        // Port 00
+      SIOB_D: SIO.ChannelB.Data := _byte;        // Port 01
+      SIOA_C: SIO.ChannelA.Control := _byte;     // Port 02
+      SIOB_C: SIO.ChannelB.Control := _byte;     // Port 03
+      otherwise
+        begin
+          FErrorString := Format('Output port $%2.2X not catered for',[_port]);
+          error_flag := error_flag + [efBadPortOut];
+        end;
+    end;
 end;
 
 procedure TProcessor.PushWord(_word: Word); inline;
@@ -2647,7 +2667,7 @@ begin
   p := @RAM[0];
   while i < 65536 do
     begin
-      s := GetXmlText(node,'memory_' + IntToHex(i,4));
+      s := GetXmlString(node,'memory_' + IntToHex(i,4));
       if Length(s) <> BYTES_PER_LINE * 2 then
         raise Exception.Create('VM file memory corrupted');
       for j := 0 to BYTES_PER_LINE-1 do
@@ -2660,6 +2680,11 @@ begin
   // Load the SIO sections
   SIO.ChannelA.ReadFromXml(doc,'a');
   SIO.ChannelB.ReadFromXml(doc,'b');
+end;
+
+procedure TProcessor.SetCFPortBase(_b: byte);
+begin
+  FCFlash.PortBase := _b;
 end;
 
 procedure TProcessor.SetCPUspeed(_speed: int64);
@@ -2710,6 +2735,12 @@ begin
   FProcessorState := _ps;
 end;
 
+procedure TProcessor.WaitForStop;
+begin
+  ExecuteStop;
+  while not Idle do
+    Sleep(5);
+end;
 
 procedure TProcessor.WriteToXml(doc: TXMLdocument);
 var node: TDOMnode;

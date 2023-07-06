@@ -42,10 +42,10 @@ type
     private
       FDesignator: TSIOchanneldes;
 //    FControl:    byte;
-      FData:       byte;
+      FRxData:     byte;
+      FTxData:     byte;
       FOnTransmit: TSIOTransmitProc;
       FParent:     TSIO;
-      FReceived:   byte;
       FRegRead:    TSIOreadArray;
       FRegWrite:   TSIOwriteArray;
       function GetControl: byte;
@@ -53,18 +53,22 @@ type
       procedure SetControl(_b: byte);
       procedure SetData(_b: byte);
       procedure SetReceived(_b: byte);
-      procedure SetTXfull;
+      procedure SetRXempty;
+      procedure SetRXfull;
       procedure SetTXempty;
+      procedure SetTXfull;
     protected
       procedure Init;
     public
       constructor Create(_parent: TSIO; _designator: TSIOchanneldes);
+      function  IsRXbusy: boolean;
+      function  IsTXbusy: boolean;
       procedure ReadFromXml(doc: TXMLDocument; const _prefix: string);
       procedure WriteToXml(doc: TXMLDocument; const _prefix: string);
       property Control: byte read GetControl write SetControl;
       property Data: byte    read GetData    write SetData;
       property OnTransmit: TSIOTransmitProc  write FOnTransmit;
-      property Received: byte read FReceived write SetReceived;
+      property Received: byte read FRXdata write SetReceived;
       property RegRead: TSIOreadArray    read FRegRead;
       property RegWrite: TSIOwriteArray  read FRegWrite;
   end;
@@ -102,7 +106,7 @@ end;
 
 function TSIOchannel.GetData: byte;
 begin
-  Result := FReceived;
+  Result := FRXdata;
   FRegRead[0] := FRegRead[0] and $7E; // Mask received char available bit
 end;
 
@@ -127,6 +131,16 @@ begin
   SetTXempty;
 end;
 
+function TSIOchannel.IsRXbusy: boolean;
+begin
+  Result := (FRegRead[0] and $01) <> 0;
+end;
+
+function TSIOchannel.IsTXbusy: boolean;
+begin
+  Result := (FRegRead[0] and $02) = 0;
+end;
+
 procedure TSIOchannel.ReadFromXml(doc: TXMLDocument; const _prefix: string);
 var r: integer;
     node: TDOMnode;
@@ -149,7 +163,7 @@ end;
 
 procedure TSIOchannel.SetData(_b: byte);
 begin
-  FData := _b;
+  FTxData := _b;
   if ((FRegWrite[0] and $07) = 0) and Assigned(FOnTransmit) then
     begin
       SetTXfull;
@@ -160,10 +174,22 @@ end;
 
 procedure TSIOchannel.SetReceived(_b: byte);
 begin
-  FReceived := _b;
-  FRegRead[0] := FRegRead[0] or $01; // Set received char available bit
+  while IsRxBusy do
+    Sleep(5);
+  FRXdata := _b;
+  SetRXfull;
   // Finally trigger interrupt
   FParent.TriggerInterrupt;
+end;
+
+procedure TSIOchannel.SetRXempty;
+begin
+  FRegRead[0] := FRegRead[0] and $FE; // Clear bit 1
+end;
+
+procedure TSIOchannel.SetRXfull;
+begin
+  FRegRead[0] := FRegRead[0] or $01; // Set bit 1
 end;
 
 procedure TSIOchannel.SetTXempty;
