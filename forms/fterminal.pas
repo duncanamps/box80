@@ -66,8 +66,8 @@ begin
   FTerminal.Width := 814;
   FTerminal.Height := 490;
 //FTerminal.Align := alClient;
-  FTerminal.Color := TColor($00002800);
-  FTerminal.Font.Color := clLime;
+  FTerminal.Color := TColor($00000000);
+  FTerminal.Font.Color := clWhite;
   FTerminal.Font.Name := 'Lucida Sans Typewriter';
   FTerminal.Font.Size := 10;
 end;

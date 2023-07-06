@@ -202,7 +202,7 @@ begin
   // Reverse the cursor
   if FCursorLit then
     begin
-      reversal := Color xor $0000FF00;
+      reversal := Color xor $00FFFFFF;
       Canvas.CopyMode := cmSrcInvert;
       try
         Canvas.Brush.Color := reversal;
