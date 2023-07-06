@@ -842,6 +842,12 @@ object frmBox80: TfrmBox80
         object MenuItem4: TMenuItem
           Action = actFileCFattach
         end
+        object MenuItem8: TMenuItem
+          Action = actFileCFinfo
+        end
+        object miFileCFsep1: TMenuItem
+          Caption = '-'
+        end
         object menuFileCFcreate: TMenuItem
           Caption = 'Create new image'
           object MenuItem5: TMenuItem
@@ -994,6 +1000,12 @@ object frmBox80: TfrmBox80
       end
       object miDebugStop: TMenuItem
         Action = actDebugStop
+      end
+    end
+    object miTerminal: TMenuItem
+      Caption = '&Terminal'
+      object miTerminalLoad: TMenuItem
+        Action = actTerminalLoadFile
       end
     end
     object miHelp: TMenuItem
@@ -1220,8 +1232,9 @@ object frmBox80: TfrmBox80
     end
     object actFileCFattach: TAction
       Category = 'File'
-      Caption = 'Attach...'
+      Caption = 'Attach ...'
       Hint = 'Attach virtual Compact Flash drive'
+      OnExecute = actFileCFattachExecute
     end
     object actFileCFcreate64: TAction
       Category = 'File'
@@ -1255,6 +1268,18 @@ object frmBox80: TfrmBox80
       OnExecute = actFileSaveAsExecute
       ShortCut = 8308
     end
+    object actFileCFinfo: TAction
+      Category = 'File'
+      Caption = '&Info ...'
+      Hint = 'Show information on the attached Compact Flash card'
+      OnExecute = actFileCFinfoExecute
+    end
+    object actTerminalLoadFile: TAction
+      Category = 'Terminal'
+      Caption = '&Load text file'
+      Hint = 'Load a file into the terminal'
+      OnExecute = actTerminalLoadFileExecute
+    end
   end
   object dlgCreateCF: TSaveDialog
     Title = 'Create new CF image'
@@ -1282,5 +1307,22 @@ object frmBox80: TfrmBox80
     Filter = 'box80 virtual machine|*.box80'
     Left = 383
     Top = 432
+  end
+  object dlgOpenCF: TOpenDialog
+    Title = 'Attach CF image'
+    DefaultExt = '.vdi80'
+    Filter = 'x80 Virtual Disk Image|*.vdi80'
+    Left = 326
+    Top = 496
+  end
+  object OpenDialog1: TOpenDialog
+    Left = 367
+    Top = 93
+  end
+  object dlgOpenTerm: TOpenDialog
+    DefaultExt = '.txt'
+    Filter = 'Intel Hex files|*.hex|Text files|*.txt'
+    Left = 454
+    Top = 262
   end
 end

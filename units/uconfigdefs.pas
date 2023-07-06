@@ -31,9 +31,10 @@ const
   SECTION_FOLDERS = 'Folders';
   SECTION_MRU     = 'MRU';
 
-  CONFIG_FOLDER_CF  = 'ConfigFolderCF';
-  CONFIG_FOLDER_VM  = 'ConfigFolderVM';
-  CONFIG_MRU_PREFIX = 'MRU';
+  CONFIG_FOLDER_CF   = 'ConfigFolderCF';
+  CONFIG_FOLDER_TEXT = 'ConfigFolderText';
+  CONFIG_FOLDER_VM   = 'ConfigFolderVM';
+  CONFIG_MRU_PREFIX  = 'MRU';
 
 implementation
 

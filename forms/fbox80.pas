@@ -78,6 +78,8 @@ type
     actFileSaveAs: TAction;
     actFileOpen: TAction;
     actFileSave: TAction;
+    actFileCFinfo: TAction;
+    actTerminalLoadFile: TAction;
     actVMCPU5000: TAction;
     actVMCPU3333: TAction;
     actVMCPU2000: TAction;
@@ -166,6 +168,10 @@ type
     FileMRU09: TMenuItem;
     FIleMRU08: TMenuItem;
     FileMRU07: TMenuItem;
+    miTerminalLoad: TMenuItem;
+    miTerminal: TMenuItem;
+    miFileCFsep1: TMenuItem;
+    MenuItem8: TMenuItem;
     miFileSepMRU: TMenuItem;
     miFileOpen: TMenuItem;
     MenuItem2: TMenuItem;
@@ -211,6 +217,9 @@ type
     miVMReset: TMenuItem;
     miVMsep1: TMenuItem;
     dlgOpenVM: TOpenDialog;
+    dlgOpenCF: TOpenDialog;
+    OpenDialog1: TOpenDialog;
+    dlgOpenTerm: TOpenDialog;
     pnlWatch: TPanel;
     pnlDisassembler: TPanel;
     pnlRegisters: TPanel;
@@ -230,12 +239,15 @@ type
     StatusBar1: TStatusBar;
     Timer1: TTimer;
     config: TXMLPropStorage;
+    procedure actFileCFattachExecute(Sender: TObject);
     procedure actFileCFcreate128Execute(Sender: TObject);
     procedure actFileCFcreate64Execute(Sender: TObject);
+    procedure actFileCFinfoExecute(Sender: TObject);
     procedure actHelpAboutExecute(Sender: TObject);
     procedure actHelpLicenceExecute(Sender: TObject);
     procedure actHelpUserManualExecute(Sender: TObject);
     procedure actHelpWebsiteExecute(Sender: TObject);
+    procedure actTerminalLoadFileExecute(Sender: TObject);
     procedure actVMCPU00Execute(Sender: TObject);
     procedure actVMCPU1000Execute(Sender: TObject);
     procedure actVMCPU100Execute(Sender: TObject);
@@ -305,7 +317,8 @@ implementation
 {$R *.lfm}
 
 uses
-  fterminal, fabout, lclintf, uconfigdefs, uvirtual, FileCtrl;
+  fterminal, fabout, lclintf, uconfigdefs, uvirtual, FileCtrl, ucflash,
+  fcfinfo;
 
 { TfrmBox80 }
 
@@ -409,8 +422,7 @@ var saved_state: TProcessorState;
 }
 begin
   // saved_state := FProcessor.ProcessorState;
-  FProcessor.ProcessorState := psPaused;
-  Sleep(50); // Wait for any activities to stop
+  FProcessor.WaitForStop;
   FProcessor.Init;
   ReadMonitorImage;
   ShowRegisters;
@@ -459,9 +471,26 @@ begin
   CreateCF(CF_DEFAULT_SIZE_64);
 end;
 
+procedure TfrmBox80.actFileCFinfoExecute(Sender: TObject);
+begin
+  frmCFinfo.ShowInfo(FProcessor);
+end;
+
 procedure TfrmBox80.actFileCFcreate128Execute(Sender: TObject);
 begin
   CreateCF(CF_DEFAULT_SIZE_128);
+end;
+
+procedure TfrmBox80.actFileCFattachExecute(Sender: TObject);
+begin
+  dlgOpenCF.InitialDir := GetConfig(SECTION_FOLDERS,CONFIG_FOLDER_CF,'');
+  if dlgOpenCF.Execute and (dlgOpenCF.FileName <> '') then
+    begin
+      PutConfig(SECTION_FOLDERS,CONFIG_FOLDER_CF,dlgOpenCF.InitialDir);
+      FProcessor.WaitForStop;
+      FProcessor.CFlash.Filename := dlgOpenCF.FileName;
+      ActVmResetExecute(Self);
+    end;
 end;
 
 procedure TfrmBox80.actHelpLicenceExecute(Sender: TObject);
@@ -477,6 +506,28 @@ end;
 procedure TfrmBox80.actHelpWebsiteExecute(Sender: TObject);
 begin
   OpenUrl('https://github.com/duncanamps/box80');
+end;
+
+procedure TfrmBox80.actTerminalLoadFileExecute(Sender: TObject);
+var b: byte;
+    strm: TFileStream;
+begin
+  dlgOpenTerm.InitialDir := GetConfig(SECTION_FOLDERS,CONFIG_FOLDER_TEXT,'');
+  if dlgOpenTerm.Execute and (dlgOpenTerm.FileName <> '') then
+    begin
+      frmTerminal.SetFocus;
+      PutConfig(SECTION_FOLDERS,CONFIG_FOLDER_TEXT,dlgOpenTerm.InitialDir);
+      strm := TFileStream.Create(dlgOpenTerm.Filename,fmOpenRead);
+      try
+        while strm.Position < strm.Size do
+          begin
+            b := strm.ReadByte;
+            FProcessor.SIO.ChannelA.Received := b;
+          end;
+      finally
+        FreeAndNil(strm);
+      end;
+    end;
 end;
 
 procedure TfrmBox80.actVMCPU1000Execute(Sender: TObject);
@@ -523,22 +574,11 @@ end;
 
 
 procedure TfrmBox80.CreateCF(_cfsize: integer);
-const BUFSIZE = 32768;
 var cfext:     string;
-    mbtext:    string;
-    strm:      TFileStream;
     filename:  string;
-    buf:       array[0..BUFSIZE-1] of byte;
-    blksize:   integer;
-    i:         integer;
     saved_cur: TCursor;
 begin
-  case _cfsize of
-    CF_DEFAULT_SIZE_64:  mbtext := '64';
-    CF_DEFAULT_SIZE_128: mbtext := '128';
-    otherwise            mbtext := '';
-  end;
-  cfext := 'cf' + mbtext;
+  cfext := 'vdi80';
   dlgCreateCF.DefaultExt := '.' + cfext;
   dlgCreateCF.Filter := 'Compact Flash image|*.' + cfext;
   dlgCreateCF.InitialDir := GetConfig(SECTION_FOLDERS,CONFIG_FOLDER_CF,'');
@@ -546,23 +586,12 @@ begin
     begin
       filename := dlgCreateCF.FileName;
       PutConfig(SECTION_FOLDERS,CONFIG_FOLDER_CF,dlgCreateCF.InitialDir);
-      strm := TFileStream.Create(filename,fmCreate);
       saved_cur := Screen.Cursor;
       Screen.Cursor := crHourglass;
       try
-        for i := 0 to BUFSIZE-1 do
-          buf[i] := 0;
-        while _cfsize > 0 do
-          begin
-            blksize := _cfsize;
-            if blksize > BUFSIZE then
-              blksize := BUFSIZE;
-            strm.Write(buf[0],blksize);
-            _cfsize := _cfsize - blksize;
-          end;
+        FProcessor.CFlash.CreateImage(filename,_cfsize);
       finally
         Screen.Cursor := saved_cur;
-        FreeAndNil(strm);
       end;
     end;
 end;
@@ -585,6 +614,7 @@ begin
   FProcessor.OnStateChange := @ProcStateChange;
   FProcessor.OnTransmitA := @HandleSIOtransmitA;
   FProcessor.Init;
+  FProcessor.CFlash.PortBase := $10;
   ReadMonitorImage;
   FProcessor.ProcessorState := psPaused;
   FProcessor.Suspended := False;
@@ -600,6 +630,7 @@ begin
   FMRU.Save;
   FreeAndNil(FMRU);
   Timer1.Enabled := False;
+  FProcessor.WaitForStop;
   FProcessor.Terminate;   // Will delete its own instance
   while not FProcessor.Finished do
     Sleep(50);  // Wait until it's gone

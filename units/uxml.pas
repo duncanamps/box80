@@ -31,7 +31,7 @@ uses
 function  GetXmlBoolean(_parent: TDOMnode; const _label: string; _default: boolean = False): boolean;
 function  GetXmlByte(_parent: TDOMnode; const _label: string; _default: Byte = 0): Byte;
 procedure GetXmlByteP(_parent: TDOMnode; const _label: string; _pb: PByte; const _default: Byte = 0);
-function  GetXmlText(_parent: TDOMnode; const _label: string; const _default: string = ''): string;
+function  GetXmlString(_parent: TDOMnode; const _label: string; const _default: string = ''): string;
 function  GetXmlWord(_parent: TDOMnode; const _label: string; _default: Word = 0): Word;
 procedure GetXmlWordP(_parent: TDOMnode; const _label: string; _pw: PWord; _default: Word = 0);
 procedure PutXmlByte(_parent: TDOMnode; const _label: string; _b: Byte);
@@ -44,7 +44,7 @@ implementation
 function GetXmlBoolean(_parent: TDOMnode; const _label: string; _default: boolean = False): boolean;
 begin
   try
-    Result := StrToBool(GetXmlText(_parent,_label,BoolToStr(_default)));
+    Result := StrToBool(GetXmlString(_parent,_label,BoolToStr(_default)));
   except
     Result := _default;
   end;
@@ -53,7 +53,7 @@ end;
 function GetXmlByte(_parent: TDOMnode; const _label: string; _default: Byte = 0): Byte;
 begin
   try
-    Result := StrToInt('$' + GetXmlText(_parent,_label,IntToHex(_default,2)));
+    Result := StrToInt('$' + GetXmlString(_parent,_label,IntToHex(_default,2)));
   except
     Result := _default;
   end;
@@ -66,7 +66,7 @@ begin
   _pb^ := b;
 end;
 
-function GetXmlText(_parent: TDOMnode; const _label: string; const _default: string = ''): string;
+function GetXmlString(_parent: TDOMnode; const _label: string; const _default: string = ''): string;
 var node: TDOMnode;
 begin
   node := _parent.FindNode(_label{%H-});
@@ -79,7 +79,7 @@ end;
 function GetXmlWord(_parent: TDOMnode; const _label: string; _default: Word = 0): Word;
 begin
   try
-    Result := StrToInt('$' + GetXmlText(_parent,_label,IntToHex(_default,4)));
+    Result := StrToInt('$' + GetXmlString(_parent,_label,IntToHex(_default,4)));
   except
     Result := _default;
   end;
