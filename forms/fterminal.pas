@@ -33,14 +33,13 @@ type
   { TfrmTerminal }
 
   TfrmTerminal = class(TForm)
-    btnTest: TButton;
     Timer1: TTimer;
-    procedure btnTestClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormKeyPress(Sender: TObject; var Key: char);
     procedure Timer1Timer(Sender: TObject);
   private
+    big_number: int64;
     FProcessor: TProcessor;
     FTerminal: TTerminal;
   public
@@ -74,19 +73,6 @@ begin
   FTerminal.Font.Size := 10;
 end;
 
-procedure TfrmTerminal.btnTestClick(Sender: TObject);
-var c: char;
-    n: integer;
-begin
-  n := 0;
-  for c in [#33..#126] do
-    begin
-      for n := 1 to 4 do
-        FProcessor.ChannelReceiveA(Ord(c));
-      FProcessor.ChannelReceiveA($20);
-    end;
-end;
-
 procedure TfrmTerminal.FormDestroy(Sender: TObject);
 begin
   FreeAndNil(FTerminal);
@@ -107,7 +93,10 @@ end;
 
 procedure TfrmTerminal.Timer1Timer(Sender: TObject);
 begin
-  FTerminal.CursorLit := not FTerminal.CursorLit;
+  Inc(big_number);
+  if big_number and $07 = 0 then
+    FTerminal.CursorLit := not FTerminal.CursorLit;
+  FTerminal.ProcessChars;
   FTerminal.Invalidate;
 end;
 

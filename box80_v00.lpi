@@ -62,17 +62,17 @@
           </Other>
         </CompilerOptions>
       </Item>
-      <Item Name="DebugProfile">
+      <Item Name="DebugNoMemCheck">
         <CompilerOptions>
           <Version Value="11"/>
           <PathDelim Value="\"/>
           <Target>
-            <Filename Value="binaries\debugprofile\win64-x86_64\v00\box80"/>
+            <Filename Value="binaries\debug\$(TargetOS)-$(TargetCPU)\v00\box80"/>
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
             <OtherUnitFiles Value="forms;units"/>
-            <UnitOutputDirectory Value="lib\debugprofile\$(TargetOS)-$(TargetCPU)\v00"/>
+            <UnitOutputDirectory Value="lib\debug\$(TargetOS)-$(TargetCPU)\v00"/>
           </SearchPaths>
           <Parsing>
             <SyntaxOptions>
@@ -91,7 +91,6 @@
           <Linking>
             <Debugging>
               <DebugInfoType Value="dsDwarf3"/>
-              <UseHeaptrc Value="True"/>
               <TrashVariables Value="True"/>
               <UseExternalDbgSyms Value="True"/>
             </Debugging>
@@ -188,6 +187,10 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
       </Unit>
+      <Unit>
+        <Filename Value="units\ucircular.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -229,6 +232,7 @@
       </Options>
     </Linking>
     <Other>
+      <CustomOptions Value="-dPROFILE"/>
       <OtherDefines Count="2">
         <Define0 Value="PROFILE"/>
         <Define1 Value="EXEC_TRACE"/>

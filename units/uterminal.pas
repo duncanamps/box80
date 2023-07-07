@@ -25,12 +25,13 @@ unit uterminal;
 interface
 
 uses
-  Classes, SysUtils, ExtCtrls, Controls,
+  Classes, SysUtils, ExtCtrls, Controls, ucircular,
   graphics, DOM;
 
 const
   MAX_TERMINAL_COLS = 132;
   MAX_TERMINAL_ROWS = 50;
+  MAX_TERM_BUF = 32768;
 
 type
   TAOB = array of byte;
@@ -38,6 +39,7 @@ type
 
   TTerminal = class(TCustomControl)
     protected
+      FBuffer:     TCircularBuffer;
       FCharHeight: integer;
       FCharWidth:  integer;
       FCols:       integer;        // Number of columns
@@ -60,6 +62,7 @@ type
       constructor Create(AOwner: TComponent; _cols: integer; _rows: integer); reintroduce;
       destructor Destroy; override;
       procedure Init;
+      procedure ProcessChars;
       procedure RefreshScreen;
       function  ScreenChanged: boolean;
       procedure CmdBS;        // Character #8
@@ -70,6 +73,7 @@ type
       procedure CmdScrollUp;  // Scroll the screen up by one line
       procedure ReadFromXml(doc: TXmlDocument);
       procedure WriteChar(_ch: char);
+      procedure WriteChar2(_ch: char);
       procedure WriteString(_s: string);
       procedure WriteToXml(doc: TXmlDocument);
       property  CursorCol: integer   read FCursorCol  write FCursorCol;
@@ -88,6 +92,7 @@ uses
 constructor TTerminal.Create(AOwner: TComponent; _cols: integer; _rows: integer);
 begin
   inherited Create(AOwner);
+  FBuffer := TCircularBuffer.Create(MAX_TERM_BUF);
   FCols := _cols;
   FRows := _rows;
   FMargin := 6;
@@ -101,6 +106,7 @@ end;
 
 destructor TTerminal.Destroy;
 begin
+  FreeAndNil(FBuffer);
   inherited Destroy;
 end;
 
@@ -219,6 +225,17 @@ begin
   inherited Paint;
 end;
 
+procedure TTerminal.ProcessChars;
+var got_one: boolean;
+    b:       byte;
+begin
+  repeat
+    got_one := FBuffer.DoCmd(CB_CMD_READ,b);
+    if got_one then
+      WriteChar2(Chr(b));
+  until not got_one;
+end;
+
 procedure TTerminal.ReadFromXml(doc: TXmlDocument);
 var node: TDOMnode;
     p:    PByte;
@@ -273,6 +290,14 @@ begin
 end;
 
 procedure TTerminal.WriteChar(_ch: char);
+var b: byte;
+begin
+  b := Ord(_ch);
+  if not FBuffer.DoCmd(CB_CMD_WRITE,b) then
+    raise Exception.Create('Failed to write to terminal buffer');
+end;
+
+procedure TTerminal.WriteChar2(_ch: char);
 begin
   case _ch of
     #8:  CmdBS;

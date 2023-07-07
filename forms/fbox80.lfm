@@ -1050,6 +1050,7 @@ object frmBox80: TfrmBox80
     object actDebugStepOver: TAction
       Category = 'Debug'
       Caption = 'Step over'
+      Enabled = False
       Hint = 'Step over the next instruction'
       ImageIndex = 3
       OnExecute = actDebugStepOverExecute

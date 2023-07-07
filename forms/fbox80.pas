@@ -36,8 +36,11 @@ const
 {$ENDIF}
 {$IFDEF WINDOWS}
 //  BASIC_BIN   = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\test_files\validation\validate_shift_rotate.bin';
-  MONITOR_BIN = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\monitor.bin';
-  BASIC_BIN = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\basic.bin';
+  MONITOR_BIN  = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\monitor.bin';
+  BASIC_BIN    = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\basic.bin';
+  CPM22_BIN    = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\cpm22.bin';
+  CBIOS128_BIN = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\cbios128.bin';
+  PUTSYS_BIN   = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\putsys.bin';
 {$ENDIF}
 
 
@@ -318,7 +321,7 @@ implementation
 
 uses
   fterminal, fabout, lclintf, uconfigdefs, uvirtual, FileCtrl, ucflash,
-  fcfinfo;
+  fcfinfo, usio;
 
 { TfrmBox80 }
 
@@ -511,6 +514,7 @@ end;
 procedure TfrmBox80.actTerminalLoadFileExecute(Sender: TObject);
 var b: byte;
     strm: TFileStream;
+    capacity: byte;
 begin
   dlgOpenTerm.InitialDir := GetConfig(SECTION_FOLDERS,CONFIG_FOLDER_TEXT,'');
   if dlgOpenTerm.Execute and (dlgOpenTerm.FileName <> '') then
@@ -519,10 +523,18 @@ begin
       PutConfig(SECTION_FOLDERS,CONFIG_FOLDER_TEXT,dlgOpenTerm.InitialDir);
       strm := TFileStream.Create(dlgOpenTerm.Filename,fmOpenRead);
       try
+        capacity := 0;
         while strm.Position < strm.Size do
           begin
+            while capacity = 0 do
+              begin
+                capacity := FProcessor.SIO.ChannelA.BufCapacity;
+                sleep(20);
+                Application.ProcessMessages;
+              end;
+            Dec(capacity);
             b := strm.ReadByte;
-            FProcessor.SIO.ChannelA.Received := b;
+            FProcessor.ChannelReceiveA(b);
           end;
       finally
         FreeAndNil(strm);
@@ -739,21 +751,24 @@ end;
 
 procedure TfrmBox80.ReadMonitorImage;
 var strm: TFileStream;
+
+  procedure ReadImage(_name: string; _start: integer);
+  begin
+    strm := TFileStream.Create(_name,fmOpenRead);
+    try
+      // Attempt to read 32K
+      FProcessor.ReadFromStream(strm,_start,strm.Size);
+    finally
+      FreeAndNil(strm);
+    end;
+  end;
+
 begin
-  strm := TFileStream.Create(MONITOR_BIN,fmOpenRead);
-  try
-    // Attempt to read 32K
-    FProcessor.ReadFromStream(strm,0,32768);
-  finally
-    FreeAndNil(strm);
-  end;
-  strm := TFileStream.Create(BASIC_BIN,fmOpenRead);
-  try
-    // Attempt to read 32K
-    FProcessor.ReadFromStream(strm,$2000,32768);
-  finally
-    FreeAndNil(strm);
-  end;
+  ReadImage(MONITOR_BIN,$0000);
+  ReadImage(BASIC_BIN,$2000);
+  ReadImage(CPM22_BIN,$D000);
+  ReadImage(CBIOS128_BIN,$E600);
+  ReadImage(PUTSYS_BIN,$5000);
 end;
 
 procedure TfrmBox80.SetActions;

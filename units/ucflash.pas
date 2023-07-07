@@ -212,7 +212,7 @@ begin
   Inc(FPtrW);
   if FPtrW >= FBufSize then
     begin
-      _posn := FLBA0 or (FLBA1 shl 8) or (FLBA2 shl 16) or (FLBA3 shl 24);
+      _posn := SECTOR_SIZE * (FLBA0 or (FLBA1 shl 8) or (FLBA2 shl 16)); // or (FLBA3 shl 24);
       FStream.Position := _posn;
       FStream.Write(FBuf[0],FBufSize);
       FMode := cmNone;
@@ -226,7 +226,7 @@ begin
   FBufSize := SECTOR_SIZE * FSectors;
   if Length(FBuf) <> FBufSize then
     SetLength(FBuf,FBufSize);
-  _posn := FLBA0 or (FLBA1 shl 8) or (FLBA2 shl 16) or (FLBA3 shl 24);
+  _posn := SECTOR_SIZE * (FLBA0 or (FLBA1 shl 8) or (FLBA2 shl 16)); // or (FLBA3 shl 24);
   FStream.Position := _posn;
   FStream.Read(FBuf[0],FBufSize);
   FMode := cmInRead;
@@ -240,6 +240,7 @@ begin
 end;
 
 procedure TCompactFlashInterface.WriteSectorsWithRetry;
+var _posn: dword;
 begin
   // Calculate required size
   FBufSize := SECTOR_SIZE * FSectors;
