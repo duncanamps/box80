@@ -14,7 +14,7 @@ box80 is a multi-platform virtual machine designed to execute Z80 code in a 64K 
     * Multi-platform design - can be used on many different target 32/64 bit machines
 * Hardware emulation is based on the [CP/M on breadboard by Grant Searle](http://searle.x10host.com/cpm/index.html) and caters for the following features:
     * Z80-SIO used to control serial input and output. This is redirected to the Windows screen and keyboard, there is no real serial link
-    * CF card interface to allow storage of the CP/M operating system, CP/M commands, and user installed software and data **(not implemented)**
+    * CF card interface to allow storage of the CP/M operating system, CP/M commands, and user installed software and data ~~(not implemented)~~
     * The ROM disable feature is not implemented as it is not actually used (the monitor is loaded into RAM automatically by the VM)
     * Integrated terminal screen and keyboard emulation
     * Emulates a range of processor speeds from the original Z80 2.5MHz up to 500MHz (depending on host hardware capability). Also a bonus 32768Hz mode thrown in if you want to watch things moving slowly
@@ -71,8 +71,8 @@ Gimp and Greenfish Icon Editor Pro were used to provide the graphics elements.
 | All Z80 instructions          | 100%      | Standard, doesn't include undocumented |
 | Terminal output               | 50%       | Vanilla, some ctrl codes, needs ANSI   |
 | Interrupt processing          | 33%       | IM2 is complete, trigger by SIO        |
-| SIO                           | 10%       | Very basic implementation, but works   |
-| CF card interface             | TBD       | Just about to start on this            |
+| SIO                           | 20%       | Very basic implementation, but works   |
+| CF card interface             | 100%      | Basic setup, but works fine            |
 | Documentation                 | TBD       |                                        |
 ### V0.1 future development
 | Item                          | Complete  | Notes                                    |
