@@ -93,26 +93,27 @@ type
 
   TProcessor = class(TThread)
     private
-      regset:       TRegisterSet;
-      ramarray:     TRAMarray;
-      bparray:      array[Word] of TBreakPointFlags;
-      parity_table: array[byte] of byte;
-      inst_std:     array[byte] of TExecProc;
-      inst_cb:      array[byte] of TExecProc;
-      inst_ddfd:    array[byte] of TExecProc; // Handles DD and FD prefixes
-      inst_ddfdcb:  array[byte] of TExecProc; // Handles DD and FD prefixes followed by CB
-      inst_ed:      array[byte] of TExecProc;
-      undoc_cb:     array[byte] of boolean;
-      undoc_ed:     array[byte] of boolean;
-      int_flag:     boolean;
-      int_vec:      byte;
-      t_states:     int64;
-      insts:        int64;
-      cpu_speed:    int64;  // In Hz
-      error_flag:   TErrorFlags;
-      opcode:       byte;
+      regset:        TRegisterSet;
+      ramarray:      TRAMarray;
+      bparray:       array[Word] of TBreakPointFlags;
+      parity_table:  array[byte] of byte;
+      inst_std:      array[byte] of TExecProc;
+      inst_cb:       array[byte] of TExecProc;
+      inst_ddfd:     array[byte] of TExecProc; // Handles DD and FD prefixes
+      inst_ddfdcb:   array[byte] of TExecProc; // Handles DD and FD prefixes followed by CB
+      inst_ed:       array[byte] of TExecProc;
+      undoc_cb:      array[byte] of boolean;
+      undoc_ed:      array[byte] of boolean;
+      int_flag:      boolean;
+      int_servicing: boolean;
+      int_vec:       byte;
+      t_states:      int64;
+      insts:         int64;
+      cpu_speed:     int64;  // In Hz
+      error_flag:    TErrorFlags;
+      opcode:        byte;
       FAllowUndocumented: boolean;
-      FCFlash:      TCompactFlashInterface;
+      FCFlash:       TCompactFlashInterface;
       FProcessorState:  TProcessorState;
       run_start_time:         TDateTime;
       run_start_cycles:       int64;
@@ -3678,6 +3679,7 @@ procedure TProcessor.ExecEdRETI; inline;
 begin  // @@@@@ Not coded to do anything over and above what RET would do
   pregPC^ := PopWord;
   Inc(t_states,14);
+  int_servicing := False;
 end;
 
 procedure TProcessor.ExecEdRETN; inline;
@@ -3842,6 +3844,7 @@ begin
   // Check if interrupt waiting
   if int_flag and (pregIntE^ <> 0) then
     begin
+      int_servicing := True; // We are servicing an interrupt
       int_flag := False; // Reset the flag!
       vector := (pregI^ shl 8) or (int_vec and $FE);
       addr := ramarray[vector] or (ramarray[vector+1] shl 8);
@@ -4345,6 +4348,8 @@ end;
 
 procedure TProcessor.Interrupt(_vec:byte);
 begin
+  while int_servicing do
+    sleep(1);
   int_vec := _vec;
   int_flag := True; // Flag the interrupt
 end;
