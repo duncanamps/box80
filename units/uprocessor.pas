@@ -105,12 +105,12 @@ type
       undoc_cb:      array[byte] of boolean;
       undoc_ed:      array[byte] of boolean;
       int_flag:      boolean;
-      int_servicing: boolean;
       int_vec:       byte;
       t_states:      int64;
       insts:         int64;
       cpu_speed:     int64;  // In Hz
       error_flag:    TErrorFlags;
+      big_counter:   int64;
       opcode:        byte;
       FAllowUndocumented: boolean;
       FCFlash:       TCompactFlashInterface;
@@ -675,7 +675,7 @@ end;
 
 procedure TProcessor.ChannelReceiveA(_byte: byte);
 begin
-  SIO.ChannelA.Received := _byte;
+  SIO.ChannelA.IncomingChar(_byte);
 end;
 
 procedure TProcessor.ExecAdd(_b: byte; _states: integer; _doadc: boolean = False); inline;
@@ -2614,6 +2614,7 @@ begin
     FCFlash.PortWrite(_port-FCFlash.PortBase,_byte)
   else // Try for serial
     case _port of
+      $38: ; // ROM port - ignore
       SIOA_D: SIO.ChannelA.Data := _byte;        // Port 00
       SIOB_D: SIO.ChannelB.Data := _byte;        // Port 01
       SIOA_C: SIO.ChannelA.Control := _byte;     // Port 02
@@ -2841,7 +2842,7 @@ begin
     6: _src := ramarray[pregHL^];
     7: _src := pregA^;
   end;
-  _mask := 1 shl (_bit - 1);
+  _mask := 1 shl _bit;
   // Set the flags
   flags := pregF^;
   flags := flags and NOT_FLAG_ZERO and NOT_FLAG_SUBTRACT; // Reset flags
@@ -2884,13 +2885,13 @@ begin
   case _set of
     False: // Reset
       begin
-        _andmask := (1 shl (_bit - 1)) xor $FF;
+        _andmask := (1 shl _bit) xor $FF;
         _ormask  := 0;
       end;
     True:  // Set
       begin
         _andmask := $FF;
-        _ormask  := 1 shl (_bit - 1);
+        _ormask  := 1 shl _bit;
       end;
   end;
   // Set or Reset the bit
@@ -3679,7 +3680,6 @@ procedure TProcessor.ExecEdRETI; inline;
 begin  // @@@@@ Not coded to do anything over and above what RET would do
   pregPC^ := PopWord;
   Inc(t_states,14);
-  int_servicing := False;
 end;
 
 procedure TProcessor.ExecEdRETN; inline;
@@ -3820,7 +3820,7 @@ begin
         otherwise
           begin
             Idle := True;
-            sleep(20);
+            sleep(10);
           end;
       end;
     end;
@@ -3844,8 +3844,8 @@ begin
   // Check if interrupt waiting
   if int_flag and (pregIntE^ <> 0) then
     begin
-      int_servicing := True; // We are servicing an interrupt
       int_flag := False; // Reset the flag!
+      pregIntE^ := 0; // Disable any further interrupts
       vector := (pregI^ shl 8) or (int_vec and $FE);
       addr := ramarray[vector] or (ramarray[vector+1] shl 8);
       PushWord(pregPC^);
@@ -3866,6 +3866,11 @@ begin
       else
         error_flag := error_flag + [efIllegal];
     end;
+  // Check SIOs as they are clocked from here
+  Inc(big_counter);
+  if (big_counter and $1F) = 0 then // About every 32 instructions
+    if (not int_flag) then
+      SIO.ClockRX;
   Result := (error_flag = []);
   Inc(insts);
 end;
@@ -4348,8 +4353,6 @@ end;
 
 procedure TProcessor.Interrupt(_vec:byte);
 begin
-  while int_servicing do
-    sleep(1);
   int_vec := _vec;
   int_flag := True; // Flag the interrupt
 end;
