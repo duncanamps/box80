@@ -175,7 +175,7 @@ end;
 procedure TSIOchannel.SetReceived(_b: byte);
 begin
   while IsRxBusy do
-    Sleep(5);
+    Sleep(1);
   FRXdata := _b;
   SetRXfull;
   // Finally trigger interrupt
