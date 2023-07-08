@@ -39,7 +39,7 @@ const
   MONITOR_BIN  = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\monitor.bin';
   BASIC_BIN    = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\basic.bin';
   CPM22_BIN    = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\cpm22.bin';
-  CBIOS128_BIN = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\cbios128.bin';
+  CBIOS128_BIN = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\cbios64.bin';
   PUTSYS_BIN   = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\putsys.bin';
 {$ENDIF}
 

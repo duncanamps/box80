@@ -13,19 +13,22 @@ box80 is a multi-platform virtual machine designed to execute Z80 code in a 64K 
     * Dual thread model; one for the user interface and one for the Z80 processor and SIO
     * Multi-platform design - can be used on many different target 32/64 bit machines
 * Hardware emulation is based on the [CP/M on breadboard by Grant Searle](http://searle.x10host.com/cpm/index.html) and caters for the following features:
-    * Z80-SIO used to control serial input and output. This is redirected to the Windows screen and keyboard, there is no real serial link
-    * CF card interface to allow storage of the CP/M operating system, CP/M commands, and user installed software and data ~~(not implemented)~~
-    * The ROM disable feature is not implemented as it is not actually used (the monitor is loaded into RAM automatically by the VM)
-    * Integrated terminal screen and keyboard emulation
-    * Emulates a range of processor speeds from the original Z80 2.5MHz up to 500MHz (depending on host hardware capability). Also a bonus 32768Hz mode thrown in if you want to watch things moving slowly
-* Debug features **(not implemented)**
-    * Disassembler
-    * Memory viewer
-    * Watch window with different variable types
-    * Conditional breakpoints
-    * Traps for illegal instructions, unimplemented ports, etc.
-    * Can use debug files created by xa80 cross assembler to access labels and step through source lines
-    * Can direct load files into VM memory from host operating system
+    * Core platform emulation
+        * Z80 processor at various speeds from 32768Hz to 500MHz, depending on host hardware capability
+        * Z80-SIO used to control serial input and output. This is redirected to the Windows screen and keyboard, there is no real serial link
+        * CF card interface to allow storage of the CP/M operating system, CP/M commands, and user installed software and data ~~(not implemented)~~
+        * The ROM disable feature is not currently implemented as it is not actually used (the monitor is loaded into RAM automatically by the VM)
+    * Terminal emulation
+        * Integrated terminal screen and keyboard emulation, vanilla flavoured at this time
+        * Ability to receive text/hex files to the terminal
+        * Log text output to a file **(not implemented)**
+    * Debug features **(not implemented)**     * Disassembler
+        * Memory viewer
+        * Watch window with different variable types
+        * Conditional breakpoints
+        * Traps for illegal instructions, unimplemented ports, etc.
+        * Can use debug files created by xa80 cross assembler to access labels and step through source lines
+        * Can direct load files into VM memory from host operating system
 
 ## Dependencies
 To use a basic CP/M operating system, this software requires the following components:
@@ -41,8 +44,7 @@ To use a basic CP/M operating system, this software requires the following compo
         * CP/M CCP (Console Command Processor)
     * Something else
 
-None of the items above can be included with this distribution as they have their own licensing terms. Terms for use of the software can be found on the respective websites and in the source code for the different components. The documents section contains dependencies.pdf which explains how to download and assemble the modules listed
-above (not implemented).
+None of the items above can be included with this distribution as they have their own licensing terms. Terms for use of the software can be found on the respective websites and in the source code for the different components. The documents section contains dependencies.pdf which explains how to download and assemble the modules listed above (not implemented).
 
 ## Development Environment
 box80 is written in [Free PASCAL](https://www.freepascal.org/) hosted under the [Lazarus IDE](https://www.lazarus-ide.org/). To modify and compile this software, you will need [Lazarus](https://www.lazarus-ide.org/index.php?page=downloads) 2.1.0 or later. It has been
@@ -66,7 +68,7 @@ Gimp and Greenfish Icon Editor Pro were used to provide the graphics elements.
 ### V0.0 current development
 | Item                          | Complete  | Notes                                  |
 | ----                          | --------: | -----                                  |
-| Dual thread Z80 core          | 100%      | Windows OK ~~Linux causing fault~~     |
+| Dual thread Z80 core          | 100%      | Operational, still to be validated     |
 | Standard Z80 instructions     | 100%      | Needs to be run against a test suite   |
 | All Z80 instructions          | 100%      | Standard, doesn't include undocumented |
 | Terminal output               | 50%       | Vanilla, some ctrl codes, needs ANSI   |
@@ -109,7 +111,7 @@ I own a number of Z80 based SBCs; the RC2014, the SC131 and have recently acquir
 from Olimex. This is a 24 bit EZ80 processor and will undoubtedly result in enhancements to xA80 to cover 24 bit
 activities. But that's for another day...
 
-The development cycle can be time consuming: Write Z80 assembly language on the PC. Assemble it. Download via serial link to the target device. Run on the target device. Figure out why it won't work....
+The development cycle on some of the retro-hardware can be time consuming: Write Z80 assembly language on the PC. Assemble it. Download via serial link to the target device. Run on the target device. Figure out why it won't work....
 
 For now, it seemed like a good idea to write a simulator to mimic one of the SBCs so that I could eventually integrate
 this all into an IDE with a Z80 virtual machine, assembler, debugger, etc. This will make it so much easier to work the
@@ -125,7 +127,7 @@ This software product is not commissioned or endorsed by the semiconductor manuf
 box80 is licensed under the GNU GPL Licence V3 or later.  
 
 External components which are referenced in this text (monitor, BIOS, CP/M, BASIC) are not included with this distribution
-and have their own licensing and distribution terms. 
+and have their own licensing and distribution terms. Please respect the work and rights of the respective authors.
 
 ## Contact
 The author is Duncan Munro  
