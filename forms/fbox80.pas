@@ -35,12 +35,12 @@ const
   BASIC_BIN   = '/home/duncan/Dropbox/dev/lazarus/computing/z80/box80/imported/g_searle/source/basic.bin';
 {$ENDIF}
 {$IFDEF WINDOWS}
-//  BASIC_BIN   = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\test_files\validation\validate_shift_rotate.bin';
   MONITOR_BIN  = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\monitor.bin';
-  BASIC_BIN    = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\basic.bin';
+//  BASIC_BIN    = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\basic.bin';
+  ZEXDOC_BIN   = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\test_files\validation\zexdoc.bin';
   CPM22_BIN    = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\cpm22.bin';
   CBIOS128_BIN = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\cbios64.bin';
-  PUTSYS_BIN   = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\putsys.bin';
+//  PUTSYS_BIN   = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\putsys.bin';
 {$ENDIF}
 
 
@@ -765,10 +765,11 @@ var strm: TFileStream;
 
 begin
   ReadImage(MONITOR_BIN,$0000);
-  ReadImage(BASIC_BIN,$2000);
-  ReadImage(CPM22_BIN,$D000);
-  ReadImage(CBIOS128_BIN,$E600);
-  ReadImage(PUTSYS_BIN,$5000);
+  ReadImage(ZEXDOC_BIN,$2000);
+//ReadImage(BASIC_BIN,$2000);
+//ReadImage(CPM22_BIN,$D000);
+//ReadImage(CBIOS128_BIN,$E600);
+//ReadImage(PUTSYS_BIN,$5000);
 end;
 
 procedure TfrmBox80.SetActions;

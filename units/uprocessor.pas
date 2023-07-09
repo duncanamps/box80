@@ -124,6 +124,7 @@ type
       // Procs / funcs
       function  Add16u8s(_word: Word; _byte: byte): Word;
       function  Fetch16: Word; inline;
+      procedure ClearTemporaryBreakpoints;
       function  Fetch8: byte; inline;
       function  FetchIQPDindex: Word; inline;
       function  FetchOpcode: byte; inline;
@@ -676,6 +677,13 @@ end;
 procedure TProcessor.ChannelReceiveA(_byte: byte);
 begin
   SIO.ChannelA.IncomingChar(_byte);
+end;
+
+procedure TProcessor.ClearTemporaryBreakpoints;
+var w: Word;
+begin
+  for w in Word do
+    bparray[w] := bparray[w] - [bpTemporary];
 end;
 
 procedure TProcessor.ExecAdd(_b: byte; _states: integer; _doadc: boolean = False); inline;
@@ -3783,7 +3791,7 @@ begin
           begin
             Idle := False;
             ExecuteOneInst;
-            if error_flag <> [] then
+            if ErrorFlag <> [] then
               ProcessorState := psFault;
             ProcessorState := psPaused;
             Idle := True;
@@ -3800,10 +3808,14 @@ begin
               check_every := 1000
             else
               check_every := 250;
-            while (i < CHECK_EVERY) and (FProcessorState = psRunning) and (error_flag = []) do
+            while (i < CHECK_EVERY) and (FProcessorState = psRunning) and (error_flag = []) and (bparray[pregPC^] = []) do
               begin
                 ExecuteOneInst;
                 Inc(i);
+                // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//              if pregPC^ = $2000 then
+//                ProcessorState := psPaused;
+                // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
               end;
             if error_flag <> [] then
               ProcessorState := psFault
@@ -3814,6 +3826,13 @@ begin
                 simulated_time := (TStates - run_start_cycles) / CpuSpeed;
                 if simulated_time > elapsed_time then
                   sleep(Trunc((simulated_time-elapsed_time)*1000.0+0.5));
+              end;
+            if bpPermanent in bparray[pregPC^] then
+              ProcessorState := psBreak
+            else if bpTemporary in bparray[pregPC^] then
+              begin
+                ProcessorState := psPaused;
+                ClearTemporaryBreakpoints;
               end;
             Idle := True;
           end;
@@ -3902,7 +3921,14 @@ begin
     begin
       error_flag := [];
       // @@@@@ Put the breakpoint stuff here
-      ProcessorState := psStepOver;
+      // @@@@@ We would only put one btTemporary in place straight after the
+      // @@@@@ instruction. However, we don't know the length of the instruction
+      // @@@@@ right now, just that it's in the range 1..4
+      bparray[pregPC^+1] := bparray[pregPC^+1] + [bpTemporary];
+      bparray[pregPC^+2] := bparray[pregPC^+2] + [bpTemporary];
+      bparray[pregPC^+3] := bparray[pregPC^+3] + [bpTemporary];
+      bparray[pregPC^+4] := bparray[pregPC^+4] + [bpTemporary];
+      ProcessorState := psRunning;
     end;
 end;
 
