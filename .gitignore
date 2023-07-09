@@ -23,5 +23,6 @@ docs/research/
 docs/~$instruction_coverage.xlsx
 imported/
 lib/
-test_files/
+test_files/validation/archived/
+test_files/vms/
 test_prog/
