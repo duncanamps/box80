@@ -1,0 +1,24 @@
+object frmMemory: TfrmMemory
+  Left = 631
+  Height = 530
+  Top = 307
+  Width = 707
+  Caption = 'Memory'
+  ClientHeight = 530
+  ClientWidth = 707
+  DesignTimePPI = 120
+  LCLVersion = '2.2.6.0'
+  object Memo1: TMemo
+    Left = 0
+    Height = 530
+    Top = 0
+    Width = 707
+    Align = alClient
+    Font.Name = 'Lucida Console'
+    Lines.Strings = (
+      'Memo1'
+    )
+    ParentFont = False
+    TabOrder = 0
+  end
+end

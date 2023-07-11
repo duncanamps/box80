@@ -150,7 +150,7 @@ type
       procedure ExecADDimm; inline;
       procedure ExecADDL; inline;
       procedure ExecADDM; inline;
-      procedure ExecADDr16r16(_pdst: PWord; _w: Word; _states: integer; _doadc: boolean = False); inline;
+      procedure ExecADDr16r16(_pdst: PWord; _w: Word; _states: integer; _doadc: boolean = False); {inline;}
       procedure ExecADCB; inline;
       procedure ExecADCC; inline;
       procedure ExecADCD; inline;
@@ -491,7 +491,7 @@ type
       procedure ExecSUBimm; inline;
       procedure ExecSUBL; inline;
       procedure ExecSUBM; inline;
-      procedure ExecSub(_b: byte; _states: integer; _save: boolean = True; _dosbc: boolean = False); inline;
+      procedure ExecSub(_b: byte; _states: integer; _save: boolean = True; _dosbc: boolean = False); { inline; }
       procedure ExecXORA; inline;
       procedure ExecXORB; inline;
       procedure ExecXORC; inline;
@@ -509,7 +509,7 @@ type
       procedure SetOnTransmitA(_proc: TSIOtransmitProc);
       procedure SetPCrelative(_b: byte); inline;
       procedure SetProcessorState(_ps: TProcessorState);
-      procedure SetLogicalflags; inline;
+      procedure SetLogicalflags(_seth: boolean); inline;
     protected
       procedure Execute; override;
     public
@@ -794,7 +794,7 @@ begin
   ExecAdd(ramarray[pregHL^],7);
 end;
 
-procedure TProcessor.ExecADDr16r16(_pdst: PWord; _w: Word; _states: integer; _doadc: boolean = False); inline;
+procedure TProcessor.ExecADDr16r16(_pdst: PWord; _w: Word; _states: integer; _doadc: boolean = False); {inline;}
 var _cf: Word;
     flags: byte;
     _src: Word;
@@ -806,19 +806,25 @@ begin
     _cf := 1
   else
     _cf := 0;
-  flags := flags and NOT_FLAG_SUBTRACT and NOT_FLAG_HALFCARRY and NOT_FLAG_CARRY and NOT_FLAG_ZERO and NOT_FLAG_PV and NOT_FLAG_NEGATIVE;
-  if ((_src and $0FFF) + (_w and $0FFF) + _cf) >= $1000 then
+  if _doadc then
+    flags := flags and NOT_FLAG_SUBTRACT and NOT_FLAG_HALFCARRY and NOT_FLAG_CARRY and NOT_FLAG_ZERO and NOT_FLAG_PV and NOT_FLAG_NEGATIVE
+  else
+    flags := flags and NOT_FLAG_SUBTRACT and NOT_FLAG_HALFCARRY and NOT_FLAG_CARRY;
+  if ((integer(_src and $0FFF) + integer(_w and $0FFF) + _cf)) and $FFFFF000 >= $1000 then
     flags := flags or FLAG_HALFCARRY;
   if integer(_src) + integer(_w) + _cf >= $10000 then
     flags := flags or FLAG_CARRY;
   _dst := _src + _w + _cf;
-  if ((_src xor _w) and $8000) = 0 then // check for alike signs
-      if ((_src xor _dst) and $8000) <> $00 then
-        flags := flags or FLAG_PV;
-  if (_dst and $8000) <> 0 then
-    flags := flags or FLAG_NEGATIVE;
-  if (_dst = 0) then
-    flags := flags or FLAG_ZERO;
+  if _doadc then
+    begin // Don't do this stuff for ADD r16,r16
+      if ((_src xor _w) and $8000) = 0 then // check for alike signs
+          if ((_src xor _dst) and $8000) <> $00 then
+            flags := flags or FLAG_PV;
+      if (_dst and $8000) <> 0 then
+        flags := flags or FLAG_NEGATIVE;
+      if (_dst = 0) then
+        flags := flags or FLAG_ZERO;
+    end;
   _pdst^ := _dst;
   pregF^ := Flags;
   Inc(t_states,_states);
@@ -872,63 +878,63 @@ end;
 procedure TProcessor.ExecANDimm; inline;
 begin
   pregA^ := pregA^ and Fetch8;
-  SetLogicalflags;
+  SetLogicalFlags(True);
   Inc(t_states,7);
 end;
 
 procedure TProcessor.ExecANDA; inline;
 begin
   pregA^ := pregA^ and pregA^;
-  SetLogicalflags;
+  SetLogicalFlags(True);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecANDB; inline;
 begin
   pregA^ := pregA^ and pregB^;
-  SetLogicalflags;
+  SetLogicalFlags(True);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecANDC; inline;
 begin
   pregA^ := pregA^ and pregC^;
-  SetLogicalflags;
+  SetLogicalFlags(True);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecANDD; inline;
 begin
   pregA^ := pregA^ and pregD^;
-  SetLogicalflags;
+  SetLogicalFlags(True);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecANDE; inline;
 begin
   pregA^ := pregA^ and pregE^;
-  SetLogicalflags;
+  SetLogicalFlags(True);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecANDH; inline;
 begin
   pregA^ := pregA^ and pregH^;
-  SetLogicalflags;
+  SetLogicalFlags(True);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecANDL; inline;
 begin
   pregA^ := pregA^ and pregL^;
-  SetLogicalflags;
+  SetLogicalFlags(True);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecANDM; inline;
 begin
   pregA^ := pregA^ and ramarray[pregHL^];
-  SetLogicalflags;
+  SetLogicalFlags(True);
   Inc(t_states,7);
 end;
 
@@ -997,6 +1003,7 @@ end;
 
 procedure TProcessor.ExecCCF; inline;
 begin
+  pregF^ := pregF^ and NOT_FLAG_SUBTRACT and NOT_FLAG_HALFCARRY;
   pregF^ := pregF^ xor FLAG_CARRY;
   Inc(t_states,4);
 end;
@@ -1068,6 +1075,9 @@ var
   begin
     pregA^ := pregA^ + _add;
     pregF^ := (pregF^ and NOT_FLAG_CARRY) or _c;
+    pregF^ := pregF^ and NOT_FLAG_HALFCARRY;
+    if (_add and $0F) <> 0 then
+      pregF^ := pregF^ or FLAG_HALFCARRY;
   end;
 
 begin
@@ -1101,6 +1111,13 @@ begin
   else if (iflag = $05) and (dfMSB0_3 in myset) and (dfLSB0_3 in myset) then MakeRes($66,1)
   else if (iflag = $06) and (dfMSB0_8 in myset) and (dfLSB6_F in myset) then MakeRes($FA,0)
   else if (iflag = $07) and (dfMSB0_8 in myset) and (dfLSB6_F in myset) then MakeRes($FA,0);
+  pregF^ := pregF^ and NOT_FLAG_ZERO and NOT_FLAG_NEGATIVE;
+  if pregA^ = 0 then
+    pregF^ := pregF^ or FLAG_ZERO;
+  pregF^ := pregF^ and NOT_FLAG_PV;
+  pregF^ := pregF^ or parity_table[pregA^];
+  if (pregA^ and $80) <> 0 then
+    pregF^ := pregF^ or FLAG_NEGATIVE;
   Inc(t_states,4);
 end;
 
@@ -1980,63 +1997,63 @@ end;
 procedure TProcessor.ExecORA; inline;
 begin
   pregA^ := pregA^ or pregA^;
-  SetLogicalflags;
+  SetLogicalFlags(False);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecORB; inline;
 begin
   pregA^ := pregA^ or pregB^;
-  SetLogicalflags;
+  SetLogicalFlags(False);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecORC; inline;
 begin
   pregA^ := pregA^ or pregC^;
-  SetLogicalflags;
+  SetLogicalFlags(False);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecORD; inline;
 begin
   pregA^ := pregA^ or pregD^;
-  SetLogicalflags;
+  SetLogicalFlags(False);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecORE; inline;
 begin
   pregA^ := pregA^ or pregE^;
-  SetLogicalflags;
+  SetLogicalFlags(False);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecORH; inline;
 begin
   pregA^ := pregA^ or pregH^;
-  SetLogicalflags;
+  SetLogicalFlags(False);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecORimm; inline;
 begin
   pregA^ := pregA^ or Fetch8;
-  SetLogicalflags;
+  SetLogicalFlags(False);
   Inc(t_states,7);
 end;
 
 procedure TProcessor.ExecORL; inline;
 begin
   pregA^ := pregA^ or pregL^;
-  SetLogicalflags;
+  SetLogicalFlags(False);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecORM; inline;
 begin
   pregA^ := pregA^ or ramarray[pregHL^];
-  SetLogicalflags;
+  SetLogicalFlags(False);
   Inc(t_states,7);
 end;
 
@@ -2284,6 +2301,7 @@ end;
 procedure TProcessor.ExecSCF; inline;
 begin
   pregF^ := pregF^ or FLAG_CARRY;
+  pregF^ := pregF^ and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT;
   Inc(t_states,4);
 end;
 
@@ -2344,7 +2362,7 @@ begin
   end;
 end;
 
-procedure TProcessor.ExecSub(_b: byte; _states: integer; _save: boolean = True; _dosbc: boolean = False); inline;
+procedure TProcessor.ExecSub(_b: byte; _states: integer; _save: boolean = True; _dosbc: boolean = False); {inline;}
 var _a,_c,_cf: byte;
 begin
   _a    := pregA^;
@@ -2357,8 +2375,8 @@ begin
     pregF^ := pregF^ or FLAG_ZERO
   else
     pregF^ := pregF^ and NOT_FLAG_ZERO;
-  if (_b and $0F) > (_a and $0F) then
-    pregF^ := pregF^ or FLAG_HALFCARRY
+  if (integer(_a and $0F) - integer(_b and $0F) - integer(_cf)) < 0 then
+    pregF^ := pregF^ or FLAG_HALFCARRY  // Borrow from bit 4
   else
     pregF^ := pregF^ and NOT_FLAG_HALFCARRY;
   pregF^ := pregF^ and NOT_FLAG_PV; // Clear overflow for now
@@ -2456,63 +2474,63 @@ end;
 procedure TProcessor.ExecXORA; inline;
 begin
   pregA^ := pregA^ xor pregA^;
-  SetLogicalflags;
+  SetLogicalFlags(False);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecXORB; inline;
 begin
   pregA^ := pregA^ xor pregB^;
-  SetLogicalflags;
+  SetLogicalFlags(False);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecXORC; inline;
 begin
   pregA^ := pregA^ xor pregC^;
-  SetLogicalflags;
+  SetLogicalFlags(False);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecXORD; inline;
 begin
   pregA^ := pregA^ xor pregD^;
-  SetLogicalflags;
+  SetLogicalFlags(False);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecXORE; inline;
 begin
   pregA^ := pregA^ xor pregE^;
-  SetLogicalflags;
+  SetLogicalFlags(False);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecXORH; inline;
 begin
   pregA^ := pregA^ xor pregH^;
-  SetLogicalflags;
+  SetLogicalFlags(False);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecXORimm; inline;
 begin
   pregA^ := pregA^ xor Fetch8;
-  SetLogicalflags;
+  SetLogicalFlags(False);
   Inc(t_states,7);
 end;
 
 procedure TProcessor.ExecXORL; inline;
 begin
   pregA^ := pregA^ xor pregL^;
-  SetLogicalflags;
+  SetLogicalFlags(False);
   Inc(t_states,4);
 end;
 
 procedure TProcessor.ExecXORM; inline;
 begin
   pregA^ := pregA^ xor ramarray[pregHL^];;
-  SetLogicalflags;
+  SetLogicalFlags(False);
   Inc(t_states,7);
 end;
 
@@ -2707,10 +2725,10 @@ begin
   run_start_instructions := insts;
 end;
 
-procedure TProcessor.SetLogicalflags; inline;
+procedure TProcessor.SetLogicalflags(_seth: boolean); inline;
 var flags: byte;
 begin
-  flags := pregF^ and (NOT_FLAG_HALFCARRY and NOT_FLAG_NEGATIVE and NOT_FLAG_CARRY); // Reset H/N/C
+  flags := pregF^ and (NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT and NOT_FLAG_NEGATIVE and NOT_FLAG_CARRY); // Reset H/N/C
   flags := (flags and $7F) or (pregA^ and FLAG_NEGATIVE); // Bit 7 is neg flag
   if pregA^ = 0 then
     flags := flags or FLAG_ZERO
@@ -2718,6 +2736,8 @@ begin
     flags := flags and NOT_FLAG_ZERO;      // Bit 6 is zero flag
   flags := flags and NOT_FLAG_PV;        // Kill parity flag for now
   flags := flags or parity_table[pregA^];
+  if _seth then
+    flags := flags or FLAG_HALFCARRY;
   pregF^ := flags;
 end;
 
@@ -3018,7 +3038,7 @@ var _index: Word;
 begin
   _index := FetchIQPDindex;
   pregA^ := pregA^ and ramarray[_index];
-  SetLogicalflags;
+  SetLogicalFlags(True);
   Inc(t_states,19);
 end;
 
@@ -3207,7 +3227,7 @@ var _index: Word;
 begin
   _index := FetchIQPDindex;
   pregA^ := pregA^ or ramarray[_index];
-  SetLogicalflags;
+  SetLogicalFlags(False);
   Inc(t_states,19);
 end;
 
@@ -3242,7 +3262,7 @@ var _index: Word;
 begin
   _index := FetchIQPDindex;
   pregA^ := pregA^ xor ramarray[_index];
-  SetLogicalflags;
+  SetLogicalFlags(False);
   Inc(t_states,19);
 end;
 
@@ -3580,9 +3600,10 @@ procedure TProcessor.ExecEdNEG; inline;
 var w: byte;
     flags: byte;
 begin
-  flags := pregF^ and NOT_FLAG_PV and NOT_FLAG_NEGATIVE and NOT_FLAG_ZERO and NOT_FLAG_HALFCARRY and NOT_FLAG_CARRY;
-  flags := pregF^ or FLAG_SUBTRACT;
   w := pregA^;
+  flags := pregF^;
+  flags := flags and NOT_FLAG_PV and NOT_FLAG_NEGATIVE and NOT_FLAG_ZERO and NOT_FLAG_HALFCARRY and NOT_FLAG_CARRY;
+  flags := flags or FLAG_SUBTRACT;
   if (w and $0F) <> 0 then flags := flags or FLAG_HALFCARRY;
   if w = $80 then flags := flags or FLAG_PV;
   if w <> 0 then flags := flags or FLAG_CARRY;
@@ -3765,10 +3786,6 @@ begin
   else
     error_flag := error_flag + [efIllegal];
   proc := inst_ddfd[opcode];
-  if proc <> nil then
-    proc
-  else
-    error_flag := error_flag + [efIllegal];
 end;
 
 
@@ -3813,8 +3830,10 @@ begin
                 ExecuteOneInst;
                 Inc(i);
                 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-//              if pregPC^ = $2000 then
-//                ProcessorState := psPaused;
+                {
+                if pregPC^ = $3AD4 then
+                  ProcessorState := psPaused;
+                }
                 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
               end;
             if error_flag <> [] then

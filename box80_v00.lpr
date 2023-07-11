@@ -11,7 +11,7 @@ uses
   {$ENDIF}
   Interfaces, // this includes the LCL widgetset
   Forms, fbox80, uprocessor, usio, uterminal, fterminal, fabout, uglobals, 
-  ucflash, uconfigdefs, uvirtual, uxml, fcfinfo, ucircular;
+  ucflash, uconfigdefs, uvirtual, uxml, fcfinfo, ucircular, fmemory;
 
 {$R *.res}
 
@@ -23,6 +23,7 @@ begin
   Application.CreateForm(TfrmTerminal, frmTerminal);
   Application.CreateForm(TfrmHelpAbout, frmHelpAbout);
   Application.CreateForm(TfrmCFinfo, frmCFinfo);
+  Application.CreateForm(TfrmMemory, frmMemory);
   Application.Run;
 end.
 

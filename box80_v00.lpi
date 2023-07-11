@@ -191,6 +191,13 @@
         <Filename Value="units\ucircular.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
+      <Unit>
+        <Filename Value="forms\fmemory.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmMemory"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

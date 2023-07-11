@@ -55,6 +55,7 @@ type
       FSavedY:      Byte;
       FMargin:     integer;        // Margin in pixels around the screen edge
       FRows:       integer;        // Number of rows
+      FLogStream:  TFileStream;
       function  ColToX(_col: integer): integer;
       procedure Paint; override;
       function  RowToY(_row: integer): integer;
@@ -101,11 +102,13 @@ begin
   if (FRows < 1) or (FRows > MAX_TERMINAL_ROWS) then
     raise Exception.Create('Illegal number of rows when creating terminal');
   SetLength(FScreen,FRows*FCols);
+  FLogStream := TFileStream.Create('C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\test_files\validation\terminal.log',fmCreate);
   Init;
 end;
 
 destructor TTerminal.Destroy;
 begin
+  FreeAndNil(FLogStream);
   FreeAndNil(FBuffer);
   inherited Destroy;
 end;
@@ -299,6 +302,7 @@ end;
 
 procedure TTerminal.WriteChar2(_ch: char);
 begin
+  FLogStream.WriteByte(Ord(_ch));
   case _ch of
     #8:  CmdBS;
     #9:  CmdHT;

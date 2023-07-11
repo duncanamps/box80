@@ -36,8 +36,8 @@ const
 {$ENDIF}
 {$IFDEF WINDOWS}
   MONITOR_BIN  = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\monitor.bin';
-//  BASIC_BIN    = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\basic.bin';
-  ZEXDOC_BIN   = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\test_files\validation\zexdoc.bin';
+  BASIC_BIN    = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\basic.bin';
+  ZEXDOC_BIN   = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\test_files\validation\test_z80.com';
   CPM22_BIN    = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\cpm22.bin';
   CBIOS128_BIN = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\cbios64.bin';
 //  PUTSYS_BIN   = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\putsys.bin';
@@ -321,7 +321,7 @@ implementation
 
 uses
   fterminal, fabout, lclintf, uconfigdefs, uvirtual, FileCtrl, ucflash,
-  fcfinfo, usio;
+  fcfinfo, usio, fmemory;
 
 { TfrmBox80 }
 
@@ -611,6 +611,9 @@ end;
 procedure TfrmBox80.FormActivate(Sender: TObject);
 begin
   frmTerminal.Processor := FProcessor;
+  frmMemory.Processor := FProcessor;
+  frmMemory.Visible := True;
+  frmMemory.StartAddr := $2000;
   FocusAllowed := True;
 end;
 
@@ -765,8 +768,8 @@ var strm: TFileStream;
 
 begin
   ReadImage(MONITOR_BIN,$0000);
-  ReadImage(ZEXDOC_BIN,$2000);
-//ReadImage(BASIC_BIN,$2000);
+//ReadImage(ZEXDOC_BIN,$2000);
+  ReadImage(BASIC_BIN,$2000);
 //ReadImage(CPM22_BIN,$D000);
 //ReadImage(CBIOS128_BIN,$E600);
 //ReadImage(PUTSYS_BIN,$5000);
@@ -901,6 +904,9 @@ begin
   labMIPS.Caption := Format('%7.3f',[FProcessor.PerfMIPS]);
   // Update the "last" variables
   last := rs;
+  // Update related screens
+  if Assigned(frmMemory) then
+    frmMemory.Refresh;
 end;
 
 procedure TfrmBox80.Status(const _msg: string);
