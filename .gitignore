@@ -16,6 +16,7 @@
 *.tx3
 *.txt
 *.xcf
+box80_dev_tasks.xlsx
 backup/
 binaries/debug/
 binaries/debugprofile/
