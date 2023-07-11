@@ -82,6 +82,8 @@ type
     actFileOpen: TAction;
     actFileSave: TAction;
     actFileCFinfo: TAction;
+    actVmLoadTPA: TAction;
+    actVMWarmReset: TAction;
     actTerminalLoadFile: TAction;
     actVMCPU5000: TAction;
     actVMCPU3333: TAction;
@@ -100,7 +102,8 @@ type
     actVMCPU333: TAction;
     actVMCPU40: TAction;
     actVMCPU80: TAction;
-    actVMReset: TAction;
+    actVMColdReset: TAction;
+    dlgOpenTPAfile: TOpenDialog;
     edtA: TEdit;
     edtAtPC: TEdit;
     edtA_: TEdit;
@@ -171,6 +174,9 @@ type
     FileMRU09: TMenuItem;
     FIleMRU08: TMenuItem;
     FileMRU07: TMenuItem;
+    miVMSep2: TMenuItem;
+    miVMLoadTPA: TMenuItem;
+    miWarmReset: TMenuItem;
     miTerminalLoad: TMenuItem;
     miTerminal: TMenuItem;
     miFileCFsep1: TMenuItem;
@@ -268,7 +274,7 @@ type
     procedure actVMCPU80Execute(Sender: TObject);
     procedure actVMCPUmaxExecute(Sender: TObject);
     procedure actFileOpenExecute(Sender: TObject);
-    procedure actVMResetExecute(Sender: TObject);
+    procedure actVMColdResetExecute(Sender: TObject);
     procedure actDebugRunExecute(Sender: TObject);
     procedure actDebugStepIntoExecute(Sender: TObject);
     procedure actDebugStepOverExecute(Sender: TObject);
@@ -276,6 +282,8 @@ type
     procedure actFileExitExecute(Sender: TObject);
     procedure actFileSaveAsExecute(Sender: TObject);
     procedure actFileSaveExecute(Sender: TObject);
+    procedure actVmLoadTPAExecute(Sender: TObject);
+    procedure actVMWarmResetExecute(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
     procedure configRestoreProperties(Sender: TObject);
     procedure FileMRU00Click(Sender: TObject);
@@ -350,6 +358,50 @@ begin
     end;
 end;
 
+procedure TfrmBox80.actVmLoadTPAExecute(Sender: TObject);
+var tpaname: string;
+    processor_state: TProcessorState;
+    stream: TFileStream;
+    buf: array[$0100..$D000-1] of byte;
+    i,bytes: integer;
+begin
+  dlgOpenTPAfile.InitialDir := GetConfig(SECTION_FOLDERS,CONFIG_FOLDER_TPA,'');
+  if dlgOpenTPAfile.Execute then
+    begin
+      tpaname := dlgOpenTPAfile.FileName;
+      processor_state := FProcessor.ProcessorState;
+      FProcessor.ExecuteStop;
+      FProcessor.WaitForStop;
+      // Do the load
+      stream := TFileStream.Create(tpaname,fmOpenRead);
+      try
+        bytes := stream.Read(buf[$100],$D000-$0100);
+        for i := 0 to bytes-1 do
+          FProcessor.WriteRAM(i+$0100,buf[i+$0100]);
+      finally
+        FreeAndNil(stream);
+      end;
+      // Start the processor up again if needed
+      FProcessor.ProcessorState := processor_state;
+      ShowRegisters;
+    end;
+end;
+
+procedure TfrmBox80.actVMWarmResetExecute(Sender: TObject);
+var saved_state: TProcessorState;
+begin
+  saved_state := FProcessor.ProcessorState;
+  if saved_state in [psRunning,psStepOver] then
+    begin
+      FProcessor.ExecuteStop;
+      FProcessor.WaitForStop;
+    end;
+  FProcessor.PC := 0; // Warm start is at address 0
+  ShowRegisters;
+  ProcStateUpdate;
+  FProcessor.ProcessorState := saved_state;
+end;
+
 procedure TfrmBox80.actDebugStopExecute(Sender: TObject);
 begin
   FProcessor.ExecuteStop;
@@ -419,7 +471,7 @@ begin
     end;
 end;
 
-procedure TfrmBox80.actVMResetExecute(Sender: TObject);
+procedure TfrmBox80.actVMColdResetExecute(Sender: TObject);
 {
 var saved_state: TProcessorState;
 }
@@ -492,7 +544,7 @@ begin
       PutConfig(SECTION_FOLDERS,CONFIG_FOLDER_CF,dlgOpenCF.InitialDir);
       FProcessor.WaitForStop;
       FProcessor.CFlash.Filename := dlgOpenCF.FileName;
-      ActVmResetExecute(Self);
+//      ActVmResetExecute(Self);
     end;
 end;
 
@@ -768,8 +820,8 @@ var strm: TFileStream;
 
 begin
   ReadImage(MONITOR_BIN,$0000);
-//ReadImage(ZEXDOC_BIN,$2000);
-  ReadImage(BASIC_BIN,$2000);
+  ReadImage(ZEXDOC_BIN,$2000);
+//ReadImage(BASIC_BIN,$2000);
 //ReadImage(CPM22_BIN,$D000);
 //ReadImage(CBIOS128_BIN,$E600);
 //ReadImage(PUTSYS_BIN,$5000);

@@ -48,7 +48,7 @@ object frmBox80: TfrmBox80
       Height = 32
       Top = 1
       Width = 32
-      Action = actVMReset
+      Action = actVMColdReset
       Align = alLeft
       Images = ImageList1
       ImageIndex = 1
@@ -911,6 +911,12 @@ object frmBox80: TfrmBox80
     end
     object miVM: TMenuItem
       Caption = '&VM'
+      object miVMLoadTPA: TMenuItem
+        Action = actVmLoadTPA
+      end
+      object miVMSep2: TMenuItem
+        Caption = '-'
+      end
       object miVMCPU: TMenuItem
         Caption = 'CPU speed'
         object miVMCPU00: TMenuItem
@@ -984,7 +990,10 @@ object frmBox80: TfrmBox80
         Caption = '-'
       end
       object miVMReset: TMenuItem
-        Action = actVMReset
+        Action = actVMColdReset
+      end
+      object miWarmReset: TMenuItem
+        Action = actVMWarmReset
       end
     end
     object miDebug: TMenuItem
@@ -1030,7 +1039,7 @@ object frmBox80: TfrmBox80
   object ActionList1: TActionList
     Images = ImageList1
     Left = 250
-    Top = 298
+    Top = 296
     object actFileExit: TAction
       Category = 'File'
       Caption = 'E&xit'
@@ -1072,17 +1081,18 @@ object frmBox80: TfrmBox80
       OnExecute = actDebugStopExecute
       ShortCut = 16497
     end
-    object actVMReset: TAction
+    object actVMColdReset: TAction
       Category = 'VM'
-      Caption = 'Reset'
+      Caption = 'Cold reset'
       Hint = 'Perform a cold reset of the machine'
       ImageIndex = 1
-      OnExecute = actVMResetExecute
+      OnExecute = actVMColdResetExecute
+      ShortCut = 57467
     end
     object actVMCPU40: TAction
       Category = 'VM'
       AutoCheck = True
-      Caption = '&4.0 MHz'
+      Caption = '&4.0 MHz (Z80A)'
       Checked = True
       GroupIndex = 1
       Hint = 'Set speed to 4.0 MHz'
@@ -1092,7 +1102,7 @@ object frmBox80: TfrmBox80
     object actVMCPU25: TAction
       Category = 'VM'
       AutoCheck = True
-      Caption = '&2.5 MHz'
+      Caption = '&2.5 MHz (Z80)'
       GroupIndex = 1
       Hint = 'Set speed to 2.5 MHz'
       OnExecute = actVMCPU25Execute
@@ -1100,7 +1110,7 @@ object frmBox80: TfrmBox80
     object actVMCPU80: TAction
       Category = 'VM'
       AutoCheck = True
-      Caption = '&8.0 MHz'
+      Caption = '&8.0 MHz (Z80H)'
       GroupIndex = 1
       Hint = 'Set CPU speed to 8.0 MHz'
       OnExecute = actVMCPU80Execute
@@ -1156,7 +1166,7 @@ object frmBox80: TfrmBox80
     object actVMCPU60: TAction
       Category = 'VM'
       AutoCheck = True
-      Caption = '&6.0 MHz'
+      Caption = '&6.0 MHz (Z80B)'
       GroupIndex = 1
       Hint = 'Set CPU speed to 6.0 MHz'
       OnExecute = actVMCPU60Execute
@@ -1281,6 +1291,19 @@ object frmBox80: TfrmBox80
       Hint = 'Load a file into the terminal'
       OnExecute = actTerminalLoadFileExecute
     end
+    object actVMWarmReset: TAction
+      Category = 'VM'
+      Caption = '&Warm reset'
+      Hint = 'Perform a warm reset of the machine'
+      OnExecute = actVMWarmResetExecute
+      ShortCut = 49275
+    end
+    object actVmLoadTPA: TAction
+      Category = 'VM'
+      Caption = 'Load to TPA ...'
+      Hint = 'Load binary file to Transient Program Area'
+      OnExecute = actVmLoadTPAExecute
+    end
   end
   object dlgCreateCF: TSaveDialog
     Title = 'Create new CF image'
@@ -1325,5 +1348,12 @@ object frmBox80: TfrmBox80
     Filter = 'Intel Hex files|*.hex|Text files|*.txt'
     Left = 454
     Top = 262
+  end
+  object dlgOpenTPAfile: TOpenDialog
+    Title = 'Load a file to the TPA'
+    DefaultExt = '.com'
+    Filter = 'CP/M executable|*.com'
+    Left = 417
+    Top = 466
   end
 end

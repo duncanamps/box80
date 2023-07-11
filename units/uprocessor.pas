@@ -74,11 +74,6 @@ type
   TRegIndex = (regAF,regBC,regDE,regHL,regAF_,regBC_,regDE_,regHL_,regIR,
                regIX,regIY,regSP,regPC);
 
-  {
-  TReg8Index = (regA,regB,regC,regD,regE,regH,regL,regF,regI,regR,
-                regIXH,regIXL,regIYH,regIYR,regSPH,regSPL,regPCH,regPCL);
-  }
-
   TRegisterSet = record
     registers:     array[TRegIndex] of Word;
     int_enabled:   byte;
@@ -128,6 +123,20 @@ type
       function  Fetch8: byte; inline;
       function  FetchIQPDindex: Word; inline;
       function  FetchOpcode: byte; inline;
+      function  Flag(_flagmask: byte): boolean; inline;
+      function  FlagNegative: boolean; inline;
+      function  FlagZero: boolean; inline;
+      function  FlagHalfCarry: boolean; inline;
+      function  FlagPV: boolean; inline;
+      function  FlagSubtract: boolean; inline;
+      function  FlagCarry: boolean; inline;
+      procedure SetFlag(_flagmask: byte; _value: boolean); inline;
+      procedure SetFlagNegative(_value: boolean); inline;
+      procedure SetFlagZero(_value: boolean); inline;
+      procedure SetFlagHalfCarry(_value: boolean); inline;
+      procedure SetFlagPV(_value: boolean); inline;
+      procedure SetFlagSubtract(_value: boolean); inline;
+      procedure SetFlagCarry(_value: boolean); inline;
       function  GetCFPortBase: byte;
       function  GetRegisterSet: TRegisterSet;
       function  GetPerfMIPS: double;
@@ -567,6 +576,7 @@ type
       procedure ReadFromXml(doc: TXMLDocument);
       procedure WaitForStop;
       procedure WriteToXml(doc: TXMLDocument);
+      procedure WriteRAM(_addr: word; _data: byte);
       property AllowUndocumented: boolean read FAllowUndocumented write FAllowUndocumented;
       property CFlash: TCompactFlashInterface read FCFlash;
       property CPUspeed: int64 read cpu_speed write SetCPUspeed;
@@ -574,11 +584,11 @@ type
       property ErrorString: string read FErrorString;
       property OnStateChange: TStateChangeProc read FOnStateChange write FOnStateChange;
       property OnTransmitA: TSIOtransmitProc read FOnTransmitA write SetOnTransmitA;
-      property PC: Word read regset.registers[regPC];
+      property PC: Word read regset.registers[regPC] write regset.registers[regPC];
       property PerfMHz: double read GetPerfMHz;
       property PerfMIPS: double read GetPerfMIPS;
       property ProcessorState: TProcessorState read FProcessorState write SetProcessorState;
-      property RAM: TRAMarray read ramarray;
+      property RAM: TRAMarray read ramarray write ramarray;
       property RegisterSet: TRegisterSet read GetRegisterSet;
       property TStates: int64 read t_states write t_states;
   end;
@@ -655,6 +665,82 @@ begin
   FreeAndNil(FCFlash);
   FreeAndNil(SIO);
   inherited Destroy;
+end;
+
+function TProcessor.Flag(_flagmask: byte): boolean; inline;
+begin
+  if (pregF^ and _flagmask) <> 0 then
+    Result := True
+  else
+    Result := False;
+end;
+
+function TProcessor.FlagNegative: boolean; inline;
+begin
+  Result := Flag(FLAG_NEGATIVE);
+end;
+
+function TProcessor.FlagZero: boolean; inline;
+begin
+  Result := Flag(FLAG_ZERO);
+end;
+
+function TProcessor.FlagHalfCarry: boolean; inline;
+begin
+  Result := Flag(FLAG_HALFCARRY);
+end;
+
+function TProcessor.FlagPV: boolean; inline;
+begin
+  Result := Flag(FLAG_PV);
+end;
+
+function TProcessor.FlagSubtract: boolean; inline;
+begin
+  Result := Flag(FLAG_SUBTRACT);
+end;
+
+function TProcessor.FlagCarry: boolean; inline;
+begin
+  Result := Flag(FLAG_CARRY);
+end;
+
+procedure TProcessor.SetFlag(_flagmask: byte; _value: boolean); inline;
+begin
+  if _value then
+    pregF^ := pregF^ or _flagmask
+  else
+    pregF^ := pregF^ and (_flagmask xor $FF);
+end;
+
+procedure TProcessor.SetFlagNegative(_value: boolean); inline;
+begin
+  SetFlag(FLAG_NEGATIVE,_value);
+end;
+
+procedure TProcessor.SetFlagZero(_value: boolean); inline;
+begin
+  SetFlag(FLAG_ZERO,_value);
+end;
+
+procedure TProcessor.SetFlagHalfCarry(_value: boolean); inline;
+begin
+  SetFlag(FLAG_HALFCARRY,_value);
+end;
+
+procedure TProcessor.SetFlagPV(_value: boolean); inline;
+begin
+  SetFlag(FLAG_PV,_value);
+end;
+
+procedure TProcessor.SetFlagSubtract(_value: boolean); inline;
+begin
+  SetFlag(FLAG_SUBTRACT,_value);
+end;
+
+procedure TProcessor.SetFlagCarry(_value: boolean); inline;
+begin
+  SetFlag(FLAG_CARRY,_value);
 end;
 
 {$RANGECHECKS OFF}  // Range checking is off so we can roll over registers
@@ -1060,6 +1146,7 @@ begin
   ExecSub(ramarray[pregHL^],7,False);
 end;
 
+{
 procedure TProcessor.ExecDAA; inline;
 type
   TDAAflags = (dfMSB0_2,dfMSB0_3,dfMSB0_8,dfMSB0_9,dfMSB6_F,dfMSB7_F,dfMSB9_F,
@@ -1118,6 +1205,51 @@ begin
   pregF^ := pregF^ or parity_table[pregA^];
   if (pregA^ and $80) <> 0 then
     pregF^ := pregF^ or FLAG_NEGATIVE;
+  Inc(t_states,4);
+end;
+}
+
+procedure TProcessor.ExecDAA; inline;
+var t: integer;
+    multiplier: integer;
+begin
+  // Algorithm from StackOverflow article by Rui F Ribiero:
+  // https://stackoverflow.com/questions/8119577/z80-daa-instruction
+
+  t := 0;
+  if FlagHalfCarry or ((pregA^ and $0F) > $09) then
+    Inc(t);
+  if FlagCarry or ((pregA^ and $F0) > $99) then
+    begin
+      t := t + 2;
+      SetFlagCarry(True);
+    end;
+
+  // Build the final H flag
+  if FlagSubtract and not FlagHalfCarry then
+    SetFlagHalfCarry(False)
+  else
+    begin
+      if FlagNegative and FlagHalfCarry then
+        SetFlagHalfCarry((pregA^ and $0F) < 6)
+      else
+        SetFlagHalfCarry((pregA^ and $0F) >= $0A);
+    end;
+
+  // Adjust accumulator
+  multiplier := 1;
+  if FlagSubtract then multiplier := -1;
+  case t of
+    1: pregA^ := pregA^ + multiplier * $06;
+    2: pregA^ := pregA^ + multiplier * $60;
+    3: pregA^ := pregA^ + multiplier * $66;
+  end;
+
+  // Final tidy up of S, Z and P/V flags
+  SetFlagNegative(pregA^ >= $80);
+  SetFlagZero(pregA^ = $00);
+  pregF^ := pregF^ or parity_table[pregA^];
+
   Inc(t_states,4);
 end;
 
@@ -2820,6 +2952,11 @@ begin
   // Load the SIO sections
   SIO.ChannelA.WriteToXml(doc,'a');
   SIO.ChannelB.WriteToXml(doc,'b');
+end;
+
+procedure TProcessor.WriteRAM(_addr: word; _data: byte);
+begin
+  ramarray[_addr] := _data;
 end;
 
 

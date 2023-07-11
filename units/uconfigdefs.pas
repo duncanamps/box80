@@ -33,6 +33,7 @@ const
 
   CONFIG_FOLDER_CF   = 'ConfigFolderCF';
   CONFIG_FOLDER_TEXT = 'ConfigFolderText';
+  CONFIG_FOLDER_TPA  = 'COnfigFolderTPA';
   CONFIG_FOLDER_VM   = 'ConfigFolderVM';
   CONFIG_MRU_PREFIX  = 'MRU';
 
