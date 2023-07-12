@@ -40,7 +40,7 @@ const
   ZEXDOC_BIN   = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\test_files\validation\test_z80.com';
   CPM22_BIN    = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\cpm22.bin';
   CBIOS128_BIN = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\cbios64.bin';
-//  PUTSYS_BIN   = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\putsys.bin';
+  PUTSYS_BIN   = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\putsys.bin';
 {$ENDIF}
 
 
@@ -820,11 +820,11 @@ var strm: TFileStream;
 
 begin
   ReadImage(MONITOR_BIN,$0000);
-  ReadImage(ZEXDOC_BIN,$2000);
+//ReadImage(ZEXDOC_BIN,$2000);
 //ReadImage(BASIC_BIN,$2000);
-//ReadImage(CPM22_BIN,$D000);
-//ReadImage(CBIOS128_BIN,$E600);
-//ReadImage(PUTSYS_BIN,$5000);
+  ReadImage(CPM22_BIN,$D000);
+  ReadImage(CBIOS128_BIN,$E600);
+  ReadImage(PUTSYS_BIN,$5000);
 end;
 
 procedure TfrmBox80.SetActions;
@@ -957,8 +957,10 @@ begin
   // Update the "last" variables
   last := rs;
   // Update related screens
+{$IFDEF UPDATE_MEMORY}
   if Assigned(frmMemory) then
     frmMemory.Refresh;
+{$ENDIF}
 end;
 
 procedure TfrmBox80.Status(const _msg: string);

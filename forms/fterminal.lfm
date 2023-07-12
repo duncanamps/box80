@@ -1,13 +1,13 @@
 object frmTerminal: TfrmTerminal
   Left = 721
-  Height = 550
+  Height = 440
   Top = 225
-  Width = 850
+  Width = 680
   BorderIcons = []
   BorderStyle = bsSingle
   Caption = 'Terminal'
-  DesignTimePPI = 120
   KeyPreview = True
+  OnActivate = FormActivate
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnKeyPress = FormKeyPress
@@ -16,7 +16,7 @@ object frmTerminal: TfrmTerminal
   object Timer1: TTimer
     Interval = 40
     OnTimer = Timer1Timer
-    Left = 320
-    Top = 57
+    Left = 256
+    Top = 46
   end
 end

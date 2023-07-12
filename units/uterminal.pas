@@ -80,6 +80,7 @@ type
       property  CursorCol: integer   read FCursorCol  write FCursorCol;
       property  CursorRow: integer   read FCursorRow  write FCursorRow;
       property  CursorLit:   boolean read FCursorLit   write FCursorLit;
+      property  Margin:    integer   read FMargin;
       property  Screen:    TAOB      read FScreen     write FScreen;
       property  Cols:      integer   read FCols       write FCols;
       property  Rows:      integer   read FRows       write FRows;

@@ -48,7 +48,7 @@
 // that are not operating correctly.
 //
 
-BOX80		EQU		1
+//BOX80		EQU		1
 
 			IFDEF BOX80
 			ORG		$2000

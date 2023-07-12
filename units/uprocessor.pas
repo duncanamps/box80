@@ -137,6 +137,7 @@ type
       procedure SetFlagPV(_value: boolean); inline;
       procedure SetFlagSubtract(_value: boolean); inline;
       procedure SetFlagCarry(_value: boolean); inline;
+      procedure SetFlagNZ53;
       function  GetCFPortBase: byte;
       function  GetRegisterSet: TRegisterSet;
       function  GetPerfMIPS: double;
@@ -743,6 +744,14 @@ begin
   SetFlag(FLAG_CARRY,_value);
 end;
 
+procedure TProcessor.SetFlagNZ53;
+begin // Sets the Negative, Zero, X5 and X3 flags based on contents of A
+  pregF^ := pregF^ and NOT_FLAG_NEGATIVE and NOT_FLAG_ZERO and NOT_FLAG_X5 and NOT_FLAG_X3;
+  pregF^ := pregF^ or (pregA^ and (FLAG_NEGATIVE and FLAG_X5 and FLAG_X3));
+  if pregA^ = 0 then
+    SetFlagZero(True);
+end;
+
 {$RANGECHECKS OFF}  // Range checking is off so we can roll over registers
 
 function TProcessor.Add16u8s(_word: Word; _byte: byte): Word;
@@ -1213,13 +1222,13 @@ procedure TProcessor.ExecDAA; inline;
 var t: integer;
     multiplier: integer;
 begin
-  // Algorithm from StackOverflow article by Rui F Ribiero:
+  // Algorithm from StackOverflow article by Rui F Ribeiro:
   // https://stackoverflow.com/questions/8119577/z80-daa-instruction
 
   t := 0;
   if FlagHalfCarry or ((pregA^ and $0F) > $09) then
     Inc(t);
-  if FlagCarry or ((pregA^ and $F0) > $99) then
+  if FlagCarry or (pregA^ > $99) then
     begin
       t := t + 2;
       SetFlagCarry(True);
@@ -3966,12 +3975,12 @@ begin
               begin
                 ExecuteOneInst;
                 Inc(i);
-                // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
                 {
-                if pregPC^ = $3AD4 then
-                  ProcessorState := psPaused;
-                }
                 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                if pregPC^ = $5000 then
+                  ProcessorState := psPaused;
+                // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                }
               end;
             if error_flag <> [] then
               ProcessorState := psFault

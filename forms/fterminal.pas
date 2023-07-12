@@ -28,12 +28,16 @@ uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls,
   uterminal, uprocessor;
 
+CONST TERM_W = 80;
+      TERM_H = 25;
+
 type
 
   { TfrmTerminal }
 
   TfrmTerminal = class(TForm)
     Timer1: TTimer;
+    procedure FormActivate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormKeyPress(Sender: TObject; var Key: char);
@@ -60,17 +64,28 @@ implementation
 
 procedure TfrmTerminal.FormCreate(Sender: TObject);
 begin
-  FTerminal := TTerminal.Create(Self,80,25);
+  FTerminal := TTerminal.Create(Self,TERM_W,TERM_H);
   FTerminal.Parent := Self;
   FTerminal.Top := 0;
   FTerminal.Left := 0;
   FTerminal.Width := 814;
   FTerminal.Height := 490;
-//FTerminal.Align := alClient;
+  FTerminal.Align := alClient;
   FTerminal.Color := TColor($00000000);
   FTerminal.Font.Color := clWhite;
   FTerminal.Font.Name := 'Lucida Sans Typewriter';
   FTerminal.Font.Size := 10;
+end;
+
+procedure TfrmTerminal.FormActivate(Sender: TObject);
+var req_width, req_height: integer;
+begin
+  req_width  := FTerminal.Margin * 2 + FTerminal.Canvas.TextWidth('Wg') * TERM_W div 2;
+  req_height := FTerminal.Margin * 2 + FTerminal.Canvas.TextHeight('Wg') * TERM_H;
+  if FTerminal.Width <> req_width then
+    Width := Width + req_width - FTerminal.Width;
+  if FTerminal.Height <> req_height then
+    Height := Height + req_height - FTerminal.Height;
 end;
 
 procedure TfrmTerminal.FormDestroy(Sender: TObject);
