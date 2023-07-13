@@ -33,6 +33,7 @@ const
   CB_CMD_WRITE    = $02;
   CB_CMD_CONTAINS = $03;
   CB_CMD_CAPACITY = $04;
+  CB_CMD_PCTFULL  = $05;
 
 
 type
@@ -45,11 +46,15 @@ type
       FPtrIn:    integer;
       FPtrOut:   integer;
       procedure Bump(var _ptr: integer);
+      function  GetCapacity: integer;
+      function  GetContains: integer;
       procedure Reset;
     public
       constructor Create(_maxsize: integer);
       destructor Destroy; override;
       function DoCmd(_cmd: byte; var _payload: byte): boolean;
+      property Capacity: integer read GetCapacity;
+      property Contains: integer read GetContains;
   end;
 
 
@@ -114,6 +119,10 @@ begin
             i := 255;
           _payload := i and $FF;
         end;
+      CB_CMD_PCTFULL:
+        begin
+          _payload := 100 * FContains div FSize;
+        end;
       CB_CMD_RESET:
         Reset;
       otherwise
@@ -122,6 +131,20 @@ begin
   finally
     LeaveCriticalSection(FCS);
   end;
+end;
+
+function TCircularBuffer.GetCapacity: integer;
+var b: byte;
+begin
+  DoCmd(CB_CMD_CAPACITY,b);
+  Result := b;
+end;
+
+function TCircularBuffer.GetContains: integer;
+var b: byte;
+begin
+  DoCmd(CB_CMD_CONTAINS,b);
+  Result := b;
 end;
 
 procedure TCircularBuffer.Reset;

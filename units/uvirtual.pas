@@ -43,7 +43,7 @@ begin
   // Make sure we stop the processor first
   if _proc.ProcessorState = psRunning then
     _proc.WaitForStop;
-  _proc.Init;
+  _proc.Reset;
   try
     ReadXMLfile(doc, _filename);
     // Read the environment

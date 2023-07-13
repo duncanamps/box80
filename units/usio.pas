@@ -31,8 +31,9 @@ const
   SIO_FIFO_SIZE = 3;
 
 type
+  TSIOCanInterruptFunc = function(): boolean of object;
   TSIOInterruptProc = procedure(_b: byte) of object;
-  TSIOTransmitProc = procedure(_b: byte) of object;
+  TSIOTransmitFunc = function(_b: byte): boolean of object;
 
   TSIOchanneldes = (scdA,scdB); // SIO channel designator
 
@@ -47,12 +48,13 @@ type
 //    FControl:      byte;
       FRxData:       byte;
       FTxData:       byte;
-      FOnTransmit:   TSIOTransmitProc;
+      FOnTransmit:   TSIOTransmitFunc;
       FParent:       TSIO;
       FRegRead:      TSIOreadArray;
       FRegWrite:     TSIOwriteArray;
       FCircular:     TCircularBuffer;
       HasRxData:     boolean;
+      procedure AttemptWrite;
       function  GetControl: byte;
       function  GetData: byte;
       function  PullFromFIFO: boolean;
@@ -77,7 +79,7 @@ type
       procedure WriteToXml(doc: TXMLDocument; const _prefix: string);
       property Control: byte read GetControl write SetControl;
       property Data: byte    read GetData    write SetData;
-      property OnTransmit: TSIOTransmitProc  write FOnTransmit;
+      property OnTransmit: TSIOTransmitFunc  write FOnTransmit;
       property Received: byte read FRXdata write SetReceived;
       property RegRead: TSIOreadArray    read FRegRead;
       property RegWrite: TSIOwriteArray  read FRegWrite;
@@ -85,18 +87,21 @@ type
 
   TSIO = class(TObject)
     private
-      FChannelA:  TSIOchannel;
-      FChannelB:  TSIOchannel;
-      FOnInterrupt: TSIOInterruptProc;
+      FChannelA:        TSIOchannel;
+      FChannelB:        TSIOchannel;
+      FInterruptNeeded: boolean;
+      FOnCanInterrupt:  TSIOCanInterruptFunc;
+      FOnInterrupt:     TSIOInterruptProc;
     public
       constructor Create;
       destructor Destroy; override;
       procedure ClockRX;
-      procedure Init;
+      procedure Reset;
       procedure TriggerInterrupt;
       property ChannelA: TSIOchannel read FChannelA write FChannelA;
       property ChannelB: TSIOchannel read FChannelB write FChannelB;
-      property OnInterrupt: TSIOInterruptProc write FOnInterrupt;
+      property OnCanInterrupt: TSIOCanInterruptFunc write FOnCanInterrupt;
+      property OnInterrupt:    TSIOInterruptProc    write FOnInterrupt;
   end;
 
 implementation
@@ -130,11 +135,15 @@ begin
   inherited Destroy;
 end;
 
-function TSIOchannel.BufCapacity: byte;
-var b: byte;
+procedure TSIOchannel.AttemptWrite;
 begin
-  FCircular.DoCmd(CB_CMD_CAPACITY,b);
-  Result := b;
+  if IsTxBusy and FOnTransmit(FTxData) then
+    SetTXempty;
+end;
+
+function TSIOchannel.BufCapacity: byte;
+begin
+  Result := FCircular.Capacity;
 end;
 
 function TSIOchannel.GetData: byte;
@@ -161,13 +170,12 @@ end;
 procedure TSIOchannel.IncomingChar(_b: byte);
 var next_ptr: integer;
 begin
-  {
-  if FIFOfull then
+  if FCircular.Capacity = 0 then
     begin
-      siodebugObj.LogInfo('TSIOchannel.IncomingChar()','Exit due to overflow');
+//    siodebugObj.LogInfo('TSIOchannel.IncomingChar()','Exit due to overflow');
+      raise Exception.Create('IncomingChar() buffer overflow');
       Exit; // FIFO overflow - we shouldn't be sending it characters
     end;
-  }
   if not FCircular.DoCmd(CB_CMD_WRITE,_b) then
     raise Exception.Create('Overrun on buffer write');
   SetRXavailable;
@@ -189,18 +197,18 @@ end;
 
 function TSIOchannel.IsRXbusy: boolean;
 begin
-  Result := (FRegRead[0] and $01) <> 0;
+  Result := (FRegRead[0] and SIO_RX_AVAILABLE) <> 0;
 end;
 
 function TSIOchannel.IsTXbusy: boolean;
 begin
-  Result := (FRegRead[0] and $02) = 0;
+  Result := (FRegRead[0] and SIO_TX_EMPTY) = 0;
 end;
 
 function TSIOchannel.PullFromFIFO: boolean;
 begin
   Result := False;
-  if HasRxData then
+  if HasRxData or (not RTS) then
     Exit;
   HasRxData := HasRxData or FCircular.DoCmd(CB_CMD_READ,FRxData);
   Result := HasRxData;
@@ -241,8 +249,10 @@ begin
       begin
         FTxData := _b;
         SetTXfull;
+        {
         FOnTransmit(_b);
         SetTXempty;
+        }
       end
     end
   else
@@ -306,7 +316,7 @@ begin
   inherited Create;
   FChannelA := TSIOchannel.Create(Self,scdA);
   FChannelB := TSIOchannel.Create(Self,scdB);
-  Init;
+  Reset;
 end;
 
 destructor TSIO.Destroy;
@@ -318,16 +328,31 @@ end;
 
 procedure TSIO.ClockRX;
 begin
-  if FChannelA.PullFromFIFO then
-    TriggerInterrupt;
-  if FChannelB.PullFromFIFO then
-    TriggerInterrupt;
+  // SIO writes to "screen"
+  FChannelA.AttemptWrite;
+  FChannelB.AttemptWrite;
+  // SIO reads from "keyboard"
+  if not FInterruptNeeded then
+    begin
+      FChannelA.PullFromFIFO;
+      FChannelB.PullFromFIFO;
+    end;
+  if FChannelA.HasRxData or FChannelB.HasRxData then
+    FInterruptNeeded := True;
+  if FInterruptNeeded and
+     Assigned(FOnCanInterrupt) and
+     FOnCanInterrupt() then
+    begin
+      FInterruptNeeded := False;
+      TriggerInterrupt;
+    end;
 end;
 
-procedure TSIO.Init;
+procedure TSIO.Reset;
 begin
   FChannelA.Init;
   FChannelB.Init;
+  FInterruptNeeded := False;
 end;
 
 procedure TSIO.TriggerInterrupt;
