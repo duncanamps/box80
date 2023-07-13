@@ -25,10 +25,14 @@ unit usio;
 interface
 
 uses
-  Classes, SysUtils, uxml, DOM, ucircular;
+  Classes, SysUtils, uxml, DOM,
+{$IFDEF DEBUG_SIO}
+  SyncObjs,
+{$ENDIF}
+  ucircular;
 
 const
-  SIO_FIFO_SIZE = 3;
+  SIO_FIFO_SIZE = 8192;
 
 type
   TSIOCanInterruptFunc = function(): boolean of object;
@@ -41,6 +45,22 @@ type
 
   TSIOreadArray  = array[0..2] of byte;
   TSIOwriteArray = array[0..7] of byte;
+
+  {$IFDEF DEBUG_SIO}
+  TSIOdebugObject = class(TObject)
+    private
+      FCS: TCriticalSection;
+      FIndent: integer;
+      FStream: TFileStream;
+    public
+      constructor Create;
+      destructor Destroy; override;
+      procedure Log(_locus: string; _msg: string);
+      procedure Log(_locus: string; const _fmt: string; const _args: array of const);
+      procedure LogE(_locus: string; _msg: string);
+      procedure LogX(_locus: string; _msg: string);
+  end;
+  {$ENDIF}
 
   TSIOchannel = class(TObject)
     private
@@ -113,6 +133,73 @@ const
   SIO_NOT_TX_EMPTY = (SIO_TX_EMPTY xor $FF);
   SIO_NOT_RX_AVAILABLE = (SIO_RX_AVAILABLE xor $FF);
 
+
+
+//-----------------------------------------------------------------------------
+//
+//  TSIOdebugObject code
+//
+//-----------------------------------------------------------------------------
+
+{$IFDEF DEBUG_SIO}
+
+var
+    siodebug: TSIOdebugObject;
+
+constructor TSIOdebugObject.Create;
+begin
+  inherited Create;
+  FCS := TCriticalSection.create;
+  FStream := TFileStream.Create('C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\test_files\debug\siodebug.log',fmCreate);
+  FIndent := 0;
+end;
+
+destructor TSIOdebugObject.Destroy;
+begin
+  FreeAndNil(FStream);
+  FreeAndNil(FCS);
+  inherited Destroy;
+end;
+
+procedure TSIOdebugObject.Log(_locus: string; _msg: string);
+
+  procedure WriteStr(_s: string);
+  begin
+    if FIndent = 0 then
+      _s := _s + #13 + #10
+    else
+      _s := Space(FIndent*2) + _s + #13 + #10;
+    FStream.Write(_s[1],Length(_s));
+  end;
+
+begin
+
+  WriteStr(_locus + ': ' + _msg);
+end;
+
+procedure TSIOdebugObject.Log(_locus: string; const _fmt: string; const _args: array of const);
+begin
+  Log(_locus,Format(_fmt,_args));
+end;
+
+procedure TSIOdebugObject.LogE(_locus: string; _msg: string);
+begin
+  FCS.Enter;
+  Log(_locus,_msg);
+  Inc(FIndent);
+end;
+
+procedure TSIOdebugObject.LogX(_locus: string; _msg: string);
+begin
+  Dec(FIndent);
+  Log(_locus,_msg);
+  FCS.Leave;
+end;
+
+{$ENDIF} // IFDEF DEBUG_SIO
+
+
+
 //-----------------------------------------------------------------------------
 //
 //  TSIOchannel code
@@ -136,55 +223,92 @@ begin
 end;
 
 procedure TSIOchannel.AttemptWrite;
-begin
-  if IsTxBusy and FOnTransmit(FTxData) then
+begin // Only call if we have a character in TX buffer to send
+  {$IFDEF DEBUG_SIO}
+  siodebug.LogE('TSIOchannel.AttemptWrite()','Enter');
+  {$ENDIF}
+  if FOnTransmit(FTxData) then
     SetTXempty;
+  {$IFDEF DEBUG_SIO}
+  siodebug.LogX('TSIOchannel.AttemptWrite()','Exit');
+  {$ENDIF}
 end;
 
 function TSIOchannel.BufCapacity: byte;
 begin
+  {$IFDEF DEBUG_SIO}
+  siodebug.LogE('TSIOchannel.BufCapacity()','Enter');
+  {$ENDIF}
   Result := FCircular.Capacity;
+  {$IFDEF DEBUG_SIO}
+  siodebug.Log('TSIOchannel.BufCapacity()','Value = %d',[Result]);
+  siodebug.LogX('TSIOchannel.BufCapacity()','Exit');
+  {$ENDIF}
 end;
 
 function TSIOchannel.GetData: byte;
 var b: byte;
 begin
+  {$IFDEF DEBUG_SIO}
+  siodebug.LogE('TSIOchannel.GetData()','Enter');
+  {$ENDIF}
   Result := FRXdata;
   HasRxData := False;
   FCircular.DoCmd(CB_CMD_CONTAINS,b);
   if b = 0 then
     SetRXempty;
+  {$IFDEF DEBUG_SIO}
+  siodebug.Log('TSIOchannel.GetData()','Result = %d ($%2.2X)',[Result,Result]);
+  siodebug.LogX('TSIOchannel.GetData()','Exit');
+  {$ENDIF}
 end;
 
 function TSIOchannel.GetControl: byte;
 var index: integer;
 begin
+  {$IFDEF DEBUG_SIO}
+  siodebug.LogE('TSIOchannel.GetControl()','Enter');
+  {$ENDIF}
   index := FRegWrite[0] and $07; // Get the index to read from
   if (index > 2) then
     raise Exception.Create('Attempt to read from unimplemented SIO register');
   Result := FRegRead[index];
   if (index > 0) then
     FRegWrite[0] := FRegWrite[0] and $F8; // Set index back to 0 for next cmd
+  {$IFDEF DEBUG_SIO}
+  siodebug.Log('TSIOchannel.GetControl()','Index = %d, Result = %d ($%2.2X)',[index,Result,Result]);
+  siodebug.LogX('TSIOchannel.GetControl()','Exit');
+  {$ENDIF}
 end;
 
 procedure TSIOchannel.IncomingChar(_b: byte);
 var next_ptr: integer;
 begin
+  {$IFDEF DEBUG_SIO}
+  siodebug.LogE('TSIOchannel.IncomingChar()','Enter');
+  siodebug.Log('TSIOchannel.IncomingChar()','Byte to write is %d (%2.2X)',[_b,_b]);
+  siodebug.Log('TSIOchannel.IncomingChar()','SIO receive capacity is %d',[FCircular.Capacity]);
+  {$ENDIF}
   if FCircular.Capacity = 0 then
     begin
-//    siodebugObj.LogInfo('TSIOchannel.IncomingChar()','Exit due to overflow');
       raise Exception.Create('IncomingChar() buffer overflow');
       Exit; // FIFO overflow - we shouldn't be sending it characters
     end;
   if not FCircular.DoCmd(CB_CMD_WRITE,_b) then
     raise Exception.Create('Overrun on buffer write');
   SetRXavailable;
+  {$IFDEF DEBUG_SIO}
+  siodebug.LogX('TSIOchannel.IncomingChar()','Exit');
+  {$ENDIF}
 end;
 
 procedure TSIOchannel.Init;
 var i: integer;
     b: byte;
 begin
+  {$IFDEF DEBUG_SIO}
+  siodebug.LogE('TSIOchannel.IncomingInit()','Enter');
+  {$ENDIF}
   for i := 0 to 7 do
     FRegWrite[i] := 0;
   for i := 0 to 2 do
@@ -193,25 +317,50 @@ begin
   SetTXempty;
   SetRXempty;
   FCircular.DoCmd(CB_CMD_RESET,b);
+  {$IFDEF DEBUG_SIO}
+  siodebug.LogX('TSIOchannel.IncomingInit()','Exit');
+  {$ENDIF}
 end;
 
 function TSIOchannel.IsRXbusy: boolean;
 begin
+  {$IFDEF DEBUG_SIO}
+  siodebug.LogE('TSIOchannel.IsRxBusy()','Enter');
+  {$ENDIF}
   Result := (FRegRead[0] and SIO_RX_AVAILABLE) <> 0;
+  {$IFDEF DEBUG_SIO}
+  siodebug.Log('TSIOchannel.IsRxBusy()','Result = %s',[BoolToStr(Result)]);
+  siodebug.LogX('TSIOchannel.IsRxBusy()','Exit');
+  {$ENDIF}
 end;
 
 function TSIOchannel.IsTXbusy: boolean;
 begin
+  {$IFDEF DEBUG_SIO}
+  siodebug.LogE('TSIOchannel.IsTxBusy()','Enter');
+  {$ENDIF}
   Result := (FRegRead[0] and SIO_TX_EMPTY) = 0;
+  {$IFDEF DEBUG_SIO}
+  siodebug.Log('TSIOchannel.IsTxBusy()','Result = %s',[BoolToStr(Result)]);
+  siodebug.LogX('TSIOchannel.IsTxBusy()','Exit');
+  {$ENDIF}
 end;
 
 function TSIOchannel.PullFromFIFO: boolean;
 begin
+  {$IFDEF DEBUG_SIO}
+  siodebug.LogE('TSIOchannel.PullFromFIFO()','Enter');
+  {$ENDIF}
   Result := False;
-  if HasRxData or (not RTS) then
-    Exit;
-  HasRxData := HasRxData or FCircular.DoCmd(CB_CMD_READ,FRxData);
-  Result := HasRxData;
+  if (not HasRxData) and RTS then
+    begin
+      HasRxData := HasRxData or FCircular.DoCmd(CB_CMD_READ,FRxData);
+      Result := HasRxData;
+    end;
+  {$IFDEF DEBUG_SIO}
+  siodebug.Log('TSIOchannel.PullFromFIFO()','Result = %s',[BoolToStr(Result)]);
+  siodebug.LogX('TSIOchannel.PullFromFIFO()','Exit');
+  {$ENDIF}
 end;
 
 procedure TSIOchannel.ReadFromXml(doc: TXMLDocument; const _prefix: string);
@@ -314,6 +463,9 @@ end;
 constructor TSIO.Create;
 begin
   inherited Create;
+  {$IFDEF DEBUG_SIO}
+  SIOdebug := TSIOdebugObject.Create;
+  {$ENDIF}
   FChannelA := TSIOchannel.Create(Self,scdA);
   FChannelB := TSIOchannel.Create(Self,scdB);
   Reset;
@@ -323,14 +475,19 @@ destructor TSIO.Destroy;
 begin
   FreeAndNil(FChannelB);
   FreeAndNil(FChannelA);
+  {$IFDEF DEBUG_SIO}
+  FreeAndNil(SIOdebug);
+  {$ENDIF}
   inherited Destroy;
 end;
 
 procedure TSIO.ClockRX;
 begin
   // SIO writes to "screen"
-  FChannelA.AttemptWrite;
-  FChannelB.AttemptWrite;
+  if FChannelA.IsTxBusy then
+    FChannelA.AttemptWrite;
+  if FChannelB.IsTxBusy then
+    FChannelB.AttemptWrite;
   // SIO reads from "keyboard"
   if not FInterruptNeeded then
     begin

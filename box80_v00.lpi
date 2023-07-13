@@ -239,10 +239,10 @@
       </Options>
     </Linking>
     <Other>
-      <CustomOptions Value="-dPROFILE"/>
-      <OtherDefines Count="2">
+      <OtherDefines Count="3">
         <Define0 Value="PROFILE"/>
         <Define1 Value="EXEC_TRACE"/>
+        <Define2 Value="DEBUG_SIO"/>
       </OtherDefines>
     </Other>
   </CompilerOptions>

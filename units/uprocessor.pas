@@ -4060,7 +4060,7 @@ begin
     end;
   // Check SIOs as they are clocked from here
   Inc(big_counter);
-  if (big_counter and $3F) = 0 then // About every 32 instructions
+  if (big_counter and $1f) = 0 then // About every 32 instructions
     if (not int_flag) then
       SIO.ClockRX;
   Result := (error_flag = []);
