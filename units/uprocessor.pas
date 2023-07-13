@@ -67,7 +67,7 @@ type
   TPortOutProcedure = procedure(_portno: Word; _value: byte) of object;
 
 
-  TSIOtransmitProc = procedure(_value: byte) of object;
+  TSIOtransmitFunc = function(_value: byte): boolean of object;
 
   TRAMarray = array[Word] of byte;
 
@@ -113,12 +113,13 @@ type
       run_start_time:         TDateTime;
       run_start_cycles:       int64;
       run_start_instructions: int64;
-      FOnTransmitA: TSIOtransmitProc;
+      FOnTransmitA: TSIOtransmitFunc;
       FOnStateChange: TStateChangeProc;
       FErrorString: string;
       // Procs / funcs
       function  Add16u8s(_word: Word; _byte: byte): Word;
       function  Fetch16: Word; inline;
+      function  CanInterrupt: boolean;
       procedure ClearTemporaryBreakpoints;
       function  Fetch8: byte; inline;
       function  FetchIQPDindex: Word; inline;
@@ -511,12 +512,13 @@ type
       procedure ExecXORimm; inline;
       procedure ExecXORL; inline;
       procedure ExecXORM; inline;
+      procedure Init;
       procedure Interrupt(_vec: byte);    // Perform interrupt, use vector
       procedure ProcessPortOut(_port, _byte: byte);
       procedure PushWord(_word: Word); inline;
       procedure SetCPUspeed(_speed: int64);
       procedure SetNegZero; inline;
-      procedure SetOnTransmitA(_proc: TSIOtransmitProc);
+      procedure SetOnTransmitA(_proc: TSIOtransmitFunc);
       procedure SetPCrelative(_b: byte); inline;
       procedure SetProcessorState(_ps: TProcessorState);
       procedure SetLogicalflags(_seth: boolean); inline;
@@ -572,7 +574,7 @@ type
       procedure ExecuteStepInto;          // Execute one step
       procedure ExecuteStepOver;          // Step over next instruction
       procedure ExecuteStop;              // Stop processor if it's running
-      procedure Init;                     // Initialise COLD
+      procedure Reset(_initram: boolean = True); // Initialise, defaults to COLD
       procedure ReadFromStream(_strm: TStream; _start, _length: integer);
       procedure ReadFromXml(doc: TXMLDocument);
       procedure WaitForStop;
@@ -584,7 +586,7 @@ type
       property ErrorFlag: TErrorFlags read error_flag;
       property ErrorString: string read FErrorString;
       property OnStateChange: TStateChangeProc read FOnStateChange write FOnStateChange;
-      property OnTransmitA: TSIOtransmitProc read FOnTransmitA write SetOnTransmitA;
+      property OnTransmitA: TSIOtransmitFunc read FOnTransmitA write SetOnTransmitA;
       property PC: Word read regset.registers[regPC] write regset.registers[regPC];
       property PerfMHz: double read GetPerfMHz;
       property PerfMIPS: double read GetPerfMIPS;
@@ -657,8 +659,11 @@ begin
   // Set up SIO
   SIO := TSIO.Create;
   SIO.OnInterrupt := @Interrupt;
+  SIO.OnCanInterrupt := @CanInterrupt;
   // Set up CF card
   FCFlash := TCompactFlashInterface.Create;
+  // Finally, initialise all instruction links, RAM, etc.
+  Init;
 end;
 
 destructor TProcessor.Destroy;
@@ -1368,7 +1373,7 @@ end;
 
 procedure TProcessor.ExecEI; inline;
 begin
-  pregIntE^ := 1;
+  pregIntE^ := 3; // Allow this instruction and one more before enabling
   Inc(t_states,4);
 end;
 
@@ -2889,7 +2894,7 @@ begin
   if pregA^ = 0 then pregF^ := pregF^ or FLAG_ZERO;
 end;
 
-procedure TProcessor.SetOnTransmitA(_proc: TSIOtransmitProc);
+procedure TProcessor.SetOnTransmitA(_proc: TSIOtransmitFunc);
 begin
   SIO.ChannelA.OnTransmit := _proc;
 end;
@@ -4025,6 +4030,9 @@ begin
     exec_trace_log[i+1] := exec_trace_log[i];
   exec_trace_log[0] := regset;
 {$ENDIF}
+  // Check if interrupt enable has been executed
+  if pregIntE^ > 1 then
+    Dec(pregIntE^);
   // Check if interrupt waiting
   if int_flag and (pregIntE^ <> 0) then
     begin
@@ -4044,7 +4052,7 @@ begin
       opcode := ramarray[pregPC^];
       Inc(pregPC^);
       }
-      proc := inst_std[opcode];
+       proc := inst_std[opcode];
       if proc <> nil then
         proc
       else
@@ -4052,7 +4060,7 @@ begin
     end;
   // Check SIOs as they are clocked from here
   Inc(big_counter);
-  if (big_counter and $1F) = 0 then // About every 32 instructions
+  if (big_counter and $1f) = 0 then // About every 32 instructions
     if (not int_flag) then
       SIO.ClockRX;
   Result := (error_flag = []);
@@ -4103,24 +4111,9 @@ begin
     ProcessorState := psPaused;
 end;
 
-// Cold boot or hard reset
-
 procedure TProcessor.Init;
-var i: word;
-    b: byte;
-    n: byte;
-    ri: TRegIndex;
+var b, n: byte;
 begin
-  SIO.Init;             // Initialise SIO
-  t_states := 0;
-  pregIntE^ := 1;       // Enable interrupts
-  pregIntM^ := 0;       // Interrupt mode 0 (IM0) like 8080
-  for ri in TRegIndex do
-    regset.registers[ri] := Word(Random(65536));
-  pregPC^ := 0;
-  pregIR^ := 0;
-  for i in word do
-    ramarray[i] := Byte(Random(256));
   // Set up parity table
   for b in byte do
     begin
@@ -4540,6 +4533,34 @@ begin
   inst_ed[$BA] := @ExecEdINDR;
   inst_ed[$BB] := @ExecEdOTDR;
   // Set up FD instructions
+  // Finally do a hard reset of the processor
+  Reset(True);
+end;
+
+// Cold boot or hard reset
+
+procedure TProcessor.Reset(_initram: boolean);
+var i: word;
+    ri: TRegIndex;
+begin
+  SIO.Reset;             // Initialise SIO
+  t_states := 0;
+  pregIntE^ := 0;       // Disable interrupts
+  pregIntM^ := 0;       // Interrupt mode 0 (IM0) like 8080
+  for ri in TRegIndex do
+    regset.registers[ri] := Word(Random(65536));
+  pregAF^ := $FFFF;
+  pregSP^ := $FFFF;
+  pregPC^ := 0;
+  pregIR^ := 0;
+  if _initram then
+    for i in word do
+      ramarray[i] := Byte(Random(256));
+end;
+
+function TProcessor.CanInterrupt: boolean;
+begin
+  result := (not int_flag) and (pregIntE^ = 1);
 end;
 
 procedure TProcessor.Interrupt(_vec:byte);

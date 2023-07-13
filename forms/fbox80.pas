@@ -37,7 +37,7 @@ const
 {$IFDEF WINDOWS}
   MONITOR_BIN  = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\monitor.bin';
   BASIC_BIN    = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\basic.bin';
-  ZEXDOC_BIN   = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\test_files\validation\test_z80.com';
+//ZEXDOC_BIN   = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\test_files\validation\test_z80.com';
   CPM22_BIN    = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\cpm22.bin';
   CBIOS128_BIN = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\cbios64.bin';
   PUTSYS_BIN   = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\imported\g_searle\source\putsys.bin';
@@ -291,6 +291,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure pnlDisassemblerClick(Sender: TObject);
+    procedure pnlWatchClick(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
   private
     CancelRequested: boolean;
@@ -305,7 +306,7 @@ type
     procedure CreateCF(_cfsize: integer);
     function  GetConfig(_section,_name: string; _default: string = ''): string;
     procedure GrabFocus;
-    procedure HandleSIOtransmitA(_b: byte);
+    function  HandleSIOtransmitA(_b: byte): boolean;
     procedure ProcStateChange(_ps: TProcessorState);
     procedure ProcStateUpdate;
     procedure PutConfig(_section,_name,_value: string);
@@ -478,7 +479,7 @@ var saved_state: TProcessorState;
 begin
   // saved_state := FProcessor.ProcessorState;
   FProcessor.WaitForStop;
-  FProcessor.Init;
+  FProcessor.Reset(True);
   ReadMonitorImage;
   ShowRegisters;
   ProcStateUpdate;
@@ -567,6 +568,7 @@ procedure TfrmBox80.actTerminalLoadFileExecute(Sender: TObject);
 var b: byte;
     strm: TFileStream;
     capacity: byte;
+    counter: int64;
 begin
   dlgOpenTerm.InitialDir := GetConfig(SECTION_FOLDERS,CONFIG_FOLDER_TEXT,'');
   if dlgOpenTerm.Execute and (dlgOpenTerm.FileName <> '') then
@@ -576,14 +578,18 @@ begin
       strm := TFileStream.Create(dlgOpenTerm.Filename,fmOpenRead);
       try
         capacity := 0;
+        counter := 0;
         while strm.Position < strm.Size do
           begin
             while capacity = 0 do
               begin
                 capacity := FProcessor.SIO.ChannelA.BufCapacity;
-                sleep(20);
                 Application.ProcessMessages;
+//              sleep(10);
               end;
+            Inc(counter);
+            if counter and $7F = 0 then
+              Application.ProcessMessages;
             Dec(capacity);
             b := strm.ReadByte;
             FProcessor.ChannelReceiveA(b);
@@ -680,8 +686,8 @@ begin
   FProcessor := TProcessor.Create;
   FProcessor.OnStateChange := @ProcStateChange;
   FProcessor.OnTransmitA := @HandleSIOtransmitA;
-  FProcessor.Init;
   FProcessor.CFlash.PortBase := $10;
+  FProcessor.Reset(True);
   ReadMonitorImage;
   FProcessor.ProcessorState := psPaused;
   FProcessor.Suspended := False;
@@ -704,6 +710,11 @@ begin
 end;
 
 procedure TfrmBox80.pnlDisassemblerClick(Sender: TObject);
+begin
+
+end;
+
+procedure TfrmBox80.pnlWatchClick(Sender: TObject);
 begin
 
 end;
@@ -736,9 +747,11 @@ begin
     ShowRegisters;
 end;
 
-procedure TfrmBox80.HandleSIOtransmitA(_b: byte);
+function TfrmBox80.HandleSIOtransmitA(_b: byte): boolean;
 begin
-  frmTerminal.WriteChar(Chr(_b));
+  Result := frmTerminal.HasScreenCapacity;
+  if Result then
+    frmTerminal.WriteChar(Chr(_b));
   {
   FTerminal.WriteChar(Chr(_b));
   FTimerClicks := 0;
@@ -821,7 +834,7 @@ var strm: TFileStream;
 begin
   ReadImage(MONITOR_BIN,$0000);
 //ReadImage(ZEXDOC_BIN,$2000);
-//ReadImage(BASIC_BIN,$2000);
+  ReadImage(BASIC_BIN,$2000);
   ReadImage(CPM22_BIN,$D000);
   ReadImage(CBIOS128_BIN,$E600);
   ReadImage(PUTSYS_BIN,$5000);

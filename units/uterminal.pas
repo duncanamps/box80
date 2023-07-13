@@ -31,7 +31,7 @@ uses
 const
   MAX_TERMINAL_COLS = 132;
   MAX_TERMINAL_ROWS = 50;
-  MAX_TERM_BUF = 32768;
+  MAX_TERM_BUF = 2048;
 
 type
   TAOB = array of byte;
@@ -72,7 +72,9 @@ type
       procedure CmdFF;        // Character #12
       procedure CmdCR;        // Character #13
       procedure CmdScrollUp;  // Scroll the screen up by one line
+      function  PercentFull: integer;
       procedure ReadFromXml(doc: TXmlDocument);
+      function  ScreenCapacity: integer;
       procedure WriteChar(_ch: char);
       procedure WriteChar2(_ch: char);
       procedure WriteString(_s: string);
@@ -229,6 +231,13 @@ begin
   inherited Paint;
 end;
 
+function TTerminal.PercentFull: integer;
+var b: byte;
+begin
+  FBuffer.DoCmd(CB_CMD_PCTFULL,b);
+  Result := b;
+end;
+
 procedure TTerminal.ProcessChars;
 var got_one: boolean;
     b:       byte;
@@ -270,6 +279,14 @@ end;
 function TTerminal.RowToY(_row: integer): integer;
 begin
   RowToY := FCharHeight * _row + FMargin;
+end;
+
+function TTerminal.ScreenCapacity: integer;
+var b: byte;
+begin
+  if not FBuffer.DoCmd(CB_CMD_CAPACITY,b) then
+    raise Exception.Create('Failed to read terminal buffer capacity');
+  Result := b;
 end;
 
 function TTerminal.ScreenChanged: boolean;

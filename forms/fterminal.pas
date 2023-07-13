@@ -26,7 +26,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls,
-  uterminal, uprocessor;
+  ComCtrls, uterminal, uprocessor;
 
 CONST TERM_W = 80;
       TERM_H = 25;
@@ -36,6 +36,7 @@ type
   { TfrmTerminal }
 
   TfrmTerminal = class(TForm)
+    StatusBar1: TStatusBar;
     Timer1: TTimer;
     procedure FormActivate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -47,6 +48,7 @@ type
     FProcessor: TProcessor;
     FTerminal: TTerminal;
   public
+    function  HasScreenCapacity: boolean;
     procedure Init;
     procedure WriteChar(_ch: char);
     property Processor: TProcessor write FProcessor;
@@ -74,7 +76,7 @@ begin
   FTerminal.Color := TColor($00000000);
   FTerminal.Font.Color := clWhite;
   FTerminal.Font.Name := 'Lucida Sans Typewriter';
-  FTerminal.Font.Size := 10;
+  FTerminal.Font.Size := 11;
 end;
 
 procedure TfrmTerminal.FormActivate(Sender: TObject);
@@ -101,6 +103,11 @@ begin
     FProcessor.ChannelReceiveA(Ord(key));
 end;
 
+function TfrmTerminal.HasScreenCapacity: boolean;
+begin
+  Result := FTerminal.ScreenCapacity > 1;
+end;
+
 procedure TfrmTerminal.Init;
 begin
   FTerminal.Init;
@@ -110,7 +117,10 @@ procedure TfrmTerminal.Timer1Timer(Sender: TObject);
 begin
   Inc(big_number);
   if big_number and $07 = 0 then
-    FTerminal.CursorLit := not FTerminal.CursorLit;
+    begin
+      FTerminal.CursorLit := not FTerminal.CursorLit;
+      StatusBar1.SimpleText := Format('Write buffer = %d%%',[FTerminal.PercentFull]);;
+    end;
   FTerminal.ProcessChars;
   FTerminal.Invalidate;
 end;

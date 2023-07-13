@@ -6,6 +6,8 @@ object frmTerminal: TfrmTerminal
   BorderIcons = []
   BorderStyle = bsSingle
   Caption = 'Terminal'
+  ClientHeight = 440
+  ClientWidth = 680
   KeyPreview = True
   OnActivate = FormActivate
   OnCreate = FormCreate
@@ -13,6 +15,13 @@ object frmTerminal: TfrmTerminal
   OnKeyPress = FormKeyPress
   LCLVersion = '2.2.6.0'
   Visible = True
+  object StatusBar1: TStatusBar
+    Left = 0
+    Height = 23
+    Top = 417
+    Width = 680
+    Panels = <>
+  end
   object Timer1: TTimer
     Interval = 40
     OnTimer = Timer1Timer
