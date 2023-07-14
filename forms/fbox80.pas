@@ -691,6 +691,7 @@ begin
   ReadMonitorImage;
   FProcessor.ProcessorState := psPaused;
   FProcessor.Suspended := False;
+  FProcessor.SIO.Suspended := False;
   Timer1.Enabled := True;
   ShowRegisters;
   ProcStateUpdate;
@@ -751,7 +752,7 @@ function TfrmBox80.HandleSIOtransmitA(_b: byte): boolean;
 begin
   Result := frmTerminal.HasScreenCapacity;
   if Result then
-    frmTerminal.WriteChar(Chr(_b));
+    frmTerminal.WriteChar(Chr(_b))
   {
   FTerminal.WriteChar(Chr(_b));
   FTimerClicks := 0;

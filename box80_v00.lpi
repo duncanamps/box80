@@ -12,12 +12,11 @@
       <XPManifest>
         <DpiAware Value="True/PM_V2"/>
       </XPManifest>
-      <Icon Value="0"/>
     </General>
     <VersionInfo>
       <UseVersionInfo Value="True"/>
       <AutoIncrementBuild Value="True"/>
-      <BuildNr Value="2"/>
+      <BuildNr Value="3"/>
       <Language Value="0809"/>
       <StringTable LegalCopyright="Copyright 2023 Duncan Munro" ProductName="Box80"/>
     </VersionInfo>
@@ -55,9 +54,10 @@
           </Linking>
           <Other>
             <CustomOptions Value="-dPROFILE"/>
-            <OtherDefines Count="2">
+            <OtherDefines Count="3">
               <Define0 Value="PROFILE"/>
               <Define1 Value="EXEC_TRACE"/>
+              <Define2 Value="DEBUG_SIO"/>
             </OtherDefines>
           </Other>
         </CompilerOptions>
@@ -105,6 +105,55 @@
             <OtherDefines Count="2">
               <Define0 Value="PROFILE"/>
               <Define1 Value="EXEC_TRACE"/>
+            </OtherDefines>
+          </Other>
+        </CompilerOptions>
+      </Item>
+      <Item Name="DebugProfile">
+        <CompilerOptions>
+          <Version Value="11"/>
+          <PathDelim Value="\"/>
+          <Target>
+            <Filename Value="box80_v00"/>
+          </Target>
+          <SearchPaths>
+            <IncludeFiles Value="$(ProjOutDir)"/>
+            <OtherUnitFiles Value="forms;units"/>
+            <UnitOutputDirectory Value="lib\debug\$(TargetOS)-$(TargetCPU)\v00"/>
+          </SearchPaths>
+          <Parsing>
+            <SyntaxOptions>
+              <IncludeAssertionCode Value="True"/>
+            </SyntaxOptions>
+          </Parsing>
+          <CodeGeneration>
+            <Checks>
+              <IOChecks Value="True"/>
+              <RangeChecks Value="True"/>
+              <OverflowChecks Value="True"/>
+              <StackChecks Value="True"/>
+            </Checks>
+            <VerifyObjMethodCallValidity Value="True"/>
+          </CodeGeneration>
+          <Linking>
+            <Debugging>
+              <DebugInfoType Value="dsDwarf3"/>
+              <UseHeaptrc Value="True"/>
+              <TrashVariables Value="True"/>
+              <UseExternalDbgSyms Value="True"/>
+            </Debugging>
+            <Options>
+              <Win32>
+                <GraphicApplication Value="True"/>
+              </Win32>
+            </Options>
+          </Linking>
+          <Other>
+            <CustomOptions Value="-dPROFILE"/>
+            <OtherDefines Count="3">
+              <Define0 Value="PROFILE"/>
+              <Define1 Value="EXEC_TRACE"/>
+              <Define2 Value="DEBUG_SIO"/>
             </OtherDefines>
           </Other>
         </CompilerOptions>
@@ -239,6 +288,7 @@
       </Options>
     </Linking>
     <Other>
+      <CustomOptions Value="-dPROFILE"/>
       <OtherDefines Count="3">
         <Define0 Value="PROFILE"/>
         <Define1 Value="EXEC_TRACE"/>
