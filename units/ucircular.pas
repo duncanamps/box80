@@ -126,7 +126,7 @@ begin
       CB_CMD_RESET:
         Reset;
       otherwise
-        raise Exception.Create(Format('Circular buffer unknown command $2.2X',[_cmd]));
+        Result := False;
     end;
   finally
     LeaveCriticalSection(FCS);
@@ -136,14 +136,14 @@ end;
 function TCircularBuffer.GetCapacity: integer;
 var b: byte;
 begin
-  DoCmd(CB_CMD_CAPACITY,b);
+  DoCmd(CB_CMD_CAPACITY,b{%H-});
   Result := b;
 end;
 
 function TCircularBuffer.GetContains: integer;
 var b: byte;
 begin
-  DoCmd(CB_CMD_CONTAINS,b);
+  DoCmd(CB_CMD_CONTAINS,b{%H-});
   Result := b;
 end;
 

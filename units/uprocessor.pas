@@ -659,7 +659,6 @@ begin
   SIO := TSIO.Create;
   SIO.OnInterrupt := @Interrupt;
   SIO.OnCanInterrupt := @CanInterrupt;
-  SIO.Suspended := False;
   // Set up CF card
   FCFlash := TCompactFlashInterface.Create;
   // Finally, initialise all instruction links, RAM, etc.
@@ -2787,16 +2786,24 @@ begin
   if (_port and $F8) = FCFlash.PortBase then
     FCFlash.PortWrite(_port-FCFlash.PortBase,_byte)
   else // Try for serial
-    case _port of
-      $38: ; // ROM port - ignore
-      SIOA_D: SIO.ChannelA.Data := _byte;        // Port 00
-      SIOB_D: SIO.ChannelB.Data := _byte;        // Port 01
-      SIOA_C: SIO.ChannelA.Control := _byte;     // Port 02
-      SIOB_C: SIO.ChannelB.Control := _byte;     // Port 03
-      otherwise
+    begin
+      if not Assigned(SIO) then
         begin
-          FErrorString := Format('Output port $%2.2X not catered for',[_port]);
+          FErrorString := 'SIO not assigned';
           error_flag := error_flag + [efBadPortOut];
+        end
+      else
+        case _port of
+          $38: ; // ROM port - ignore
+          SIOA_D: SIO.ChannelA.Data := _byte;        // Port 00
+          SIOB_D: SIO.ChannelB.Data := _byte;        // Port 01
+          SIOA_C: SIO.ChannelA.Control := _byte;     // Port 02
+          SIOB_C: SIO.ChannelB.Control := _byte;     // Port 03
+          otherwise
+            begin
+              FErrorString := Format('Output port $%2.2X not catered for',[_port]);
+              error_flag := error_flag + [efBadPortOut];
+            end;
         end;
     end;
 end;

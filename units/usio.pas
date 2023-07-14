@@ -294,7 +294,7 @@ begin
   // Check if there is stuff in the circular buffer we can pump into the FIFO
   while RTS and (FFIFOcontains < SIO_FIFO_SIZE) and (FCircular.Contains > 0) do
     begin
-      FCircular.DoCmd(CB_CMD_READ,b);
+      FCircular.DoCmd(CB_CMD_READ,b{%H-});
       FFIFO[FFIFOcontains] := b;
       Inc(FFIFOcontains);
     end;
@@ -307,18 +307,12 @@ begin
 end;
 
 function TSIOchannel.GetData: byte;
-var b: byte;
 begin
   {$IFDEF DEBUG_SIO}
   siodebug.LogE('TSIOchannel.GetData()','Enter');
   {$ENDIF}
   Result := FRXdata;
   FRBS := rbsRead;
-  {
-  FCircular.DoCmd(CB_CMD_CONTAINS,b);
-  if b = 0 then
-    SetRXempty;
-  }
   {$IFDEF DEBUG_SIO}
   siodebug.Log('TSIOchannel.GetData()','Result = %d ($%2.2X)',[Result,Result]);
   siodebug.LogX('TSIOchannel.GetData()','Exit');
@@ -332,8 +326,10 @@ begin
   siodebug.LogE('TSIOchannel.GetControl()','Enter');
   {$ENDIF}
   index := FRegWrite[0] and $07; // Get the index to read from
+  {
   if (index > 2) then
     raise Exception.Create('Attempt to read from unimplemented SIO register');
+  }
   Result := FRegRead[index];
   if (index > 0) then
     FRegWrite[0] := FRegWrite[0] and $F8; // Set index back to 0 for next cmd
@@ -344,21 +340,13 @@ begin
 end;
 
 procedure TSIOchannel.IncomingChar(_b: byte);
-var next_ptr: integer;
 begin
   {$IFDEF DEBUG_SIO}
   siodebug.LogE('TSIOchannel.IncomingChar()','Enter');
   siodebug.Log('TSIOchannel.IncomingChar()','Byte to write is %d (%2.2X)',[_b,_b]);
   siodebug.Log('TSIOchannel.IncomingChar()','SIO receive capacity is %d',[FCircular.Capacity]);
   {$ENDIF}
-  if FCircular.Capacity = 0 then
-    begin
-      raise Exception.Create('IncomingChar() buffer overflow');
-      Exit; // FIFO overflow - we shouldn't be sending it characters
-    end;
-  if not FCircular.DoCmd(CB_CMD_WRITE,_b) then
-    raise Exception.Create('Overrun on buffer write');
-//SetRXavailable;
+  FCircular.DoCmd(CB_CMD_WRITE,_b);
   {$IFDEF DEBUG_SIO}
   siodebug.LogX('TSIOchannel.IncomingChar()','Exit');
   {$ENDIF}
@@ -377,7 +365,7 @@ begin
     FRegRead[i] := 0;
   // Set some other stuff up
   SetTXempty;
-  FCircular.DoCmd(CB_CMD_RESET,b);
+  FCircular.DoCmd(CB_CMD_RESET,b{%H-});
   FFIFOcontains := 0;
   HasRxData := False;
   FRBS := rbsEmpty;
@@ -392,12 +380,32 @@ begin
 end;
 
 procedure TSIOchannel.PumpOutput;
+{
+const STREAM_NAME = 'C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\test_files\validation\terminal2.log';
+var Fstream: TFileStream;
+}
 begin
   if (not IsTxEmpty) then
     begin
+      {
+      //-------------------------------------------------------------
+      if not FileExists(STREAM_NAME) then
+        begin
+          FStream := TFileStream.Create(STREAM_NAME,fmCreate);
+          FreeAndNil(FStream);
+        end;
+      Fstream := TFileStream.Create('C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\test_files\validation\terminal2.log',fmOpenReadWrite);
+      try
+        Fstream.Position := Fstream.Size;
+        Fstream.Write(FTxData,1);
+      finally
+        FreeAndNil(Fstream);
+      end;
+      //-------------------------------------------------------------
+      }
       if Assigned(FOnTransmit) then
-        FOnTransmit(FTxData);
-      SetTxEmpty;
+        if FOnTransmit(FTxData) then
+          SetTxEmpty;
     end;
 end;
 
@@ -472,87 +480,7 @@ begin
   doc.ChildNodes[0].AppendChild(node)
 end;
 
-{
-procedure TSIOchannel.SetRXempty;
-begin
-  FRegRead[0] := FRegRead[0] and SIO_STATUS_NOT_RX_AVAILABLE; // Clear bit 1
-end;
 
-procedure TSIOchannel.SetRXavailable;
-begin
-  FRegRead[0] := FRegRead[0] or SIO_STATUS_RX_AVAILABLE; // Set bit 1
-end;
-}
-
-{
-procedure TSIOchannel.AttemptWrite;
-begin // Only call if we have a character in TX buffer to send
-  {$IFDEF DEBUG_SIO}
-  siodebug.LogE('TSIOchannel.AttemptWrite()','Enter');
-  {$ENDIF}
-  if FOnTransmit(FTxData) then
-    SetTXempty;
-  {$IFDEF DEBUG_SIO}
-  siodebug.LogX('TSIOchannel.AttemptWrite()','Exit');
-  {$ENDIF}
-end;
-
-function TSIOchannel.IsRXbusy: boolean;
-begin
-  {$IFDEF DEBUG_SIO}
-  siodebug.LogE('TSIOchannel.IsRxBusy()','Enter');
-  {$ENDIF}
-  Result := (FRegRead[0] and SIO_RX_AVAILABLE) <> 0;
-  {$IFDEF DEBUG_SIO}
-  siodebug.Log('TSIOchannel.IsRxBusy()','Result = %s',[BoolToStr(Result)]);
-  siodebug.LogX('TSIOchannel.IsRxBusy()','Exit');
-  {$ENDIF}
-end;
-
-function TSIOchannel.IsTXbusy: boolean;
-begin
-  {$IFDEF DEBUG_SIO}
-  siodebug.LogE('TSIOchannel.IsTxBusy()','Enter');
-  {$ENDIF}
-  Result := (FRegRead[0] and SIO_TX_EMPTY) = 0;
-  {$IFDEF DEBUG_SIO}
-  siodebug.Log('TSIOchannel.IsTxBusy()','Result = %s',[BoolToStr(Result)]);
-  siodebug.LogX('TSIOchannel.IsTxBusy()','Exit');
-  {$ENDIF}
-end;
-
-function TSIOchannel.PullFromFIFO: boolean;
-begin
-  {$IFDEF DEBUG_SIO}
-  siodebug.LogE('TSIOchannel.PullFromFIFO()','Enter');
-  {$ENDIF}
-  Result := False;
-  if (not HasRxData) and RTS then
-    begin
-      HasRxData := HasRxData or FCircular.DoCmd(CB_CMD_READ,FRxData);
-      Result := HasRxData;
-    end;
-  {$IFDEF DEBUG_SIO}
-  siodebug.Log('TSIOchannel.PullFromFIFO()','Result = %s',[BoolToStr(Result)]);
-  siodebug.LogX('TSIOchannel.PullFromFIFO()','Exit');
-  {$ENDIF}
-end;
-
-procedure TSIOchannel.SetReceived(_b: byte);
-begin
-  {
-  while FIFOfull do
-    Sleep(10);
-  while IsRxBusy do
-      Sleep(20);
-  FRXdata := _b;
-  SetRXavailable;
-  // Finally trigger interrupt
-  FParent.TriggerInterrupt;
-  }
-end;
-
-}
 
 //-----------------------------------------------------------------------------
 //
@@ -596,28 +524,13 @@ begin
 end;
 
 procedure TSIO.Execute;
-const SLEEPS = 1000;
-var sleep_counter: integer;
 begin
   while not Terminated do
     begin
-      // Check if we should be in idle mode or not
-      if CanIdle then
-        Inc(sleep_counter)
-      else
-        sleep_counter := 0;
-      if sleep_counter > SLEEPS then
-        begin
-//          sleep(10);
-          sleep_counter := 0;
-        end
-      else
-        begin
-          ChannelA.FetchInput;
-          ChannelB.FetchInput;
-          ChannelA.PumpOutput;
-          ChannelB.PumpOutput;
-        end;
+      ChannelA.FetchInput;
+//    ChannelB.FetchInput;
+      ChannelA.PumpOutput;
+//    ChannelB.PumpOutput;
     end;
 end;
 
@@ -641,35 +554,6 @@ begin
       FOnInterrupt(FChannelB.FRegWrite[2]);
     end;
 end;
-
-{
-procedure TSIO.ClockRX;
-begin
-  // SIO writes to "screen"
-  if FChannelA.IsTxBusy then
-    FChannelA.AttemptWrite;
-  if FChannelB.IsTxBusy then
-    FChannelB.AttemptWrite;
-  // SIO reads from "keyboard"
-  if not FInterruptNeeded then
-    begin
-      FChannelA.PullFromFIFO;
-      FChannelB.PullFromFIFO;
-    end;
-  if FChannelA.HasRxData or FChannelB.HasRxData then
-    FInterruptNeeded := True;
-  if FInterruptNeeded and
-     Assigned(FOnCanInterrupt) and
-     FOnCanInterrupt() then
-    begin
-      FInterruptNeeded := False;
-      TriggerInterrupt;
-    end;
-end;
-}
-
-{
-}
 
 end.
 
