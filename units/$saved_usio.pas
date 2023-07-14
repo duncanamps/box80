@@ -32,8 +32,7 @@ uses
   ucircular;
 
 const
-  SIO_RXBUF_SIZE = 32;
-  SIO_FIFO_SIZE = 3;
+  SIO_FIFO_SIZE = 8192;
 
 type
   TSIOCanInterruptFunc = function(): boolean of object;
@@ -46,8 +45,6 @@ type
 
   TSIOreadArray  = array[0..2] of byte;
   TSIOwriteArray = array[0..7] of byte;
-
-  TReadBufStatus = (rbsEmpty,rbsFilled,rbsNotified,rbsRead);
 
   {$IFDEF DEBUG_SIO}
   TSIOdebugObject = class(TObject)
@@ -67,85 +64,60 @@ type
 
   TSIOchannel = class(TObject)
     private
-      // SIO general items
-      FDesignator:       TSIOchanneldes;
-      FParent:           TSIO;
-      FRegRead:          TSIOreadArray;
-      FRegWrite:         TSIOwriteArray;
-      // SIO receive items
-      FCircular:         TCircularBuffer; // For serial input from keyboard
-      FFIFO:             array[0..SIO_FIFO_SIZE-1] of byte;
-      FFIFOcontains:     integer;
-      FHasRxData:        boolean;
-      FRBS:              TReadBufStatus;
-      FRxData:           byte;
-      // SIO transmit items
-      FOnTransmit:       TSIOTransmitFunc;
-      FTxData:           byte;
-      function  GetControl: byte;
-      function  GetData: byte;
-      procedure SetControl(_b: byte);
-      procedure SetData(_b: byte);
-      procedure SetHasRxData(_v: boolean);
-      procedure SetTXempty;
-      procedure SetTXfull;
-
-      {
-      procedure SetRXavailable;
-      procedure SetRXempty;
+      FDesignator: TSIOchanneldes;
+//    FControl:      byte;
+      FRxData:       byte;
+      FTxData:       byte;
+      FOnTransmit:   TSIOTransmitFunc;
+      FParent:       TSIO;
+      FRegRead:      TSIOreadArray;
+      FRegWrite:     TSIOwriteArray;
+      FCircular:     TCircularBuffer;
       HasRxData:     boolean;
       procedure AttemptWrite;
+      function  GetControl: byte;
+      function  GetData: byte;
       function  PullFromFIFO: boolean;
+      procedure SetControl(_b: byte);
+      procedure SetData(_b: byte);
       procedure SetReceived(_b: byte);
-
-      }
+      procedure SetRXempty;
+      procedure SetRXavailable;
+      procedure SetTXempty;
+      procedure SetTXfull;
     protected
-      function  CanIdle: boolean;
-      procedure FetchInput;
       procedure Init;
-      function  IsTxEmpty: boolean;
-      procedure PumpOutput;
     public
       constructor Create(_parent: TSIO; _designator: TSIOchanneldes);
       destructor Destroy; override;
       function  BufCapacity: byte;
-      function  RTS: boolean;
       procedure IncomingChar(_b: byte);
-      procedure ReadFromXml(doc: TXMLDocument; const _prefix: string);
-      procedure WriteToXml(doc: TXMLDocument; const _prefix: string);
-      property Control:    byte read GetControl write SetControl;
-      property Data:       byte    read GetData    write SetData;
-      property HasRxData:  boolean read FHasRxData write SetHasRxData;
-      property OnTransmit: TSIOTransmitFunc  write FOnTransmit;
-      property RegRead:    TSIOreadArray    read FRegRead;
-      property RegWrite:   TSIOwriteArray  read FRegWrite;
-      {
       function  IsRXbusy: boolean;
       function  IsTXbusy: boolean;
+      procedure ReadFromXml(doc: TXMLDocument; const _prefix: string);
+      function  RTS: boolean;
+      procedure WriteToXml(doc: TXMLDocument; const _prefix: string);
+      property Control: byte read GetControl write SetControl;
+      property Data: byte    read GetData    write SetData;
+      property OnTransmit: TSIOTransmitFunc  write FOnTransmit;
       property Received: byte read FRXdata write SetReceived;
-      }
+      property RegRead: TSIOreadArray    read FRegRead;
+      property RegWrite: TSIOwriteArray  read FRegWrite;
   end;
 
-  TSIO = class(TThread)
+  TSIO = class(TObject)
     private
-      FChannelA:             TSIOchannel;
-      FChannelB:             TSIOchannel;
-      FInterruptOutstanding: boolean;
-      FOnCanInterrupt:       TSIOCanInterruptFunc;
-      FOnInterrupt:          TSIOInterruptProc;
-      function CanIdle:      boolean;
-    protected
-      procedure Execute; override;
+      FChannelA:        TSIOchannel;
+      FChannelB:        TSIOchannel;
+      FInterruptNeeded: boolean;
+      FOnCanInterrupt:  TSIOCanInterruptFunc;
+      FOnInterrupt:     TSIOInterruptProc;
     public
       constructor Create;
       destructor Destroy; override;
-      procedure AcknowledgeInterrupt;
-      function  CanInterrupt: boolean;
+      procedure ClockRX;
       procedure Reset;
       procedure TriggerInterrupt;
-      {
-      procedure ClockRX;
-      }
       property ChannelA: TSIOchannel read FChannelA write FChannelA;
       property ChannelB: TSIOchannel read FChannelB write FChannelB;
       property OnCanInterrupt: TSIOCanInterruptFunc write FOnCanInterrupt;
@@ -156,10 +128,10 @@ implementation
 
 
 const
-  SIO_STATUS_TX_EMPTY = $04;
-  SIO_STATUS_RX_AVAILABLE = $01;
-  SIO_STATUS_NOT_TX_EMPTY = (SIO_STATUS_TX_EMPTY xor $FF);
-  SIO_STATUS_NOT_RX_AVAILABLE = (SIO_STATUS_RX_AVAILABLE xor $FF);
+  SIO_TX_EMPTY = $04;
+  SIO_RX_AVAILABLE = $01;
+  SIO_NOT_TX_EMPTY = (SIO_TX_EMPTY xor $FF);
+  SIO_NOT_RX_AVAILABLE = (SIO_RX_AVAILABLE xor $FF);
 
 
 
@@ -239,7 +211,7 @@ begin
   inherited Create;
   FParent     := _parent;
   FDesignator := _designator;
-  FCircular   := TCircularBuffer.Create(SIO_RXBUF_SIZE);
+  FCircular   := TCircularBuffer.Create(SIO_FIFO_SIZE);
   Init;
   // @@@@@ Perform any register initialisation here
 end;
@@ -248,6 +220,18 @@ destructor TSIOchannel.Destroy;
 begin
   FreeAndNil(FCircular);
   inherited Destroy;
+end;
+
+procedure TSIOchannel.AttemptWrite;
+begin // Only call if we have a character in TX buffer to send
+  {$IFDEF DEBUG_SIO}
+  siodebug.LogE('TSIOchannel.AttemptWrite()','Enter');
+  {$ENDIF}
+  if FOnTransmit(FTxData) then
+    SetTXempty;
+  {$IFDEF DEBUG_SIO}
+  siodebug.LogX('TSIOchannel.AttemptWrite()','Exit');
+  {$ENDIF}
 end;
 
 function TSIOchannel.BufCapacity: byte;
@@ -262,50 +246,6 @@ begin
   {$ENDIF}
 end;
 
-function TSIOchannel.CanIdle: boolean;
-var rxidle: boolean;
-    txidle: boolean;
-begin
-  // Returns true if there is absolutely nothing to do on the TX or RX side
-  rxidle := (not HasRxData) and (FFIFOcontains = 0) and (FCircular.Contains = 0);
-  txidle := IsTxEmpty;
-  Result := rxidle and txidle;
-end;
-
-procedure TSIOchannel.FetchInput;
-var i: integer;
-    b: byte;
-begin
-  // Is there anything in the FIFO we can move into RxData
-  if (FRBS in [rbsEmpty,rbsRead]) then
-    begin
-      if FFIFOcontains > 0 then
-        begin
-          FRxData := FFIFO[0];
-          for i := 1 to SIO_FIFO_SIZE-1 do
-            FFIFO[i-1] := FFIFO[i];
-          Dec(FFIFOcontains);
-          FRBS := rbsFilled;
-          SetHasRxData(True);
-        end
-      else
-        SetHasRxData(False); // Nothing in register or FIFO
-  end;
-  // Check if there is stuff in the circular buffer we can pump into the FIFO
-  while RTS and (FFIFOcontains < SIO_FIFO_SIZE) and (FCircular.Contains > 0) do
-    begin
-      FCircular.DoCmd(CB_CMD_READ,b);
-      FFIFO[FFIFOcontains] := b;
-      Inc(FFIFOcontains);
-    end;
-  // Check if we can flag an interrupt
-  if (FRBS = rbsFilled) and (not FParent.FInterruptOutstanding) then
-    begin
-      FParent.TriggerInterrupt();
-      FRBS := rbsNotified;
-    end;
-end;
-
 function TSIOchannel.GetData: byte;
 var b: byte;
 begin
@@ -313,12 +253,10 @@ begin
   siodebug.LogE('TSIOchannel.GetData()','Enter');
   {$ENDIF}
   Result := FRXdata;
-  FRBS := rbsRead;
-  {
+  HasRxData := False;
   FCircular.DoCmd(CB_CMD_CONTAINS,b);
   if b = 0 then
     SetRXempty;
-  }
   {$IFDEF DEBUG_SIO}
   siodebug.Log('TSIOchannel.GetData()','Result = %d ($%2.2X)',[Result,Result]);
   siodebug.LogX('TSIOchannel.GetData()','Exit');
@@ -358,7 +296,7 @@ begin
     end;
   if not FCircular.DoCmd(CB_CMD_WRITE,_b) then
     raise Exception.Create('Overrun on buffer write');
-//SetRXavailable;
+  SetRXavailable;
   {$IFDEF DEBUG_SIO}
   siodebug.LogX('TSIOchannel.IncomingChar()','Exit');
   {$ENDIF}
@@ -377,123 +315,10 @@ begin
     FRegRead[i] := 0;
   // Set some other stuff up
   SetTXempty;
+  SetRXempty;
   FCircular.DoCmd(CB_CMD_RESET,b);
-  FFIFOcontains := 0;
-  HasRxData := False;
-  FRBS := rbsEmpty;
   {$IFDEF DEBUG_SIO}
   siodebug.LogX('TSIOchannel.IncomingInit()','Exit');
-  {$ENDIF}
-end;
-
-function TSIOchannel.IsTXempty: boolean;
-begin
-  Result := (FRegRead[0] and SIO_STATUS_TX_EMPTY) <> 0;
-end;
-
-procedure TSIOchannel.PumpOutput;
-begin
-  if (not IsTxEmpty) then
-    begin
-      if Assigned(FOnTransmit) then
-        FOnTransmit(FTxData);
-      SetTxEmpty;
-    end;
-end;
-
-procedure TSIOchannel.ReadFromXml(doc: TXMLDocument; const _prefix: string);
-var r: integer;
-    node: TDOMnode;
-begin
-  Init;
-  node := doc.DocumentElement.FindNode('sio' + _prefix{%H-});
-  for r := 0 to 2 do
-    GetXmlByteP(node,'read' + IntToStr(r),@RegRead[r]);
-  for r := 0 to 7 do
-    GetXmlByteP(node,'write' + IntToStr(r),@RegWrite[r]);
-end;
-
-function TSIOchannel.RTS: boolean;
-begin
-  Result := (FRegWrite[5] and $02) <> 0;
-end;
-
-procedure TSIOchannel.SetControl(_b: byte);
-var index: integer;
-begin
-  index := FRegWrite[0] and $07; // Get the index to write to
-  FRegWrite[index] := _b;
-  if (index > 0) then
-    FRegWrite[0] := FRegWrite[0] and $F8; // Set index back to 0 for next cmd
-end;
-
-procedure TSIOchannel.SetData(_b: byte);
-var reg_no: byte;
-begin
-  reg_no := FRegWrite[0] and $07;
-  if reg_no = 0 then
-    begin
-      FTxData := _b;
-      SetTXfull;
-    end
-  else
-    FRegWrite[reg_no] := _b;
-end;
-
-procedure TSIOchannel.SetHasRxData(_v: boolean);
-begin
-  FHasRxData := _v;
-  // Set SIO flags
-  if _v then
-    FRegRead[0] := FRegRead[0] or SIO_STATUS_RX_AVAILABLE
-  else
-    FRegRead[0] := FRegRead[0] and SIO_STATUS_NOT_RX_AVAILABLE;
-end;
-
-procedure TSIOchannel.SetTXempty;
-begin
-  FRegRead[0] := FRegRead[0] or SIO_STATUS_TX_EMPTY; // Set bit 2
-end;
-
-procedure TSIOchannel.SetTXfull;
-begin
-  FRegRead[0] := FRegRead[0] and SIO_STATUS_NOT_TX_EMPTY; // Clear bit 2
-end;
-
-procedure TSIOchannel.WriteToXml(doc: TXMLDocument; const _prefix: string);
-var r: integer;
-    node: TDOMnode;
-begin
-  node := doc.CreateElement('sio' + _prefix{%H-});
-  for r := 0 to 2 do
-    PutXmlByte(node,'read' + IntToStr(r),RegRead[r]);
-  for r := 0 to 7 do
-    PutXmlByte(node,'write' + IntToStr(r),RegWrite[r]);
-  doc.ChildNodes[0].AppendChild(node)
-end;
-
-{
-procedure TSIOchannel.SetRXempty;
-begin
-  FRegRead[0] := FRegRead[0] and SIO_STATUS_NOT_RX_AVAILABLE; // Clear bit 1
-end;
-
-procedure TSIOchannel.SetRXavailable;
-begin
-  FRegRead[0] := FRegRead[0] or SIO_STATUS_RX_AVAILABLE; // Set bit 1
-end;
-}
-
-{
-procedure TSIOchannel.AttemptWrite;
-begin // Only call if we have a character in TX buffer to send
-  {$IFDEF DEBUG_SIO}
-  siodebug.LogE('TSIOchannel.AttemptWrite()','Enter');
-  {$ENDIF}
-  if FOnTransmit(FTxData) then
-    SetTXempty;
-  {$IFDEF DEBUG_SIO}
-  siodebug.LogX('TSIOchannel.AttemptWrite()','Exit');
   {$ENDIF}
 end;
 
@@ -538,6 +363,51 @@ begin
   {$ENDIF}
 end;
 
+procedure TSIOchannel.ReadFromXml(doc: TXMLDocument; const _prefix: string);
+var r: integer;
+    node: TDOMnode;
+begin
+  node := doc.DocumentElement.FindNode('sio' + _prefix{%H-});
+  for r := 0 to 2 do
+    GetXmlByteP(node,'read' + IntToStr(r),@RegRead[r]);
+  for r := 0 to 7 do
+    GetXmlByteP(node,'write' + IntToStr(r),@RegWrite[r]);
+end;
+
+function TSIOchannel.RTS: boolean;
+begin
+  Result := (FRegWrite[5] and $02) <> 0;
+end;
+
+procedure TSIOchannel.SetControl(_b: byte);
+var index: integer;
+begin
+  index := FRegWrite[0] and $07; // Get the index to write to
+  FRegWrite[index] := _b;
+  if (index > 0) then
+    FRegWrite[0] := FRegWrite[0] and $F8; // Set index back to 0 for next cmd
+end;
+
+procedure TSIOchannel.SetData(_b: byte);
+var reg_no: byte;
+begin
+  reg_no := FRegWrite[0] and $07;
+  if reg_no = 0 then
+    begin
+    if Assigned(FOnTransmit) then
+      begin
+        FTxData := _b;
+        SetTXfull;
+        {
+        FOnTransmit(_b);
+        SetTXempty;
+        }
+      end
+    end
+  else
+    FRegWrite[reg_no] := _b;
+end;
+
 procedure TSIOchannel.SetReceived(_b: byte);
 begin
   {
@@ -552,7 +422,37 @@ begin
   }
 end;
 
-}
+procedure TSIOchannel.SetRXempty;
+begin
+  FRegRead[0] := FRegRead[0] and SIO_NOT_RX_AVAILABLE; // Clear bit 1
+end;
+
+procedure TSIOchannel.SetRXavailable;
+begin
+  FRegRead[0] := FRegRead[0] or SIO_RX_AVAILABLE; // Set bit 1
+end;
+
+procedure TSIOchannel.SetTXempty;
+begin
+  FRegRead[0] := FRegRead[0] or SIO_TX_EMPTY; // Set bit 2
+end;
+
+procedure TSIOchannel.SetTXfull;
+begin
+  FRegRead[0] := FRegRead[0] and SIO_NOT_TX_EMPTY; // Clear bit 2
+end;
+
+procedure TSIOchannel.WriteToXml(doc: TXMLDocument; const _prefix: string);
+var r: integer;
+    node: TDOMnode;
+begin
+  node := doc.CreateElement('sio' + _prefix{%H-});
+  for r := 0 to 2 do
+    PutXmlByte(node,'read' + IntToStr(r),RegRead[r]);
+  for r := 0 to 7 do
+    PutXmlByte(node,'write' + IntToStr(r),RegWrite[r]);
+  doc.ChildNodes[0].AppendChild(node)
+end;
 
 //-----------------------------------------------------------------------------
 //
@@ -562,11 +462,10 @@ end;
 
 constructor TSIO.Create;
 begin
-  inherited Create(True);
+  inherited Create;
   {$IFDEF DEBUG_SIO}
   SIOdebug := TSIOdebugObject.Create;
   {$ENDIF}
-  FreeOnTerminate := True;
   FChannelA := TSIOchannel.Create(Self,scdA);
   FChannelB := TSIOchannel.Create(Self,scdB);
   Reset;
@@ -582,67 +481,6 @@ begin
   inherited Destroy;
 end;
 
-function TSIO.CanIdle: boolean;
-begin
-  Result := FChannelA.CanIdle and FChannelB.CanIdle;
-end;
-
-function TSIO.CanInterrupt: boolean;
-begin
-  if Assigned(FOnCanInterrupt) then
-    Result := FOnCanInterrupt()
-  else
-    Result := False;
-end;
-
-procedure TSIO.Execute;
-const SLEEPS = 1000;
-var sleep_counter: integer;
-begin
-  while not Terminated do
-    begin
-      // Check if we should be in idle mode or not
-      if CanIdle then
-        Inc(sleep_counter)
-      else
-        sleep_counter := 0;
-      if sleep_counter > SLEEPS then
-        begin
-//          sleep(10);
-          sleep_counter := 0;
-        end
-      else
-        begin
-          ChannelA.FetchInput;
-          ChannelB.FetchInput;
-          ChannelA.PumpOutput;
-          ChannelB.PumpOutput;
-        end;
-    end;
-end;
-
-procedure TSIO.Reset;
-begin
-  FChannelA.Init;
-  FChannelB.Init;
-  FInterruptOutstanding := False;
-end;
-
-procedure TSIO.AcknowledgeInterrupt;
-begin
-  FInterruptOutstanding := False;
-end;
-
-procedure TSIO.TriggerInterrupt;
-begin
-  if Assigned(FOnCanInterrupt) and Assigned(FOnInterrupt) then
-    begin
-      FInterruptOutstanding := True;
-      FOnInterrupt(FChannelB.FRegWrite[2]);
-    end;
-end;
-
-{
 procedure TSIO.ClockRX;
 begin
   // SIO writes to "screen"
@@ -666,10 +504,20 @@ begin
       TriggerInterrupt;
     end;
 end;
-}
 
-{
-}
+procedure TSIO.Reset;
+begin
+  FChannelA.Init;
+  FChannelB.Init;
+  FInterruptNeeded := False;
+end;
+
+procedure TSIO.TriggerInterrupt;
+begin
+  // @@@@@ Trigger the interrupt here
+  if Assigned(FOnInterrupt) then
+    FOnInterrupt(FChannelB.FRegWrite[2]);
+end;
 
 end.
 

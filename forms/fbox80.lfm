@@ -1346,6 +1346,7 @@ object frmBox80: TfrmBox80
   object dlgOpenTerm: TOpenDialog
     DefaultExt = '.txt'
     Filter = 'Intel Hex files|*.hex|Text files|*.txt'
+    FilterIndex = 0
     Left = 363
     Top = 210
   end

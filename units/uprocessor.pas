@@ -105,7 +105,6 @@ type
       insts:         int64;
       cpu_speed:     int64;  // In Hz
       error_flag:    TErrorFlags;
-      big_counter:   int64;
       opcode:        byte;
       FAllowUndocumented: boolean;
       FCFlash:       TCompactFlashInterface;
@@ -660,6 +659,7 @@ begin
   SIO := TSIO.Create;
   SIO.OnInterrupt := @Interrupt;
   SIO.OnCanInterrupt := @CanInterrupt;
+  SIO.Suspended := False;
   // Set up CF card
   FCFlash := TCompactFlashInterface.Create;
   // Finally, initialise all instruction links, RAM, etc.
@@ -669,7 +669,9 @@ end;
 destructor TProcessor.Destroy;
 begin
   FreeAndNil(FCFlash);
-  FreeAndNil(SIO);
+  SIO.Terminate;   // Will delete its own instance
+  while not SIO.Finished do
+    Sleep(50);  // Wait until it's gone
   inherited Destroy;
 end;
 
@@ -2896,7 +2898,8 @@ end;
 
 procedure TProcessor.SetOnTransmitA(_proc: TSIOtransmitFunc);
 begin
-  SIO.ChannelA.OnTransmit := _proc;
+  if Assigned(SIO) then
+    SIO.ChannelA.OnTransmit := _proc;
 end;
 
 procedure TProcessor.SetPCrelative(_b: byte); inline;
@@ -3979,7 +3982,7 @@ begin
             while (i < CHECK_EVERY) and (FProcessorState = psRunning) and (error_flag = []) and (bparray[pregPC^] = []) do
               begin
                 ExecuteOneInst;
-                Inc(i);
+                 Inc(i);
                 {
                 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
                 if pregPC^ = $5000 then
@@ -4034,10 +4037,11 @@ begin
   if pregIntE^ > 1 then
     Dec(pregIntE^);
   // Check if interrupt waiting
-  if int_flag and (pregIntE^ <> 0) then
+  if int_flag and (pregIntE^ = 1) then
     begin
       int_flag := False; // Reset the flag!
       pregIntE^ := 0; // Disable any further interrupts
+      SIO.AcknowledgeInterrupt;
       vector := (pregI^ shl 8) or (int_vec and $FE);
       addr := ramarray[vector] or (ramarray[vector+1] shl 8);
       PushWord(pregPC^);
@@ -4058,11 +4062,13 @@ begin
       else
         error_flag := error_flag + [efIllegal];
     end;
+  {
   // Check SIOs as they are clocked from here
   Inc(big_counter);
   if (big_counter and $1f) = 0 then // About every 32 instructions
     if (not int_flag) then
       SIO.ClockRX;
+  }
   Result := (error_flag = []);
   Inc(insts);
 end;
@@ -4543,7 +4549,8 @@ procedure TProcessor.Reset(_initram: boolean);
 var i: word;
     ri: TRegIndex;
 begin
-  SIO.Reset;             // Initialise SIO
+  if Assigned(SIO) then
+    SIO.Reset;           // Initialise SIO
   t_states := 0;
   pregIntE^ := 0;       // Disable interrupts
   pregIntM^ := 0;       // Interrupt mode 0 (IM0) like 8080
