@@ -104,6 +104,7 @@ type
       t_states:      int64;
       insts:         int64;
       cpu_speed:     int64;  // In Hz
+      big_counter:   int64;
       error_flag:    TErrorFlags;
       opcode:        byte;
       FAllowUndocumented: boolean;
@@ -620,6 +621,7 @@ begin
   FreeOnTerminate := True;
   FProcessorState := psNone;
   BreakpointsClearAll;
+  big_counter := 0;
   // Set up pointers to 16 bit registers
   pregAF  := @regset.registers[regAF];
   pregBC  := @regset.registers[regBC];
@@ -659,7 +661,6 @@ begin
   SIO := TSIO.Create;
   SIO.OnInterrupt := @Interrupt;
   SIO.OnCanInterrupt := @CanInterrupt;
-  SIO.Suspended := False;
   // Set up CF card
   FCFlash := TCompactFlashInterface.Create;
   // Finally, initialise all instruction links, RAM, etc.
@@ -669,9 +670,7 @@ end;
 destructor TProcessor.Destroy;
 begin
   FreeAndNil(FCFlash);
-  SIO.Terminate;   // Will delete its own instance
-  while not SIO.Finished do
-    Sleep(50);  // Wait until it's gone
+  FreeAndNil(SIO);
   inherited Destroy;
 end;
 
@@ -4033,7 +4032,7 @@ begin
     exec_trace_log[i+1] := exec_trace_log[i];
   exec_trace_log[0] := regset;
 {$ENDIF}
-  // Check if interrupt enable has been executed
+  // Check if interrupt enable has been enabled
   if pregIntE^ > 1 then
     Dec(pregIntE^);
   // Check if interrupt waiting
@@ -4052,23 +4051,16 @@ begin
     begin
       // Get first byte to execute
       opcode := FetchOpcode;
-      {
-      opcode := ramarray[pregPC^];
-      Inc(pregPC^);
-      }
-       proc := inst_std[opcode];
+      proc := inst_std[opcode];
       if proc <> nil then
         proc
       else
         error_flag := error_flag + [efIllegal];
     end;
-  {
   // Check SIOs as they are clocked from here
   Inc(big_counter);
   if (big_counter and $1f) = 0 then // About every 32 instructions
-    if (not int_flag) then
-      SIO.ClockRX;
-  }
+    SIO.Process;
   Result := (error_flag = []);
   Inc(insts);
 end;

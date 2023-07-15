@@ -376,7 +376,7 @@ begin
       // Do the load
       stream := TFileStream.Create(tpaname,fmOpenRead);
       try
-        bytes := stream.Read(buf[$100],$D000-$0100);
+        bytes := stream.Read({%H-}buf[$100],$D000-$0100);
         for i := 0 to bytes-1 do
           FProcessor.WriteRAM(i+$0100,buf[i+$0100]);
       finally
@@ -691,7 +691,6 @@ begin
   ReadMonitorImage;
   FProcessor.ProcessorState := psPaused;
   FProcessor.Suspended := False;
-  FProcessor.SIO.Suspended := False;
   Timer1.Enabled := True;
   ShowRegisters;
   ProcStateUpdate;
