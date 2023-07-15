@@ -35,30 +35,83 @@ const
 
 type
   TAOB = array of byte;
+  TAOW = array of word;
+
+  TCSIstate = (csiNone,csiEsc,csiBracket,csiParameter,csiIntermediate,csiFinal);
+
   PByte = ^byte;
+
+  // Attributes are stored in a word
+  //
+  //  Bit 15 Unused
+  //      14 Unused
+  //      13 Underlined
+  //      12 Bold
+  //      --------------------------------
+  //      11 RED bit foreground MSB
+  //      10 RED bit foreground LSB
+  //       9 GREEN bit foreground MSB
+  //       8 GREEN bit foreground LSB
+  //       7 BLUE bit foreground MSB
+  //       6 BLUE bit foreground LSB
+  //      --------------------------------
+  //       5 RED bit background MSB
+  //       4 RED bit background LSB
+  //       3 GREEN bit background MSB
+  //       2 GREEN bit background LSB
+  //       1 BLUE bit background MSB
+  //       0 BLUE bit background LSB
 
   TTerminal = class(TCustomControl)
     protected
-      FBuffer:     TCircularBuffer;
-      FCharHeight: integer;
-      FCharWidth:  integer;
-      FCols:       integer;        // Number of columns
-      FCursorCol:  integer;        // Cursor column position
-      FCursorRow:  integer;        // Cursor row position
-      FScreen:     TAOB;           // The screen memory
-      FCursorLit:   boolean;
-      FCursorXAddr: PByte;
-      FCursorYAddr: PByte;
-      FScreenAddr:  PByte;
-      FSavedScreen: TAOB;
-      FSavedX:      Byte;
-      FSavedY:      Byte;
-      FMargin:     integer;        // Margin in pixels around the screen edge
-      FRows:       integer;        // Number of rows
-      FLogStream:  TFileStream;
+      FAttrib:           Word;           // The current attribute
+      FAttribs:          TAOB;           // The attribute memory
+      FAttribBold:       boolean;
+      FAttribUnderlined: boolean;
+      FBuffer:           TCircularBuffer;
+      FCharHeight:       integer;
+      FCharWidth:        integer;
+      FCSIstate:         TCSIstate;      // State of the CSI control functions
+      FCSIparameter:     string;
+      FCSIintermediate:  string;
+      FCSIfinal:         string;
+      FCSIparams:        TStringList;
+      FCols:             integer;        // Number of columns
+      FColourBackground: TColor;
+      FColourForeground: TColor;
+      FCursorCol:        integer;        // Cursor column position
+      FCursorRow:        integer;        // Cursor row position
+      FScreen:           TAOB;           // The screen memory
+      FCursorLit:        boolean;
+      FCursorXAddr:      PByte;
+      FCursorYAddr:      PByte;
+      FScreenAddr:       PByte;
+      FSavedScreen:      TAOB;
+      FSavedX:           Byte;
+      FSavedY:           Byte;
+      FMargin:           integer;        // Margin in pixels around the screen edge
+      FRows:             integer;        // Number of rows
+      FLogStream:        TFileStream;
+      procedure ClearRegion(_row1, _col1, _row2, _col2: integer);
       function  ColToX(_col: integer): integer;
+      function  CSIparam(_index: integer): integer;
+      function  CSIparamS(_index: integer): string;
+      procedure CursorBack(_amt: integer);
+      procedure CursorDown(_amt: integer);
+      procedure CursorForward(_amt: integer);
+      procedure CursorHorizAbsolute(_amt: integer);
+      procedure CursorNextLine(_amt: integer);
+      procedure CursorPosition(_row, _col: integer);
+      procedure CursorPreviousLine(_amt: integer);
+      procedure CursorUp(_amt: integer);
+      procedure EraseInDisplay(_amt: integer);
+      procedure InitCSI;
       procedure Paint; override;
+      procedure ProcessCSI;
+      procedure ParseCSIparams;
       function  RowToY(_row: integer): integer;
+      procedure SelectGraphicRendition(_parm: integer);
+      procedure SGRresetattr;
     public
       constructor Create(AOwner: TComponent; _cols: integer; _rows: integer); reintroduce;
       destructor Destroy; override;
@@ -71,6 +124,8 @@ type
       procedure CmdLF;        // Character #10
       procedure CmdFF;        // Character #12
       procedure CmdCR;        // Character #13
+      procedure CmdESC;       // Character #27
+      procedure CmdCSI(_ch: char); // Handle CSI sequences
       procedure CmdScrollUp;  // Scroll the screen up by one line
       function  PercentFull: double;
       procedure ReadFromXml(doc: TXmlDocument);
@@ -106,27 +161,31 @@ begin
     raise Exception.Create('Illegal number of rows when creating terminal');
   SetLength(FScreen,FRows*FCols);
   FLogStream := TFileStream.Create('C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\test_files\validation\terminal.log',fmCreate);
+  FCSIparams := TStringList.Create;
+  FCSIparams.Delimiter := ';';
   Init;
 end;
 
 destructor TTerminal.Destroy;
 begin
+  FreeAndNil(FCSIparams);
   FreeAndNil(FLogStream);
   FreeAndNil(FBuffer);
   inherited Destroy;
 end;
 
+procedure TTerminal.ClearRegion(_row1, _col1, _row2, _col2: integer);
+var addr1, addr2, i: integer;
+begin
+  addr1 := _row1 * FCols + _col1;
+  addr2 := _row2 * FCols + _col2;
+  for i := addr1 to addr2 do
+    FScreen[i] := $20;
+end;
+
 procedure TTerminal.CmdBS;
 begin
-  if (FCursorRow > 0) or (FCursorCol > 0) then
-    begin
-      Dec(FCursorCol);
-      if FCursorCol < 0 then
-        begin
-          FCursorCol := FCols-1;
-          Dec(FCursorRow);
-        end;
-    end;
+  CursorBack(1);
 end;
 
 procedure TTerminal.CmdHT;
@@ -161,6 +220,53 @@ begin
   FCursorCol := 0;
 end;
 
+procedure TTerminal.CmdESC;
+begin
+  InitCSI;
+  FCSIstate := csiESC;
+end;
+
+procedure TTerminal.CmdCSI(_ch: char);
+begin
+  case FCSIstate of
+    csiESC:
+      if _ch in ['1','['] then
+        FCSIstate := csiBracket
+      else
+        FCSIstate := csiNone; // Invalid sequence, abandon
+    csiBracket:
+      if _ch in ['0'..'?'] then
+        FCSIparameter := FCSIparameter + _ch
+      else if _ch in [' '..'/'] then
+        begin
+          FCSIintermediate := FCSIintermediate + _ch;
+          FCSIstate := csiIntermediate;
+        end
+      else if _ch in ['@'..'~'] then
+        begin
+          FCSIfinal := FCSIfinal + _ch;
+          FCSIstate := csiFinal;
+        end
+      else
+        FCSIstate := csiNone; // Invalid sequence, abandon
+    csiIntermediate:
+      if _ch in [' '..'/'] then
+        FCSIintermediate := FCSIintermediate + _ch
+      else if _ch in ['@'..'~'] then
+        begin
+          FCSIfinal := FCSIfinal + _ch;
+          FCSIstate := csiFinal;
+        end
+      else
+        FCSIstate := csiNone; // Invalid sequence, abandon
+  end;
+  if FCSIstate = csiFinal then
+    begin
+      ProcessCSI;
+      FCSIstate := csiNone;
+    end;
+end;
+
 procedure TTerminal.CmdScrollUp;
 var i,j: integer;
 begin
@@ -178,6 +284,129 @@ begin
   ColToX := FCharWidth * _col + FMargin;
 end;
 
+function TTerminal.CSIparam(_index: integer): integer;
+var s: string;
+begin
+  s := CSIparamS(_index);
+  if s = '' then
+    s := '-1';
+  Result := -1;
+  try
+    Result := StrToInt(s);
+  except
+    ; // Silent exception, send back -1 due to invalid number etc.
+  end;
+end;
+
+function TTerminal.CSIparamS(_index: integer): string;
+begin
+  if _index >= FCSIparams.Count then
+    Result := ''
+  else
+    Result := FCSIparams[_index];
+end;
+
+procedure TTerminal.CursorBack(_amt: integer);
+begin
+  if _amt <= 0 then
+    _amt := 1;
+  Dec(FCursorCol,_amt);
+  while FCursorCol < 0 do
+    begin
+      if FCursorRow = 0 then
+        FCursorCol := 0
+      else
+        begin
+          FCursorCol := FCursorCol + FCols;
+          Dec(FCursorRow);
+        end;
+    end;
+end;
+
+procedure TTerminal.CursorDown(_amt: integer);
+begin
+  if _amt <= 0 then
+    _amt := 1;
+  Inc(FCursorRow,_amt);
+  if FCursorRow >= FRows then
+    FCursorRow := FRows-1;
+end;
+
+procedure TTerminal.CursorForward(_amt: integer);
+begin
+  if _amt <= 0 then
+    _amt := 1;
+  Inc(FCursorCol,_amt);
+  while FCursorCol >= FCols do
+    begin
+      if FCursorRow = (FRows-1) then
+        FCursorCol := FCols-1
+      else
+        begin
+          FCursorCol := FCursorCol - FCols;
+          Inc(FCursorRow);
+        end;
+    end;
+end;
+
+procedure TTerminal.CursorHorizAbsolute(_amt: integer);
+var newpos: integer;
+begin
+  newpos := _amt;
+  if newpos <= 0 then
+    newpos := 1;
+  if newpos > FCols then
+    newpos := FCols;
+  FCursorCol := newpos - 1;
+end;
+
+procedure TTerminal.CursorNextLine(_amt: integer);
+begin
+  CursorDown(_amt);
+  FCursorCol := 0;
+end;
+
+procedure TTerminal.CursorPosition(_row, _col: integer);
+begin
+  if _row < 1 then
+    _row := 1;
+  if _row > FRows then
+    _row := FRows;
+  if _col < 1 then
+    _col := 1;
+  if _col > FCols then
+    _col := FCols;
+  FCursorRow := _row - 1;
+  FCursorCol := _col - 1;
+end;
+
+procedure TTerminal.CursorPreviousLine(_amt: integer);
+begin
+  CursorUp(_amt);
+  FCursorCol := 0;
+end;
+
+procedure TTerminal.CursorUp(_amt: integer);
+begin
+  if _amt <= 0 then
+    _amt := 1;
+  Dec(FCursorRow,_amt);
+  if FCursorRow < 0 then
+    FCursorRow := 0;
+end;
+
+procedure TTerminal.EraseInDisplay(_amt: integer);
+begin
+  case _amt of
+    -1,0:
+      ClearRegion(FCursorRow,FCursorCol,FRows-1,FCols-1);
+    1:
+      ClearRegion(FCursorRow,FCursorCol,FRows-1,FCols-1);
+    2,3:
+      CmdFF;
+  end;
+end;
+
 procedure TTerminal.Init;
 var i: integer;
     b: byte;
@@ -189,6 +418,16 @@ begin
       b := Random(95)+32;
       FScreen[i] := b;
     end;
+  InitCSI;
+  SGRresetattr;
+end;
+
+procedure TTerminal.InitCSI;
+begin
+  FCSIstate := csiNone;
+  FCSIparameter    := '';
+  FCSIintermediate := '';
+  FCSIfinal        := '';
 end;
 
 procedure TTerminal.Paint;
@@ -231,6 +470,12 @@ begin
   inherited Paint;
 end;
 
+procedure TTerminal.ParseCSIparams;
+begin
+  FCSIparams.Clear;
+  FCSIparams.DelimitedText := FCSIparameter;
+end;
+
 function TTerminal.PercentFull: double;
 var b: byte;
 begin
@@ -246,6 +491,30 @@ begin
     if got_one then
       WriteChar2(Chr(b));
   until not got_one;
+end;
+
+procedure TTerminal.ProcessCSI;
+var final: char;
+begin
+  ParseCSIparams;
+  if FCSIfinal <> '' then
+    final := FCSIfinal[1];
+  case final of
+    'A': CursorUp(CSIparam(0));
+    'B': CursorDown(CSIparam(0));
+    'C': CursorForward(CSIparam(0));
+    'D': CursorBack(CSIparam(0));
+    'E': CursorNextLine(CSIparam(0));
+    'F': CursorPreviousLine(CSIparam(0));
+    'G': CursorHorizAbsolute(CSIparam(0));
+    'H': CursorPosition(CSIparam(0),CSIparam(1));
+    'J': EraseInDisplay(CSIparam(0));
+    'K': ; // EraseInLine(CSIparam(0));
+    'S': ; // ScrollUp(CSIparam(0));
+    'T': ; //ScrollDown(CSIparam(0));
+    'f': CursorPosition(CSIparam(0),CSIparam(1));
+    'm': SelectGraphicRendition(CSIparam(0));
+  end;
 end;
 
 procedure TTerminal.ReadFromXml(doc: TXmlDocument);
@@ -280,6 +549,37 @@ begin
   RowToY := FCharHeight * _row + FMargin;
 end;
 
+procedure TTerminal.SelectGraphicRendition(_parm: integer);
+begin
+  case _parm of
+    0: SGRresetattr;
+    1: ; // SGRbold;
+    2: ; // SGRfaint;
+    3: ; // SGRitalic;
+    4: ; // SGRunderline;
+    5: ; // SGRslowblink;
+    6: ; // SGRrapidblink;
+    7: ; // SGRreverse;
+    8: ; // SGRconceal;
+    9: ; // SGRstrikeout;
+    10..20: ; // SGRfontselect
+    21: ; // SGRdoubleunderline
+    22: ; // SGRnormalintensity (not bold or faint)
+    23: ; // SGRnormalstroke (not italic etc.)
+    24: ; // SGRnotunderlined
+    25: ; // SGRnotblinking
+    26: ; // SGRproportional
+    27: ; // SGRnotreversed
+    28: ; // SGRreveal
+    29: ; // SGRnotstrikeout
+    30..39: ; // SGRsetforegroundcolour
+    40..49: ; // SGRsetbackgroundcolour
+    50: ; // SGRdisableproportionalspacing
+    otherwise
+      ; // Ignore
+  end;
+end;
+
 function TTerminal.ScreenCapacity: integer;
 var b: integer;
 begin
@@ -309,6 +609,12 @@ begin
         end;
 end;
 
+procedure TTerminal.SGRresetattr;
+begin
+  FColourForeground := TColor($C0C0C0);
+  FColourBackground := TColor($000000);
+end;
+
 procedure TTerminal.WriteChar(_ch: char);
 var b: integer;
 begin
@@ -320,24 +626,28 @@ end;
 procedure TTerminal.WriteChar2(_ch: char);
 begin
   FLogStream.WriteByte(Ord(_ch));
-  case _ch of
-    #8:  CmdBS;
-    #9:  CmdHT;
-    #10: CmdLF;
-    #12: CmdFF;
-    #13: CmdCR;
-    otherwise
-      if _ch >= ' ' then
-        begin
-          FScreen[FCursorRow*FCols+FCursorCol] := Ord(_ch);
-          Inc(FCursorCol);
-          if (FCursorCol >= FCols) then
-            begin
-              CmdCR;
-              CmdLF;
-            end;
-        end;
-  end;
+  if FCSIstate <> csiNone then
+    CmdCSI(_ch)
+  else
+    case _ch of
+      #8:  CmdBS;
+      #9:  CmdHT;
+      #10: CmdLF;
+      #12: CmdFF;
+      #13: CmdCR;
+      #27: CmdESC;
+      otherwise
+        if _ch >= ' ' then
+          begin
+            FScreen[FCursorRow*FCols+FCursorCol] := Ord(_ch);
+            Inc(FCursorCol);
+            if (FCursorCol >= FCols) then
+              begin
+                CmdCR;
+                CmdLF;
+              end;
+          end;
+    end;
   Invalidate;
 end;
 
