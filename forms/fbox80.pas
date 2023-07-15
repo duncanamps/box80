@@ -671,7 +671,7 @@ begin
   frmTerminal.Processor := FProcessor;
   frmMemory.Processor := FProcessor;
   frmMemory.Visible := True;
-  frmMemory.StartAddr := $2000;
+  frmMemory.StartAddr := $4200;
   FocusAllowed := True;
 end;
 
