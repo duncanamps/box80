@@ -567,7 +567,7 @@ end;
 procedure TfrmBox80.actTerminalLoadFileExecute(Sender: TObject);
 var b: byte;
     strm: TFileStream;
-    capacity: byte;
+    capacity: integer;
     counter: int64;
 begin
   dlgOpenTerm.InitialDir := GetConfig(SECTION_FOLDERS,CONFIG_FOLDER_TEXT,'');
@@ -746,6 +746,9 @@ begin
     end
   else if localProcStatus = psRunning then
     ShowRegisters;
+  // Update terminal form with SIOA/B percentages full
+  frmTerminal.SIOApct := FProcessor.SIO.ChannelA.BufPercent;
+  frmTerminal.SIOBpct := FProcessor.SIO.ChannelB.BufPercent;
 end;
 
 function TfrmBox80.HandleSIOtransmitA(_b: byte): boolean;

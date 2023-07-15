@@ -48,6 +48,8 @@ type
     FProcessor: TProcessor;
     FTerminal: TTerminal;
   public
+    SIOApct: double;
+    SIOBpct: double;
     function  HasScreenCapacity: boolean;
     procedure Init;
     procedure WriteChar(_ch: char);
@@ -119,7 +121,7 @@ begin
   if big_number and $07 = 0 then
     begin
       FTerminal.CursorLit := not FTerminal.CursorLit;
-      StatusBar1.SimpleText := Format('Write buffer = %d%%',[FTerminal.PercentFull]);;
+      StatusBar1.SimpleText := Format('Write buffer = %6.2f%% : SIO A buffer = %6.2f%% : SIO B buffer = %6.2f%%',[FTerminal.PercentFull,SIOApct,SIOBpct]);;
     end;
   FTerminal.ProcessChars;
   FTerminal.Invalidate;

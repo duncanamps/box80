@@ -33,7 +33,6 @@ const
   CB_CMD_WRITE    = $02;
   CB_CMD_CONTAINS = $03;
   CB_CMD_CAPACITY = $04;
-  CB_CMD_PCTFULL  = $05;
 
 
 type
@@ -46,15 +45,17 @@ type
       FPtrIn:    integer;
       FPtrOut:   integer;
       procedure Bump(var _ptr: integer);
-      function  GetCapacity: integer;
+      function  GetRemaining: integer;
       function  GetContains: integer;
+      function  GetPercentUsed: double;
       procedure Reset;
     public
       constructor Create(_maxsize: integer);
       destructor Destroy; override;
-      function DoCmd(_cmd: byte; var _payload: byte): boolean;
-      property Capacity: integer read GetCapacity;
-      property Contains: integer read GetContains;
+      function DoCmd(_cmd: byte; var _payload: integer): boolean;
+      property Remaining:   integer read GetRemaining;
+      property Contains:    integer read GetContains;
+      property PercentUsed: double  read GetPercentUsed;
   end;
 
 
@@ -80,7 +81,7 @@ begin
   _ptr := (_ptr + 1) mod FSize;
 end;
 
-function TCircularBuffer.DoCmd(_cmd: byte; var _payload: byte): boolean;
+function TCircularBuffer.DoCmd(_cmd: byte; var _payload: integer): boolean;
 var i: integer;
 begin
   EnterCriticalSection(FCS);
@@ -101,27 +102,19 @@ begin
           Result := False // Buffer full
         else
           begin
-            FBuf[FPtrIn] := _payload;
+            FBuf[FPtrIn] := Byte(_payload);
             Bump(FPtrIn);
             Inc(FContains);
           end;
       CB_CMD_CONTAINS:
         begin
           i := FContains;
-          if i > 255 then
-            i := 255;
-          _payload := i and $FF;
+          _payload := i;
         end;
       CB_CMD_CAPACITY:
         begin
           i := (FSize-FContains);
-          if i > 255 then
-            i := 255;
-          _payload := i and $FF;
-        end;
-      CB_CMD_PCTFULL:
-        begin
-          _payload := 100 * FContains div FSize;
+          _payload := i;
         end;
       CB_CMD_RESET:
         Reset;
@@ -133,18 +126,25 @@ begin
   end;
 end;
 
-function TCircularBuffer.GetCapacity: integer;
-var b: byte;
+function TCircularBuffer.GetRemaining: integer;
+var b: integer;
 begin
   DoCmd(CB_CMD_CAPACITY,b);
   Result := b;
 end;
 
 function TCircularBuffer.GetContains: integer;
-var b: byte;
+var b: integer;
 begin
   DoCmd(CB_CMD_CONTAINS,b);
   Result := b;
+end;
+
+function TCircularBuffer.GetPercentUsed: double;
+var b: integer;
+begin
+  DoCmd(CB_CMD_CONTAINS,b);
+  Result := b * 100.00 / FSize;
 end;
 
 procedure TCircularBuffer.Reset;

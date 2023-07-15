@@ -32,7 +32,7 @@ uses
   ucircular;
 
 const
-  SIO_RXBUF_SIZE = 32;
+  SIO_RXBUF_SIZE = 6400;
   SIO_FIFO_SIZE = 3;
 
 type
@@ -106,7 +106,8 @@ type
     public
       constructor Create(_parent: TSIO; _designator: TSIOchanneldes);
       destructor Destroy; override;
-      function  BufCapacity: byte;
+      function  BufCapacity: integer;
+      function  BufPercent:  double;
       function  RTS: boolean;
       procedure IncomingChar(_b: byte);
       procedure ReadFromXml(doc: TXMLDocument; const _prefix: string);
@@ -248,16 +249,21 @@ begin
   inherited Destroy;
 end;
 
-function TSIOchannel.BufCapacity: byte;
+function TSIOchannel.BufCapacity: integer;
 begin
   {$IFDEF DEBUG_SIO}
   siodebug.LogE('TSIOchannel.BufCapacity()','Enter');
   {$ENDIF}
-  Result := FCircular.Capacity;
+  Result := FCircular.Remaining;
   {$IFDEF DEBUG_SIO}
   siodebug.Log('TSIOchannel.BufCapacity()','Value = %d',[Result]);
   siodebug.LogX('TSIOchannel.BufCapacity()','Exit');
   {$ENDIF}
+end;
+
+function TSIOchannel.BufPercent: double;
+begin
+  Result := FCircular.PercentUsed;
 end;
 
 function TSIOchannel.CanIdle: boolean;
@@ -272,7 +278,7 @@ end;
 
 procedure TSIOchannel.FetchInput;
 var i: integer;
-    b: byte;
+    b: integer;
 begin
   // Is there anything in the FIFO we can move into RxData
   if (not HasRxData) and (FFIFOcontains > 0) then
@@ -287,7 +293,7 @@ begin
   while RTS and (FFIFOcontains < SIO_FIFO_SIZE) and (FCircular.Contains > 0) do
     begin
       FCircular.DoCmd(CB_CMD_READ,b);
-      FFIFO[FFIFOcontains] := b;
+      FFIFO[FFIFOcontains] := Byte(b);
       Inc(FFIFOcontains);
     end;
   // Check if we can flag an interrupt
@@ -334,18 +340,20 @@ end;
 
 procedure TSIOchannel.IncomingChar(_b: byte);
 var next_ptr: integer;
+    ichar:    integer;
 begin
   {$IFDEF DEBUG_SIO}
   siodebug.LogE('TSIOchannel.IncomingChar()','Enter');
   siodebug.Log('TSIOchannel.IncomingChar()','Byte to write is %d (%2.2X)',[_b,_b]);
   siodebug.Log('TSIOchannel.IncomingChar()','SIO receive capacity is %d',[FCircular.Capacity]);
   {$ENDIF}
-  if FCircular.Capacity = 0 then
+  if FCircular.Remaining = 0 then
     begin
       raise Exception.Create('IncomingChar() buffer overflow');
-      Exit; // FIFO overflow - we shouldn't be sending it characters
+      Exit; // Buffer overflow - we shouldn't be sending it characters
     end;
-  if not FCircular.DoCmd(CB_CMD_WRITE,_b) then
+  ichar := _b;
+  if not FCircular.DoCmd(CB_CMD_WRITE,ichar) then
     raise Exception.Create('Overrun on buffer write');
 //SetRXavailable;
   {$IFDEF DEBUG_SIO}
@@ -355,7 +363,7 @@ end;
 
 procedure TSIOchannel.Init;
 var i: integer;
-    b: byte;
+    b: integer;
 begin
   {$IFDEF DEBUG_SIO}
   siodebug.LogE('TSIOchannel.IncomingInit()','Enter');
