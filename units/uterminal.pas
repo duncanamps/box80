@@ -35,37 +35,63 @@ const
 
 type
   TAOB = array of byte;
+  TAOW = array of word;
 
   TCSIstate = (csiNone,csiEsc,csiBracket,csiParameter,csiIntermediate,csiFinal);
 
   PByte = ^byte;
 
+  // Attributes are stored in a word
+  //
+  //  Bit 15 Unused
+  //      14 Unused
+  //      13 Underlined
+  //      12 Bold
+  //      --------------------------------
+  //      11 RED bit foreground MSB
+  //      10 RED bit foreground LSB
+  //       9 GREEN bit foreground MSB
+  //       8 GREEN bit foreground LSB
+  //       7 BLUE bit foreground MSB
+  //       6 BLUE bit foreground LSB
+  //      --------------------------------
+  //       5 RED bit background MSB
+  //       4 RED bit background LSB
+  //       3 GREEN bit background MSB
+  //       2 GREEN bit background LSB
+  //       1 BLUE bit background MSB
+  //       0 BLUE bit background LSB
+
   TTerminal = class(TCustomControl)
     protected
-      FBuffer:          TCircularBuffer;
-      FCharHeight:      integer;
-      FCharWidth:       integer;
-      FCSIstate:        TCSIstate;      // State of the CSI control functions
-      FCSIparameter:    string;
-      FCSIintermediate: string;
-      FCSIfinal:        string;
-      FCSIparams:       TStringList;
-      FCols:            integer;        // Number of columns
+      FAttrib:           Word;           // The current attribute
+      FAttribs:          TAOB;           // The attribute memory
+      FAttribBold:       boolean;
+      FAttribUnderlined: boolean;
+      FBuffer:           TCircularBuffer;
+      FCharHeight:       integer;
+      FCharWidth:        integer;
+      FCSIstate:         TCSIstate;      // State of the CSI control functions
+      FCSIparameter:     string;
+      FCSIintermediate:  string;
+      FCSIfinal:         string;
+      FCSIparams:        TStringList;
+      FCols:             integer;        // Number of columns
       FColourBackground: TColor;
       FColourForeground: TColor;
-      FCursorCol:       integer;        // Cursor column position
-      FCursorRow:       integer;        // Cursor row position
-      FScreen:          TAOB;           // The screen memory
-      FCursorLit:       boolean;
-      FCursorXAddr:     PByte;
-      FCursorYAddr:     PByte;
-      FScreenAddr:      PByte;
-      FSavedScreen:     TAOB;
-      FSavedX:          Byte;
-      FSavedY:          Byte;
-      FMargin:          integer;        // Margin in pixels around the screen edge
-      FRows:            integer;        // Number of rows
-      FLogStream:       TFileStream;
+      FCursorCol:        integer;        // Cursor column position
+      FCursorRow:        integer;        // Cursor row position
+      FScreen:           TAOB;           // The screen memory
+      FCursorLit:        boolean;
+      FCursorXAddr:      PByte;
+      FCursorYAddr:      PByte;
+      FScreenAddr:       PByte;
+      FSavedScreen:      TAOB;
+      FSavedX:           Byte;
+      FSavedY:           Byte;
+      FMargin:           integer;        // Margin in pixels around the screen edge
+      FRows:             integer;        // Number of rows
+      FLogStream:        TFileStream;
       procedure ClearRegion(_row1, _col1, _row2, _col2: integer);
       function  ColToX(_col: integer): integer;
       function  CSIparam(_index: integer): integer;
@@ -204,7 +230,7 @@ procedure TTerminal.CmdCSI(_ch: char);
 begin
   case FCSIstate of
     csiESC:
-      if _ch = '[' then
+      if _ch in ['1','['] then
         FCSIstate := csiBracket
       else
         FCSIstate := csiNone; // Invalid sequence, abandon

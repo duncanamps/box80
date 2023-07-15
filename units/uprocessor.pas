@@ -107,6 +107,7 @@ type
       big_counter:   int64;
       error_flag:    TErrorFlags;
       opcode:        byte;
+      ddfdcbsrc:     PByte;
       FAllowUndocumented: boolean;
       FCFlash:       TCompactFlashInterface;
       FProcessorState:  TProcessorState;
@@ -3140,8 +3141,12 @@ begin
 end;
 
 procedure TProcessor.ExecDdFdCb; inline;
-var proc: TExecProc;
+var proc:   TExecProc;
+    addr:   Word;
 begin
+  // Get offset byte
+  addr := FetchIQPDindex;
+  ddfdcbsrc := @RAMarray[addr];
   // Get byte to execute
   opcode := FetchOpcode;
   proc := inst_ddfdcb[opcode];
@@ -3202,8 +3207,8 @@ var _src: byte;
     flags: byte;
 begin
   _bit:= (opcode shr 3) and $07;
-  _src := ramarray[FetchIQPDindex];
-  _mask := 1 shl (_bit - 1);
+  _src := ddfdcbsrc^;
+  _mask := 1 shl _bit;
   // Set the flags
   flags := pregF^;
   flags := flags and NOT_FLAG_ZERO and NOT_FLAG_SUBTRACT; // Reset flags
@@ -3223,8 +3228,8 @@ var _p:  Pbyte;
     _bit: byte;
 begin
   _bit:= (opcode shr 3) and $07;
-  _p := @ramarray[FetchIQPDindex];
-  _mask := 1 shl (_bit - 1);
+  _p := ddfdcbsrc;
+  _mask := 1 shl _bit;
   _p^ := _p^ and (_mask xor $FF);
   // Bump the t_states
   Inc(t_states,23);
@@ -3236,8 +3241,8 @@ var _p:  Pbyte;
     _bit: byte;
 begin
   _bit:= (opcode shr 3) and $07;
-  _p := @ramarray[FetchIQPDindex];
-  _mask := 1 shl (_bit - 1);
+  _p := ddfdcbsrc;
+  _mask := 1 shl _bit;
   _p^ := _p^ or _mask;
   // Bump the t_states
   Inc(t_states,23);
