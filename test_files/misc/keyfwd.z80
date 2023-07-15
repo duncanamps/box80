@@ -1,0 +1,57 @@
+//
+// KEYFWD.Z80
+//
+// Takes keystrokes and forwards them to the screen
+// Stop when we get a Ctrl+C
+//
+// Duncan Munro
+// 15/07/2023
+//
+
+			ORG		$0100			// CPM TPA start address
+			
+BDOS		EQU		$0005			// Call address for BDOS
+BDOS_CONDIR	EQU		6				// Command code for direct console I/O
+BDOS_STRING	EQU		9				// Command code to print a string
+
+START:		LD		C,BDOS_STRING	// String output
+			LD		DE,WELCOME		// Welcome message
+			CALL	BDOS			// Print it
+			
+LOOP:		LD		C,BDOS_CONDIR	// Command code for direct console I/O
+			LD		E,$FF			// FF=Input character			
+			CALL	BDOS			// Get the character in
+			OR		A,A				// Zero ?
+			JR		Z,LOOP			// Yes, go back for more
+			CP		A,$03			// Ctrl-C ?
+			JR		Z,EXIT			// Yes, goodbye
+			CP		A,$0D			// Enter key?
+			JR		Z,CR			// Yes, we need to add the LF afterwards
+			LD		C,BDOS_CONDIR	// Command code for direct console I/O
+			LD		E,A				// Copy character into E
+			CALL	BDOS			// and print it
+			JR		LOOP			// Go back for more
+			
+CR:			LD		C,BDOS_STRING	// String output
+			LD		DE,CRLF			// CRLF message
+			CALL	BDOS			// Print it
+			JR		LOOP			// Loop back for more
+			
+EXIT:		LD		C,BDOS_STRING	// String output
+			LD		DE,GOODBYE		// Goodbye message
+			JP		BDOS			// Print it and return to CP/M
+			
+// Strings
+			
+WELCOME:	DB		13,10
+			DB		"CHARACTER ECHO",13,10	
+			DB		"Use Ctrl+C to terminate",13,10
+			DB		"Duncan Munro - 15/07/2023",13,10
+			DB		"$"
+GOODBYE:	DB		13,10
+			DB		"Done" 				
+CRLF:		DB		13,10			// Part of the GOODBYE string above
+			DB		"$"
+			
+			
+			END

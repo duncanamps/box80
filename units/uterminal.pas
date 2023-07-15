@@ -72,7 +72,7 @@ type
       procedure CmdFF;        // Character #12
       procedure CmdCR;        // Character #13
       procedure CmdScrollUp;  // Scroll the screen up by one line
-      function  PercentFull: integer;
+      function  PercentFull: double;
       procedure ReadFromXml(doc: TXmlDocument);
       function  ScreenCapacity: integer;
       procedure WriteChar(_ch: char);
@@ -231,16 +231,15 @@ begin
   inherited Paint;
 end;
 
-function TTerminal.PercentFull: integer;
+function TTerminal.PercentFull: double;
 var b: byte;
 begin
-  FBuffer.DoCmd(CB_CMD_PCTFULL,b);
-  Result := b;
+  Result := FBuffer.PercentUsed;
 end;
 
 procedure TTerminal.ProcessChars;
 var got_one: boolean;
-    b:       byte;
+    b:       integer;
 begin
   repeat
     got_one := FBuffer.DoCmd(CB_CMD_READ,b);
@@ -282,7 +281,7 @@ begin
 end;
 
 function TTerminal.ScreenCapacity: integer;
-var b: byte;
+var b: integer;
 begin
   if not FBuffer.DoCmd(CB_CMD_CAPACITY,b) then
     raise Exception.Create('Failed to read terminal buffer capacity');
@@ -311,7 +310,7 @@ begin
 end;
 
 procedure TTerminal.WriteChar(_ch: char);
-var b: byte;
+var b: integer;
 begin
   b := Ord(_ch);
   if not FBuffer.DoCmd(CB_CMD_WRITE,b) then
