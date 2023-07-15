@@ -47,22 +47,6 @@ type
   TSIOreadArray  = array[0..2] of byte;
   TSIOwriteArray = array[0..7] of byte;
 
-  {$IFDEF DEBUG_SIO}
-  TSIOdebugObject = class(TObject)
-    private
-      FCS: TCriticalSection;
-      FIndent: integer;
-      FStream: TFileStream;
-    public
-      constructor Create;
-      destructor Destroy; override;
-      procedure Log(_locus: string; _msg: string);
-      procedure Log(_locus: string; const _fmt: string; const _args: array of const);
-      procedure LogE(_locus: string; _msg: string);
-      procedure LogX(_locus: string; _msg: string);
-  end;
-  {$ENDIF}
-
   TSIOchannel = class(TObject)
     private
       // SIO general items
@@ -108,9 +92,9 @@ type
       destructor Destroy; override;
       function  BufCapacity: integer;
       function  BufPercent:  double;
-      function  RTS: boolean;
       procedure IncomingChar(_b: byte);
       procedure ReadFromXml(doc: TXMLDocument; const _prefix: string);
+      function  RTS: boolean;
       procedure WriteToXml(doc: TXMLDocument; const _prefix: string);
       property Control:    byte read GetControl write SetControl;
       property Data:       byte    read GetData    write SetData;
@@ -125,7 +109,7 @@ type
       }
   end;
 
-  TSIO = class(TThread)
+  TSIO = class(TObject)
     private
       FChannelA:             TSIOchannel;
       FChannelB:             TSIOchannel;
@@ -133,13 +117,12 @@ type
       FOnCanInterrupt:       TSIOCanInterruptFunc;
       FOnInterrupt:          TSIOInterruptProc;
       function CanIdle:      boolean;
-    protected
-      procedure Execute; override;
     public
       constructor Create;
       destructor Destroy; override;
       procedure AcknowledgeInterrupt;
       function  CanInterrupt: boolean;
+      procedure Process;
       procedure Reset;
       procedure TriggerInterrupt;
       {
@@ -477,11 +460,10 @@ end;
 
 constructor TSIO.Create;
 begin
-  inherited Create(True);
+  inherited Create;
   {$IFDEF DEBUG_SIO}
   SIOdebug := TSIOdebugObject.Create;
   {$ENDIF}
-  FreeOnTerminate := True;
   FChannelA := TSIOchannel.Create(Self,scdA);
   FChannelB := TSIOchannel.Create(Self,scdB);
   Reset;
@@ -510,31 +492,12 @@ begin
     Result := False;
 end;
 
-procedure TSIO.Execute;
-const SLEEPS = 1000;
-var sleep_counter: integer;
+procedure TSIO.Process;
 begin
-  while not Terminated do
-    begin
-      // Check if we should be in idle mode or not
-      if CanIdle then
-        Inc(sleep_counter)
-      else
-        sleep_counter := 0;
-      if sleep_counter > SLEEPS then
-        begin
-//          sleep(10);
-          sleep_counter := 0;
-        end
-      else
-        begin
-          ChannelA.FetchInput;
-          ChannelB.FetchInput;
-          ChannelA.PumpOutput;
-          ChannelB.PumpOutput;
-          Sleep(1);
-        end;
-    end;
+  ChannelA.FetchInput;
+  ChannelB.FetchInput;
+  ChannelA.PumpOutput;
+  ChannelB.PumpOutput;
 end;
 
 procedure TSIO.Reset;
