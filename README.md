@@ -1,7 +1,7 @@
 ## box80 V0.0
 **One liner:** box80 - A cross-platform open-source Virtual Machine to run and debug Z80 code (very much work in progress)
 
-![screen_dump_windows_800](https://github.com/duncanamps/box80/assets/6016794/a90fa355-68c8-4fba-a334-490dccfcb2f5)
+![Screenshot 2023-07-16 162205](https://github.com/duncanamps/box80/assets/6016794/b57474db-4592-41e0-a627-5c9d00866ffc)
 
 ## Description
 box80 is a multi-platform virtual machine designed to execute Z80 code in a 64K code space. The main objective is to have a rich and capable cross-platform environment for debugging of CP/M assembly language programs, rather than to serve as Yet Another Emulator for CP/M.
@@ -71,10 +71,10 @@ Gimp and Greenfish Icon Editor Pro were used to provide the graphics elements.
 | Dual thread Z80 core          | 100%      | Operational, still to be validated     |
 | Standard Z80 instructions     | 100%      | Needs to be run against a test suite   |
 | All Z80 instructions          | 100%      | Standard, doesn't include undocumented |
-| Terminal output               | 50%       | Vanilla, some ctrl codes, needs ANSI   |
+| CF card interface             | 100%      | Basic setup, but works fine            |
+| Terminal output               | 100%      | Now allows colour ANSI emulation       |
 | Interrupt processing          | 33%       | IM2 is complete, trigger by SIO        |
 | SIO                           | 20%       | Very basic implementation, but works   |
-| CF card interface             | 100%      | Basic setup, but works fine            |
 | Documentation                 | TBD       |                                        |
 ### V0.1 future development
 | Item                          | Complete  | Notes                                    |
@@ -108,7 +108,7 @@ Using the help of this tool, I was able to write [xa80](https://github.com/dunca
 assembler for x80 processors; 8080, 8085, Z80 and Z180. It contains an opcode compiler which was, itself, developed with LaCoGen.
 
 I own a number of Z80 based SBCs; the RC2014, the SC131 and have recently acquired the AgonLight 2 SBC
-from Olimex. This is a 24 bit EZ80 processor and will undoubtedly result in enhancements to xA80 to cover 24 bit
+from Olimex. This is a 24 bit EZ80 processor and will undoubtedly result in enhancements to xa80 to cover 24 bit
 activities. But that's for another day...
 
 The development cycle on some of the retro-hardware can be time consuming: Write Z80 assembly language on the PC. Assemble it. Download via serial link to the target device. Run on the target device. Figure out why it won't work....
