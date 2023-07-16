@@ -492,24 +492,13 @@ begin
 end;
 
 procedure TTerminal.Init;
-var i: integer;
-    b: byte;
-    w: word;
 begin
-  FCursorCol := 0;
-  FCursorRow := 0;
-  for i := 0 to Length(FScreen)-1 do
-    begin
-      b := Random(95)+32;
-      FScreen[i] := b;
-    end;
-  for i := 0 to Length(FAttribs)-1 do
-    begin
-      w := Random(16384);
-      FAttribs[i] := w;
-    end;
   InitCSI;
   SGRresetattr;
+  CmdFF;
+  WriteString('box80: Z80 Virtual Machine and ANSI terminal' + #13 + #10);
+  WriteString('Copyright (C)2023 Duncan Munro' + #13 + #10);
+  WriteString('Licensed with GNU GPL V3 or later' + #13 + #10);
 end;
 
 procedure TTerminal.InitCSI;

@@ -77,17 +77,15 @@ begin
   FTerminal.Align := alClient;
   FTerminal.Color := TColor($00000000);
   FTerminal.Font.Color := clWhite;
-  FTerminal.Font.Name := 'Lucida Sans Typewriter';
+  FTerminal.Font.Name := 'Consolas';
   FTerminal.Font.Size := 11;
 end;
 
 procedure TfrmTerminal.FormActivate(Sender: TObject);
 var req_width, req_height: integer;
 begin
-  Canvas.Font.Style := [fsBold];
   req_width  := FTerminal.Margin * 2 + (FTerminal.Canvas.TextWidth('WM')+2) * TERM_W div 2;
   req_height := FTerminal.Margin * 2 + FTerminal.Canvas.TextHeight('Wg') * TERM_H;
-  Canvas.Font.Style := [];
   if FTerminal.Width <> req_width then
     Width := Width + req_width - FTerminal.Width;
   if FTerminal.Height <> req_height then

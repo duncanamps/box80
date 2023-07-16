@@ -1,13 +1,14 @@
 object frmTerminal: TfrmTerminal
   Left = 721
-  Height = 440
+  Height = 550
   Top = 225
-  Width = 680
+  Width = 850
   BorderIcons = []
   BorderStyle = bsSingle
   Caption = 'Terminal'
-  ClientHeight = 440
-  ClientWidth = 680
+  ClientHeight = 550
+  ClientWidth = 850
+  DesignTimePPI = 120
   KeyPreview = True
   OnActivate = FormActivate
   OnCreate = FormCreate
@@ -17,15 +18,15 @@ object frmTerminal: TfrmTerminal
   Visible = True
   object StatusBar1: TStatusBar
     Left = 0
-    Height = 23
-    Top = 417
-    Width = 680
+    Height = 29
+    Top = 521
+    Width = 850
     Panels = <>
   end
   object Timer1: TTimer
     Interval = 40
     OnTimer = Timer1Timer
-    Left = 256
-    Top = 46
+    Left = 320
+    Top = 58
   end
 end
