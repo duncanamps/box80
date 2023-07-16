@@ -33,6 +33,11 @@ const
   MAX_TERMINAL_ROWS = 50;
   MAX_TERM_BUF = 16384;
 
+  SGR_ATTR_BOLD      = $8000;
+  SGR_ATTR_ITALIC    = $4000;
+  SGR_ATTR_UNDERLINE = $2000;
+  SGR_ATTR_STRIKEOUT = $1000;
+
 type
   TAOB = array of byte;
   TAOW = array of word;
@@ -43,10 +48,10 @@ type
 
   // Attributes are stored in a word
   //
-  //  Bit 15 Unused
-  //      14 Unused
-  //      13 Underlined
-  //      12 Bold
+  //  Bit 15 Bold
+  //      14 Italic
+  //      13 Underline
+  //      12 Strikeout
   //      --------------------------------
   //      11 RED bit foreground MSB
   //      10 RED bit foreground LSB
@@ -65,7 +70,7 @@ type
   TTerminal = class(TCustomControl)
     protected
       FAttrib:           Word;           // The current attribute
-      FAttribs:          TAOB;           // The attribute memory
+      FAttribs:          TAOW;           // The attribute memory
       FAttribBold:       boolean;
       FAttribUnderlined: boolean;
       FBuffer:           TCircularBuffer;
@@ -77,8 +82,6 @@ type
       FCSIfinal:         string;
       FCSIparams:        TStringList;
       FCols:             integer;        // Number of columns
-      FColourBackground: TColor;
-      FColourForeground: TColor;
       FCursorCol:        integer;        // Cursor column position
       FCursorRow:        integer;        // Cursor row position
       FScreen:           TAOB;           // The screen memory
@@ -92,6 +95,10 @@ type
       FMargin:           integer;        // Margin in pixels around the screen edge
       FRows:             integer;        // Number of rows
       FLogStream:        TFileStream;
+      function  AttribScale(_src: Word; _boost: boolean): DWord;
+      function  AttribBackgroundAsTColor(_attr: Word): TColor;
+      function  AttribForegroundAsTColor(_attr: Word): TColor;
+      function  AttribAsFontStyle(_attr: Word): TFontStyles;
       procedure ClearRegion(_row1, _col1, _row2, _col2: integer);
       function  ColToX(_col: integer): integer;
       function  CSIparam(_index: integer): integer;
@@ -105,12 +112,16 @@ type
       procedure CursorPreviousLine(_amt: integer);
       procedure CursorUp(_amt: integer);
       procedure EraseInDisplay(_amt: integer);
+      procedure EraseInLine(_amt: integer);
       procedure InitCSI;
       procedure Paint; override;
       procedure ProcessCSI;
       procedure ParseCSIparams;
       function  RowToY(_row: integer): integer;
+      procedure ScrollDown(_amt: integer);
+      procedure ScrollUp(_amt: integer);
       procedure SelectGraphicRendition(_parm: integer);
+      procedure SGRbold;
       procedure SGRresetattr;
     public
       constructor Create(AOwner: TComponent; _cols: integer; _rows: integer); reintroduce;
@@ -126,7 +137,6 @@ type
       procedure CmdCR;        // Character #13
       procedure CmdESC;       // Character #27
       procedure CmdCSI(_ch: char); // Handle CSI sequences
-      procedure CmdScrollUp;  // Scroll the screen up by one line
       function  PercentFull: double;
       procedure ReadFromXml(doc: TXmlDocument);
       function  ScreenCapacity: integer;
@@ -160,6 +170,7 @@ begin
   if (FRows < 1) or (FRows > MAX_TERMINAL_ROWS) then
     raise Exception.Create('Illegal number of rows when creating terminal');
   SetLength(FScreen,FRows*FCols);
+  SetLength(FAttribs,FRows*FCols);
   FLogStream := TFileStream.Create('C:\Users\Duncan Munro\Dropbox\dev\lazarus\computing\z80\box80\test_files\validation\terminal.log',fmCreate);
   FCSIparams := TStringList.Create;
   FCSIparams.Delimiter := ';';
@@ -174,6 +185,66 @@ begin
   inherited Destroy;
 end;
 
+function TTerminal.AttribAsFontStyle(_attr: Word): TFontStyles;
+begin
+  Result := [];
+  if (_attr and SGR_ATTR_BOLD) <> 0 then
+    Result := Result + [fsBold];
+  if (_attr and SGR_ATTR_ITALIC) <> 0 then
+    Result := Result + [fsItalic];
+  if (_attr and SGR_ATTR_UNDERLINE) <> 0 then
+    Result := Result + [fsUnderline];
+  if (_attr and SGR_ATTR_STRIKEOUT) <> 0 then
+    Result := Result + [fsStrikeOut];
+end;
+
+function TTerminal.AttribBackgroundAsTColor(_attr: Word): TColor;
+var inr, ing, inb: Word;
+    otr, otg, otb: DWord;
+begin
+  inr := (_attr and $0030) shr 4;
+  ing := (_attr and $000C) shr 2;
+  inb := _attr and $0003;
+  otr := AttribScale(inr,False);
+  otg := AttribScale(ing,False);
+  otb := AttribScale(inb,False);
+  Result := (otr shl 16) or (otg shl 8) or (otb);
+end;
+
+function TTerminal.AttribForegroundAsTColor(_attr: Word): TColor;
+var inr, ing, inb: Word;
+    otr, otg, otb: DWord;
+    boost: boolean;
+begin
+  inr := (_attr and $0c00) shr 10;
+  ing := (_attr and $0300) shr 8;
+  inb := (_attr and $00C0) shr 6;
+  boost := (_attr and SGR_ATTR_BOLD) <> 0;
+  otr := AttribScale(inr,boost);
+  otg := AttribScale(ing,boost);
+  otb := AttribScale(inb,boost);
+  Result := (otr shl 16) or (otg shl 8) or (otb);
+end;
+
+function TTerminal.AttribScale(_src: Word; _boost: boolean): DWord;
+begin
+  Result := 0;
+  if _boost then
+    case _src of
+       0: Result := 0;
+       1: Result := $B0;
+       2: Result := $F0;
+       3: Result := $FF;
+    end
+  else // Unboosted
+    case _src of
+       0: Result := 0;
+       1: Result := $80;
+       2: Result := $C0;
+       3: Result := $FF;
+    end;
+end;
+
 procedure TTerminal.ClearRegion(_row1, _col1, _row2, _col2: integer);
 var addr1, addr2, i: integer;
 begin
@@ -181,6 +252,8 @@ begin
   addr2 := _row2 * FCols + _col2;
   for i := addr1 to addr2 do
     FScreen[i] := $20;
+  for i := addr1 to addr2 do
+    FAttribs[i] := FAttrib;
 end;
 
 procedure TTerminal.CmdBS;
@@ -200,19 +273,14 @@ begin
   Inc(FCursorRow);
   while FCursorRow >= FRows do
     begin
-      CmdScrollUp;
+      ScrollUp(1);
       Dec(FCursorRow);
     end;
 end;
 
 procedure TTerminal.CmdFF;
-var i: integer;
 begin
-  for i := 0 to FCols*FRows-1 do
-    FScreen[i] := Ord(' ');
-  FCursorCol := 0;
-  FCursorRow := 0;
-  Invalidate;
+  EraseInDisplay(2);
 end;
 
 procedure TTerminal.CmdCR;
@@ -230,7 +298,7 @@ procedure TTerminal.CmdCSI(_ch: char);
 begin
   case FCSIstate of
     csiESC:
-      if _ch in ['1','['] then
+      if _ch = '[' then
         FCSIstate := csiBracket
       else
         FCSIstate := csiNone; // Invalid sequence, abandon
@@ -265,18 +333,6 @@ begin
       ProcessCSI;
       FCSIstate := csiNone;
     end;
-end;
-
-procedure TTerminal.CmdScrollUp;
-var i,j: integer;
-begin
-  // Move lines
-  for i := 1 to FRows-1 do
-    for j := 0 to FCols-1 do
-      FScreen[(i-1)*FCols+j] := FScreen[i*FCols+j];
-  // Blank last line
-  for j := 0 to FCols-1 do
-    FScreen[(FRows-1)*FCols+j] := Ord(' ');
 end;
 
 function TTerminal.ColToX(_col: integer): integer;
@@ -403,13 +459,31 @@ begin
     1:
       ClearRegion(FCursorRow,FCursorCol,FRows-1,FCols-1);
     2,3:
-      CmdFF;
+      begin
+        ClearRegion(0,0,FRows-1,FCols-1);
+        FCursorCol := 0;
+        FCursorRow := 0;
+      end;
+  end;
+  Invalidate;
+end;
+
+procedure TTerminal.EraseInLine(_amt: integer);
+begin
+  case _amt of
+     -1,0:
+       ClearRegion(FCursorRow,FCursorCol,FCursorRow,FCols-1);
+     1:
+       ClearRegion(FCursorRow,0,FCursorRow,FCursorCol);
+     2:
+       ClearRegion(FCursorRow,0,FCursorRow,FCols-1);
   end;
 end;
 
 procedure TTerminal.Init;
 var i: integer;
     b: byte;
+    w: word;
 begin
   FCursorCol := 0;
   FCursorRow := 0;
@@ -417,6 +491,11 @@ begin
     begin
       b := Random(95)+32;
       FScreen[i] := b;
+    end;
+  for i := 0 to Length(FAttribs)-1 do
+    begin
+      w := Random(16384);
+      FAttribs[i] := w;
     end;
   InitCSI;
   SGRresetattr;
@@ -434,21 +513,33 @@ procedure TTerminal.Paint;
 var i,j: integer;
     s: string;
     reversal: TColor;
+    r: TRect;
+    _attrib: Word;
 begin
   // Set up some variable we need
+  Canvas.Font.Style := [fsBold];
   FCharHeight := Canvas.TextHeight('Wg');
-  FCharWidth := Canvas.TextWidth('W');
-  s := '';
-  SetLength(s,FCols);
-  // Do background
-  Canvas.Brush.Color := Color;
-  Canvas.FillRect(GetClientRect);
+  FCharWidth := Canvas.TextWidth('W') + 2;
+  s := ' ';
   // Now do all of the text
   for i := 0 to FRows-1 do
     begin
+      r.Top := RowToY(i);
+      r.Bottom := RowToY(i+1);
       for j := 0 to FCols-1 do
-        s[j+1] := Chr(FScreen[i*FCols+j]);
-      Canvas.TextOut(ColToX(0),RowToY(i),s);
+        begin
+          // Do background
+          _attrib := FAttribs[i*FCols+j];
+          r.Left := ColToX(j);
+          r.Right := ColToX(j+1);
+          Canvas.Brush.Color := AttribBackgroundAsTColor(_attrib);
+          Canvas.FillRect(r);
+          s := Chr(FScreen[i*FCols+j]);
+          Canvas.Font.Color := AttribForegroundAsTColor(_attrib);
+          Canvas.Font.Style := AttribAsFontStyle(_attrib);
+          // Slight left shift on character to fit the box better
+          Canvas.TextOut(ColToX(j)-2,RowToY(i),s);
+        end;
     end;
   // Reverse the cursor
   if FCursorLit then
@@ -509,9 +600,9 @@ begin
     'G': CursorHorizAbsolute(CSIparam(0));
     'H': CursorPosition(CSIparam(0),CSIparam(1));
     'J': EraseInDisplay(CSIparam(0));
-    'K': ; // EraseInLine(CSIparam(0));
-    'S': ; // ScrollUp(CSIparam(0));
-    'T': ; //ScrollDown(CSIparam(0));
+    'K': EraseInLine(CSIparam(0));
+    'S': ScrollUp(CSIparam(0));
+    'T': ScrollDown(CSIparam(0));
     'f': CursorPosition(CSIparam(0),CSIparam(1));
     'm': SelectGraphicRendition(CSIparam(0));
   end;
@@ -522,18 +613,31 @@ var node: TDOMnode;
     p:    PByte;
     i,j:  integer;
     s:    string;
+    w:    PWord;
 begin
   node := doc.DocumentElement.FindNode('terminal');
   CursorCol := GetXmlByte(node,'cursor_col');
   CursorRow := GetXmlByte(node,'cursor_row');
+  // Read the screen data
   p := @Screen[0];
-  for i := 0 to 24 do
+  for i := 0 to FRows-1 do
     begin
-      s := GetXmlString(node,'terminal_' + IntToHex(i,2));
-      for j := 0 to 79 do
+      s := GetXmlString(node,'screen_' + IntToHex(i,2));
+      for j := 0 to FCols-1 do
         begin
           p^ := StrToInt('$' + Copy(s,1+j*2,2));
           Inc(p);
+        end;
+    end;
+  // Read the attributes
+  w := @FAttribs[0];
+  for i := 0 to FRows-1 do
+    begin
+      s := GetXmlString(node,'attributes_' + IntToHex(i,2));
+      for j := 0 to FCols-1 do
+        begin
+          w^ := StrToInt('$' + Copy(s,1+j*4,4));
+          Inc(w);
         end;
     end;
 end;
@@ -549,11 +653,57 @@ begin
   RowToY := FCharHeight * _row + FMargin;
 end;
 
+procedure TTerminal.ScrollUp(_amt: integer);
+var i,j: integer;
+begin
+  if _amt < 1 then
+    _amt := 1;
+  if _amt >= FRows then
+    _amt := FRows-1;
+  // Move lines
+  for i := _amt to FRows-1 do
+    for j := 0 to FCols-1 do
+      begin
+        FScreen[(i-_amt)*FCols+j] := FScreen[i*FCols+j];
+        FAttribs[(i-_amt)*FCols+j] := FAttribs[i*FCols+j];
+      end;
+  // Blank vacated lines
+  for i := FRows-_amt to FRows-1 do
+    for j := 0 to FCols-1 do
+      begin
+        FScreen[i*FCols+j] := Ord(' ');
+        FAttribs[i*FCols+j] := FAttrib;
+      end;
+end;
+
+procedure TTerminal.ScrollDown(_amt: integer);
+var i,j: integer;
+begin
+  if _amt < 1 then
+    _amt := 1;
+  if _amt >= FRows then
+    _amt := FRows-1;
+  // Move lines
+  for i := FRows-1 downto _amt do
+    for j := 0 to FCols-1 do
+      begin
+        FScreen[i*FCols+j] := FScreen[(i-_amt)*FCols+j];
+        FAttribs[i*FCols+j] := FAttribs[(i-_amt)*FCols+j];
+      end;
+  // Blank vacated lines
+  for i := 0 to _amt-1 do
+    for j := 0 to FCols-1 do
+      begin
+        FScreen[i*FCols+j] := Ord(' ');
+        FAttribs[i*FCols+j] := FAttrib;
+      end;
+end;
+
 procedure TTerminal.SelectGraphicRendition(_parm: integer);
 begin
   case _parm of
     0: SGRresetattr;
-    1: ; // SGRbold;
+    1: SGRbold;
     2: ; // SGRfaint;
     3: ; // SGRitalic;
     4: ; // SGRunderline;
@@ -609,10 +759,14 @@ begin
         end;
 end;
 
+procedure TTerminal.SGRbold;
+begin
+  FAttrib := FAttrib or SGR_ATTR_BOLD;
+end;
+
 procedure TTerminal.SGRresetattr;
 begin
-  FColourForeground := TColor($C0C0C0);
-  FColourBackground := TColor($000000);
+  FAttrib := $0A80; // No bold, underline, text is white on black
 end;
 
 procedure TTerminal.WriteChar(_ch: char);
@@ -640,6 +794,7 @@ begin
         if _ch >= ' ' then
           begin
             FScreen[FCursorRow*FCols+FCursorCol] := Ord(_ch);
+            FAttribs[FCursorRow*FCols+FCursorCol] := FAttrib;
             Inc(FCursorCol);
             if (FCursorCol >= FCols) then
               begin
@@ -665,20 +820,38 @@ var node: TDOMnode;
     p:    PByte;
     i,j:  integer;
     s:    string;
+    w:    PWord;
 begin
   node := doc.CreateElement('terminal');
   PutXmlByte(node,'cursor_col',CursorCol);
   PutXmlByte(node,'cursor_row',CursorRow);
+  // Output the screen data
   p := @Screen[0];
-  for i := 0 to 24 do
+  for i := 0 to FRows-1 do
     begin
       s := '';
-      node_line := doc.CreateElement('terminal_' + IntToHex(i,2){%H-});
-      s := GetXmlString(node,'terminal_' + IntToHex(i,2));
-      for j := 0 to 79 do
+      node_line := doc.CreateElement('screen_' + IntToHex(i,2){%H-});
+      s := GetXmlString(node,'screen_' + IntToHex(i,2));
+      for j := 0 to FCols-1 do
         begin
           s := s + IntToHex(p^,2);
           Inc(p);
+        end;
+      node_text := doc.CreateTextNode(s{%H-});
+      node_line.AppendChild(node_text);
+      node.AppendChild(node_line);
+    end;
+  // Output the attribute data
+  W := @FAttribs[0];
+  for i := 0 to FRows-1 do
+    begin
+      s := '';
+      node_line := doc.CreateElement('attributes_' + IntToHex(i,2){%H-});
+      s := GetXmlString(node,'attributes_' + IntToHex(i,2));
+      for j := 0 to FCols-1 do
+        begin
+          s := s + IntToHex(w^,4);
+          Inc(w);
         end;
       node_text := doc.CreateTextNode(s{%H-});
       node_line.AppendChild(node_text);

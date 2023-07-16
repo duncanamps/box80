@@ -84,8 +84,10 @@ end;
 procedure TfrmTerminal.FormActivate(Sender: TObject);
 var req_width, req_height: integer;
 begin
-  req_width  := FTerminal.Margin * 2 + FTerminal.Canvas.TextWidth('Wg') * TERM_W div 2;
+  Canvas.Font.Style := [fsBold];
+  req_width  := FTerminal.Margin * 2 + (FTerminal.Canvas.TextWidth('WM')+2) * TERM_W div 2;
   req_height := FTerminal.Margin * 2 + FTerminal.Canvas.TextHeight('Wg') * TERM_H;
+  Canvas.Font.Style := [];
   if FTerminal.Width <> req_width then
     Width := Width + req_width - FTerminal.Width;
   if FTerminal.Height <> req_height then
