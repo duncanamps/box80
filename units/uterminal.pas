@@ -477,7 +477,6 @@ begin
 end;
 
 function TTerminal.PercentFull: double;
-var b: byte;
 begin
   Result := FBuffer.PercentUsed;
 end;
@@ -487,7 +486,7 @@ var got_one: boolean;
     b:       integer;
 begin
   repeat
-    got_one := FBuffer.DoCmd(CB_CMD_READ,b);
+    got_one := FBuffer.DoCmd(CB_CMD_READ,b{%H-});
     if got_one then
       WriteChar2(Chr(b));
   until not got_one;
@@ -497,6 +496,7 @@ procedure TTerminal.ProcessCSI;
 var final: char;
 begin
   ParseCSIparams;
+  final := #0;
   if FCSIfinal <> '' then
     final := FCSIfinal[1];
   case final of
@@ -583,7 +583,7 @@ end;
 function TTerminal.ScreenCapacity: integer;
 var b: integer;
 begin
-  if not FBuffer.DoCmd(CB_CMD_CAPACITY,b) then
+  if not FBuffer.DoCmd(CB_CMD_CAPACITY,b{%H-}) then
     raise Exception.Create('Failed to read terminal buffer capacity');
   Result := b;
 end;

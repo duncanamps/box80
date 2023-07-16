@@ -965,6 +965,7 @@ object frmBox80: TfrmBox80
         end
         object miVMCPU1000: TMenuItem
           Action = actVMCPU1000
+          AutoCheck = True
         end
         object miVMCPUmax: TMenuItem
           Action = actVMCPU2000
@@ -1181,7 +1182,9 @@ object frmBox80: TfrmBox80
     end
     object actVMCPU1000: TAction
       Category = 'VM'
+      AutoCheck = True
       Caption = '100.0 MHz'
+      GroupIndex = 1
       Hint = 'Set CPU speed to 100.0 MHz'
       OnExecute = actVMCPU1000Execute
     end
