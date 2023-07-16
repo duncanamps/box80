@@ -1056,7 +1056,7 @@ procedure TProcessor.ExecCALLcond(_mask, _required: byte); inline;
 var addr: Word;
 begin
   addr := Fetch16;
-  if pregF^ and _mask = _required then
+  if (pregF^ and _mask) = _required then
     begin // Succeeded
       PushWord(pregPC^);
       pregPC^ := addr;
@@ -1362,7 +1362,7 @@ begin
   Inc(t_states,4);
 end;
 
-procedure TProcessor.ExecDJNZ; inline;
+  procedure TProcessor.ExecDJNZ; inline;
 var b: byte;
 begin
   b := Fetch8;
@@ -1415,8 +1415,8 @@ procedure TProcessor.ExecEXX; inline;
 var w: word;
 begin
   w := pregBC^;  pregBC^ := pregBC_^;  pregBC_^ := w;
-  w := pregDE^;  pregBC^ := pregDE_^;  pregDE_^ := w;
-  w := pregHL^;  pregBC^ := pregHL_^;  pregHL_^ := w;
+  w := pregDE^;  pregDE^ := pregDE_^;  pregDE_^ := w;
+  w := pregHL^;  pregHL^ := pregHL_^;  pregHL_^ := w;
   Inc(t_states,4);
 end;
 
@@ -1537,7 +1537,7 @@ procedure TProcessor.ExecJPcond(_mask, _required: byte); inline;
 var addr: Word;
 begin
   addr := Fetch16;
-  if pregF^ and _mask = _required then
+  if (pregF^ and _mask) = _required then
     pregPC^ := addr;
   Inc(t_states,10);
 end;
@@ -1600,7 +1600,7 @@ procedure TProcessor.ExecJRcond(_mask, _required: byte); inline;
 var b: byte;
 begin
   b := Fetch8;
-  if pregF^ and _mask = _required then
+  if (pregF^ and _mask) = _required then
     begin // Succeeded
       SetPCrelative(b);
       Inc(t_states,12);
@@ -2465,50 +2465,90 @@ begin
       begin
         bit7 := p^ and $80;
         p^ := ((p^ shl 1) or (bit7 shr 7)) and $00FF;
-        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or (bit7 shr 7); // Set C flag if reqd and reset H, N
+        pregF^ := (pregF^ and (NOT_FLAG_NEGATIVE and NOT_FLAG_ZERO and NOT_FLAG_PV and NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or (bit7 shr 7); // Set C flag if reqd and reset many others
+        if (p^ and $80) <> 0 then
+          pregF^ := pregF^ or FLAG_NEGATIVE;
+        if (p^ = $00) then
+          pregF^ := pregF^ or FLAG_ZERO;
+        pregF^ := pregF^ or parity_table[p^];
       end;
     1: // RRC
       begin
         bit0 := p^ and $01;
         p^ := ((p^ shr 1) or (bit0 shl 7));
-        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset H, N
+        pregF^ := (pregF^ and (NOT_FLAG_NEGATIVE and NOT_FLAG_ZERO and NOT_FLAG_PV and NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset many others
+        if (p^ and $80) <> 0 then
+          pregF^ := pregF^ or FLAG_NEGATIVE;
+        if (p^ = $00) then
+          pregF^ := pregF^ or FLAG_ZERO;
+        pregF^ := pregF^ or parity_table[p^];
       end;
     2: // RL
       begin
         bit7 := p^ and $80;
         p^ := ((p^ shl 1) or (pregF^ and $01)) and $00FF;
-        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or (bit7 shr 7); // Set C flag if reqd and reset H, N
+        pregF^ := (pregF^ and (NOT_FLAG_NEGATIVE and NOT_FLAG_ZERO and NOT_FLAG_PV and NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or (bit7 shr 7); // Set C flag if reqd and reset many others
+        if (p^ and $80) <> 0 then
+          pregF^ := pregF^ or FLAG_NEGATIVE;
+        if (p^ = $00) then
+          pregF^ := pregF^ or FLAG_ZERO;
+        pregF^ := pregF^ or parity_table[p^];
       end;
     3: // RR
       begin
         bit0 := p^ and $01;
         p^ := ((p^ shr 1) or ((pregF^ and $01) shl 7));
-        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset H, N
+        pregF^ := (pregF^ and (NOT_FLAG_NEGATIVE and NOT_FLAG_ZERO and NOT_FLAG_PV and NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset many others
+        if (p^ and $80) <> 0 then
+          pregF^ := pregF^ or FLAG_NEGATIVE;
+        if (p^ = $00) then
+          pregF^ := pregF^ or FLAG_ZERO;
+        pregF^ := pregF^ or parity_table[p^];
       end;
     4: // SLA
       begin
         bit7 := p^ and $80;
         p^ := (p^ shl 1) and $00FF;
-        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or (bit7 shr 7); // Set C flag if reqd and reset H, N
+        pregF^ := (pregF^ and (NOT_FLAG_NEGATIVE and NOT_FLAG_ZERO and NOT_FLAG_PV and NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or (bit7 shr 7); // Set C flag if reqd and reset many others
+        if (p^ and $80) <> 0 then
+          pregF^ := pregF^ or FLAG_NEGATIVE;
+        if (p^ = $00) then
+          pregF^ := pregF^ or FLAG_ZERO;
+        pregF^ := pregF^ or parity_table[p^];
       end;
     5: // SRA
       begin
         bit0 := p^ and $01;
         bit7 := p^ and $80;
         p^ := ((p^ shr 1) and $7F) or bit7;
-        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset H, N
+        pregF^ := (pregF^ and (NOT_FLAG_NEGATIVE and NOT_FLAG_ZERO and NOT_FLAG_PV and NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset many others
+        if (p^ and $80) <> 0 then
+          pregF^ := pregF^ or FLAG_NEGATIVE;
+        if (p^ = $00) then
+          pregF^ := pregF^ or FLAG_ZERO;
+        pregF^ := pregF^ or parity_table[p^];
       end;
     6: // SLL (undocumented but implemented as for SLA)
       begin
         bit7 := p^ and $80;
         p^ := (p^ shl 1) and $00FF;
-        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or (bit7 shr 7); // Set C flag if reqd and reset H, N
+        pregF^ := (pregF^ and (NOT_FLAG_NEGATIVE and NOT_FLAG_ZERO and NOT_FLAG_PV and NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or (bit7 shr 7); // Set C flag if reqd and reset many others
+        if (p^ and $80) <> 0 then
+          pregF^ := pregF^ or FLAG_NEGATIVE;
+        if (p^ = $00) then
+          pregF^ := pregF^ or FLAG_ZERO;
+        pregF^ := pregF^ or parity_table[p^];
       end;
     7: // SRL
       begin
         bit0 := p^ and $01;
         p^ := (p^ shr 1);
-        pregF^ := (pregF^ and (NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset H, N
+        pregF^ := (pregF^ and (NOT_FLAG_NEGATIVE and NOT_FLAG_ZERO and NOT_FLAG_PV and NOT_FLAG_CARRY and NOT_FLAG_HALFCARRY and NOT_FLAG_SUBTRACT)) or bit0; // Set C flag if reqd and reset many others
+        if (p^ and $80) <> 0 then
+          pregF^ := pregF^ or FLAG_NEGATIVE;
+        if (p^ = $00) then
+          pregF^ := pregF^ or FLAG_ZERO;
+        pregF^ := pregF^ or parity_table[p^];
       end;
   end;
 end;
@@ -3038,10 +3078,16 @@ begin
   flags := pregF^;
   flags := flags and NOT_FLAG_ZERO and NOT_FLAG_SUBTRACT; // Reset flags
   flags := flags or FLAG_HALFCARRY;
+  // Set Z and PV flags
   if (_src and _mask) = 0 then
-    flags := flags or FLAG_ZERO
+    flags := flags or FLAG_ZERO or FLAG_PV
   else
-    flags := flags and NOT_FLAG_ZERO;
+    flags := flags and NOT_FLAG_ZERO and NOT_FLAG_PV;
+  // Set negative flag
+  if ((_src and mask) = 0) and (_bit = 7) then
+    flags := flags or FLAG_NEGATIVE
+  else
+    flags := flags and NOT_FLAG_NEGATIVE;
   pregF^ := flags;
   // Bump the t_states
   if _reg <> 6 then
@@ -3218,10 +3264,16 @@ begin
   flags := pregF^;
   flags := flags and NOT_FLAG_ZERO and NOT_FLAG_SUBTRACT; // Reset flags
   flags := flags or FLAG_HALFCARRY;
+  // Set Z and PV flags
   if (_src and _mask) = 0 then
-    flags := flags or FLAG_ZERO
+    flags := flags or FLAG_ZERO or FLAG_PV
   else
-    flags := flags and NOT_FLAG_ZERO;
+    flags := flags and NOT_FLAG_ZERO and NOT_FLAG_PV;
+  // Set negative flag
+  if ((_src and mask) = 0) and (_bit = 7) then
+    flags := flags or FLAG_NEGATIVE
+  else
+    flags := flags and NOT_FLAG_NEGATIVE;
   pregF^ := flags;
   // Bump the t_states
   Inc(t_states,20);
@@ -3255,7 +3307,7 @@ end;
 
 procedure TProcessor.ExecDdFdCbShiftRotate; inline;
 begin
-  ExecShiftRotate(@ramarray[FetchIQPDindex],(opcode and $38) shr 3);
+  ExecShiftRotate(ddfdcbsrc,(opcode and $38) shr 3);
   Inc(t_states,23);
 end;
 

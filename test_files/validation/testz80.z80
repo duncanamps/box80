@@ -177,10 +177,24 @@ tests:
 ;			dw		ldi1
 ;			dw		ldi2
 ;			dw		negx	// DM doesn't like mnemonic as an operand
-;			dw		rldx	// DM doesn't like mnemonic as an operand
+			dw		rldx	// DM doesn't like mnemonic as an operand
 ;			dw		rot8080
 //			dw		rotxy		// Crashes on SC131 with DD CB xx 36
+;			dw		rotxy0		// 7 replacement routines for rotxy
+;			dw		rotxy1
+;			dw		rotxy2
+;			dw		rotxy3
+;			dw		rotxy4
+;			dw		rotxy5
+;			dw		rotxy7
 // CRASH	dw		rotz80  // CB 30-37 causes crash
+;			dw		rotz800		// 7 replacement routines for rotz80
+;			dw		rotz801
+;			dw		rotz802
+;			dw		rotz803
+;			dw		rotz804
+;			dw		rotz805
+;			dw		rotz807
 ;			dw		srz80
 ;			dw		srzx
 ;			dw		st8ix1
@@ -665,20 +679,56 @@ rot8080: db	0ffh		; flag mask
 	tmsg	'<rlca,rrca,rla,rra>'
 
 ; shift/rotate (<ix,iy>+1) (416 cycles)
-rotxy:	db	0ffh		; flag mask
-	tstr	<0ddh,0cbh,1,6>,0ddafh,msbt-1,msbt-1,0ff3ch,0dbf6h,094f4h,082h,080h,061d9h
-	tstr	<020h,0,0,038h>,0,0,0,0,0,0,080h,0,0	; (32 cycles)
-	tstr	0,0ffh,0,0,0,0,0,057h,0,0		; (13 cycles)
+//rotxy:	db	0ffh		; flag mask
+//	tstr	<0ddh,0cbh,1,6>,0ddafh,msbt-1,msbt-1,0ff3ch,0dbf6h,094f4h,082h,080h,061d9h
+//	tstr	<020h,0,0,038h>,0,0,0,0,0,0,080h,0,0	; (32 cycles)
+//	tstr	0,0ffh,0,0,0,0,0,057h,0,0		; (13 cycles)
+//
+//	tmsg	'shf/rot (<ix,iy>+1)'
 
-	tmsg	'shf/rot (<ix,iy>+1)'
+mrotxy		macro index,cmd,txt
+; shift/rotate ({txt} <ix,iy>+1) (56 cycles)
+rotxy{index}:	db	0ffh		; flag mask
+			tstr	<0ddh,0cbh,1,{cmd}>,0ddafh,msbt-1,msbt-1,0ff3ch,0dbf6h,094f4h,082h,080h,061d9h
+			tstr	<020h,0,0,0>,0,0,0,0,0,0,080h,0,0	; (4 cycles)
+			tstr	0,0ffh,0,0,0,0,0,057h,0,0		; (13 cycles)
+			tmsg	'shf/rot ({txt} <ix,iy>+1)'
+			ENDM
 
-; shift/rotate <b,c,d,e,h,l,(hl),a> (6784 cycles)
-rotz80:	db	0ffh		; flag mask
-	tstr	0cbh,0ccebh,05d4ah,0e007h,msbt,01395h,030eeh,043h,078h,03dadh
-	tstr	<0,03fh>,0,0,0,0,0,0,080h,0,0		; (128 cycles)
-	tstr	0,0ffh,0,0,0,-1,-1,057h,-1,0		; (53 cycles)
+			mrotxy	0,$06,RLC
+			mrotxy	1,$0E,RRC
+			mrotxy	2,$16,RL
+			mrotxy	3,$1E,RR
+			mrotxy 	4,$26,SLA
+			mrotxy	5,$2E,SRA
+			; index 6 (SLL) is not used - it causes Z180 to flip and is undocumented
+			mrotxy	7,$3E,SRL
+			
+; shift/rotate (<b,c,d,e,h,l,(hl),a> (6784 cycles)
+;rotz80:	db	0ffh		; flag mask
+;	tstr	0cbh,0ccebh,05d4ah,0e007h,msbt,01395h,030eeh,043h,078h,03dadh
+;	tstr	<0,03fh>,0,0,0,0,0,0,080h,0,0		; (128 cycles)
+;	tstr	0,0ffh,0,0,0,-1,-1,057h,-1,0		; (53 cycles)
+;
+;	tmsg	'shf/rot <b,c,d,e,h,l,(hl),a>'
 
-	tmsg	'shf/rot <b,c,d,e,h,l,(hl),a>'
+mrotz80		macro index,cmd,txt
+; {txt} (<b,c,d,e,h,l,(hl),a> (848 cycles)
+rotz80{index}:	db	0ffh		; flag mask
+			tstr	<0cbh,{cmd}>,0ccebh,05d4ah,0e007h,msbt,01395h,030eeh,043h,078h,03dadh
+			tstr	<0,07h>,0,0,0,0,0,0,080h,0,0		; (16 cycles)
+			tstr	0,0ffh,0,0,0,-1,-1,057h,-1,0		; (53 cycles)
+			tmsg	'{txt} <b,c,d,e,h,l,(hl),a>'
+			ENDM
+
+			mrotz80	0,$00,RLC
+			mrotz80	1,$08,RRC
+			mrotz80	2,$10,RL
+			mrotz80	3,$18,RR
+			mrotz80	4,$20,SLA
+			mrotz80	5,$28,SRA
+			; index 6 (SLL) is not used - it causes Z180 to flip and is undocumented
+			mrotz80	7,$38,SRL
 
 ; <set,res> n,<b,c,d,e,h,l,(hl),a> (7936 cycles)
 srz80:	db	0ffh		; flag mask
