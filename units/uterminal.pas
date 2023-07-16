@@ -111,14 +111,18 @@ type
       procedure CursorPosition(_row, _col: integer);
       procedure CursorPreviousLine(_amt: integer);
       procedure CursorUp(_amt: integer);
+      procedure DeleteLine(_amt: integer);
       procedure EraseInDisplay(_amt: integer);
       procedure EraseInLine(_amt: integer);
       procedure InitCSI;
+      procedure InsertLine(_amt: integer);
       procedure Paint; override;
       procedure ProcessCSI;
       procedure ParseCSIparams;
       function  RowToY(_row: integer): integer;
       procedure ScrollDown(_amt: integer);
+      procedure ScrollRegionDown(_first,_last,_amt: integer);
+      procedure ScrollRegionUp(_first,_last,_amt: integer);
       procedure ScrollUp(_amt: integer);
       procedure SelectGraphicRendition(_parm: integer);
       procedure SGRbold;
@@ -451,6 +455,13 @@ begin
     FCursorRow := 0;
 end;
 
+procedure TTerminal.DeleteLine(_amt: integer);
+begin
+  if _amt < 1 then
+    _amt := 1;
+  ScrollRegionUp(FCursorRow,FRows-1,_amt);
+end;
+
 procedure TTerminal.EraseInDisplay(_amt: integer);
 begin
   case _amt of
@@ -507,6 +518,13 @@ begin
   FCSIparameter    := '';
   FCSIintermediate := '';
   FCSIfinal        := '';
+end;
+
+procedure TTerminal.InsertLine(_amt: integer);
+begin
+  if _amt < 1 then
+    _amt := 1;
+  ScrollRegionDown(FCursorRow,FRows-1,_amt);
 end;
 
 procedure TTerminal.Paint;
@@ -601,6 +619,8 @@ begin
     'H': CursorPosition(CSIparam(0),CSIparam(1));
     'J': EraseInDisplay(CSIparam(0));
     'K': EraseInLine(CSIparam(0));
+    'L': InsertLine(CSIparam(0));
+    'M': DeleteLine(CSIparam(0));
     'S': ScrollUp(CSIparam(0));
     'T': ScrollDown(CSIparam(0));
     'f': CursorPosition(CSIparam(0),CSIparam(1));
@@ -653,22 +673,27 @@ begin
   RowToY := FCharHeight * _row + FMargin;
 end;
 
-procedure TTerminal.ScrollUp(_amt: integer);
+procedure TTerminal.ScrollDown(_amt: integer);
+begin
+  ScrollRegionDown(0,FRows-1,_amt);
+end;
+
+procedure TTerminal.ScrollRegionDown(_first,_last,_amt: integer);
 var i,j: integer;
 begin
   if _amt < 1 then
     _amt := 1;
-  if _amt >= FRows then
-    _amt := FRows-1;
+  if _amt >= (_last - _first + 1) then
+    _amt := _last - _first;
   // Move lines
-  for i := _amt to FRows-1 do
+  for i := _last downto _first+_amt do
     for j := 0 to FCols-1 do
       begin
-        FScreen[(i-_amt)*FCols+j] := FScreen[i*FCols+j];
-        FAttribs[(i-_amt)*FCols+j] := FAttribs[i*FCols+j];
+        FScreen[i*FCols+j] := FScreen[(i-_amt)*FCols+j];
+        FAttribs[i*FCols+j] := FAttribs[(i-_amt)*FCols+j];
       end;
   // Blank vacated lines
-  for i := FRows-_amt to FRows-1 do
+  for i := _first to _first+_amt-1 do
     for j := 0 to FCols-1 do
       begin
         FScreen[i*FCols+j] := Ord(' ');
@@ -676,27 +701,32 @@ begin
       end;
 end;
 
-procedure TTerminal.ScrollDown(_amt: integer);
+procedure TTerminal.ScrollRegionUp(_first,_last,_amt: integer);
 var i,j: integer;
 begin
   if _amt < 1 then
     _amt := 1;
-  if _amt >= FRows then
-    _amt := FRows-1;
+  if _amt >= (_last - _first + 1) then
+    _amt := _last - _first;
   // Move lines
-  for i := FRows-1 downto _amt do
+  for i := _amt+_first to _last do
     for j := 0 to FCols-1 do
       begin
-        FScreen[i*FCols+j] := FScreen[(i-_amt)*FCols+j];
-        FAttribs[i*FCols+j] := FAttribs[(i-_amt)*FCols+j];
+        FScreen[(i-_amt)*FCols+j] := FScreen[i*FCols+j];
+        FAttribs[(i-_amt)*FCols+j] := FAttribs[i*FCols+j];
       end;
   // Blank vacated lines
-  for i := 0 to _amt-1 do
+  for i := _last-_amt+1 to _last do
     for j := 0 to FCols-1 do
       begin
         FScreen[i*FCols+j] := Ord(' ');
         FAttribs[i*FCols+j] := FAttrib;
       end;
+end;
+
+procedure TTerminal.ScrollUp(_amt: integer);
+begin
+  ScrollRegionUp(0,FRows-1,_amt);
 end;
 
 procedure TTerminal.SelectGraphicRendition(_parm: integer);
