@@ -22,7 +22,8 @@ box80 is a multi-platform virtual machine designed to execute Z80 code in a 64K 
         * Integrated terminal screen and keyboard emulation using ANSI colour display
         * Ability to receive text/hex files to the terminal
         * Log text output to a file **(partly implemented)**
-    * Debug features **(not implemented)**     * Disassembler
+    * Debug features **(not implemented)**
+        * Disassembler
         * Memory viewer
         * Watch window with different variable types
         * Conditional breakpoints
@@ -102,9 +103,9 @@ As part of my journey, I've been making more of an effort to understand the scie
 operate and in 2020 wrote [LaCoGen](https://github.com/duncanamps/lacogen1), an open-source **La**zarus **Co**mpiler **Gen**erator.
 It was basically my own home-brewed version of LEX and YACC, the famous Lexer/LALR1 compiler generator tools
 from the C fraternity, to enable me to have this facility on my favourite Lazarus environment. It was written from
-the ground up using first principles and knowledge I gained from the [Dragon book](https://en.wikipedia.org/wiki/Compilers:_Principles,_Techniques,_and_Tools).
+the ground up using first principles and knowledge I gained from [Compiler Construction: Principles and Practice (Louden)](https://www.amazon.co.uk/gp/product/0534939724/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1) and [Compilers: Principles, Techniques, and Tools (Aho, Ullman, Sethi and Lam)](https://www.amazon.co.uk/Compilers-Principles-Techniques-Alfred-Aho-dp-0321486811/dp/0321486811/ref=dp_ob_title_bk).
 
-Using the help of this tool, I was able to write [xa80](https://github.com/duncanamps/xa80), an open-source cross-platform
+Using the help of LaCoGen, I was able to write [xa80](https://github.com/duncanamps/xa80), an open-source cross-platform
 assembler for x80 processors; 8080, 8085, Z80 and Z180. It contains an opcode compiler which was, itself, developed with LaCoGen.
 
 I own a number of Z80 based SBCs; the RC2014, the SC131 and have recently acquired the AgonLight 2 SBC
@@ -117,7 +118,7 @@ For now, it seemed like a good idea to write a simulator to mimic one of the SBC
 this all into an IDE with a Z80 virtual machine, assembler, debugger, etc. This will make it so much easier to work the
 bugs out of my code, and will drastically shorten the development cycle.
 
-That's the history so far; xA80 is working well and in fact was used to assemble the monitor, CP/M, MS BASIC, etc. box80 is only part complete but is showing promising results so far; you can run MS BASIC on it, CP/M next.
+That's the history so far; xA80 is working well and in fact was used to assemble the monitor, CP/M, MS BASIC, etc. box80 is only part complete but is showing promising results so far. It's currently able to run MSBASIC and CP/M 2.2 without issues.
 
 ## Licence and acknowledgements
 All trademarks are acknowledged as belonging to their respective owners.  
