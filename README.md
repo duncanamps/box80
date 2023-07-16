@@ -16,12 +16,12 @@ box80 is a multi-platform virtual machine designed to execute Z80 code in a 64K 
     * Core platform emulation
         * Z80 processor at various speeds from 32768Hz to 500MHz, depending on host hardware capability
         * Z80-SIO used to control serial input and output. This is redirected to the Windows screen and keyboard, there is no real serial link
-        * CF card interface to allow storage of the CP/M operating system, CP/M commands, and user installed software and data ~~(not implemented)~~
+        * CF card interface to allow storage of the CP/M operating system, CP/M commands, and user installed software and data
         * The ROM disable feature is not currently implemented as it is not actually used (the monitor is loaded into RAM automatically by the VM)
     * Terminal emulation
-        * Integrated terminal screen and keyboard emulation, vanilla flavoured at this time
+        * Integrated terminal screen and keyboard emulation using ANSI colour display
         * Ability to receive text/hex files to the terminal
-        * Log text output to a file **(not implemented)**
+        * Log text output to a file **(partly implemented)**
     * Debug features **(not implemented)**     * Disassembler
         * Memory viewer
         * Watch window with different variable types
@@ -54,7 +54,7 @@ which are supported by the Lazarus ecosystem in 32 and 64 bit flavours, includin
 * Android
 * FreeBSD
 * iOS
-* Linux (known to have problems at this time)
+* Linux
 * macOS
 * Raspberry Pi
 * WinCE
@@ -74,7 +74,7 @@ Gimp and Greenfish Icon Editor Pro were used to provide the graphics elements.
 | CF card interface             | 100%      | Basic setup, but works fine            |
 | Terminal output               | 100%      | Now allows colour ANSI emulation       |
 | Interrupt processing          | 33%       | IM2 is complete, trigger by SIO        |
-| SIO                           | 20%       | Very basic implementation, but works   |
+| SIO                           | 50%       | Very basic implementation, but works   |
 | Documentation                 | TBD       |                                        |
 ### V0.1 future development
 | Item                          | Complete  | Notes                                    |
