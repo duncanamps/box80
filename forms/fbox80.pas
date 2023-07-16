@@ -306,6 +306,7 @@ type
     procedure CreateCF(_cfsize: integer);
     function  GetConfig(_section,_name: string; _default: string = ''): string;
     procedure GrabFocus;
+    function  HandleSIOcantransmitA: boolean;
     function  HandleSIOtransmitA(_b: byte): boolean;
     procedure ProcStateChange(_ps: TProcessorState);
     procedure ProcStateUpdate;
@@ -686,6 +687,7 @@ begin
   FProcessor := TProcessor.Create;
   FProcessor.OnStateChange := @ProcStateChange;
   FProcessor.OnTransmitA := @HandleSIOtransmitA;
+  FProcessor.OnCanTransmitA := @HandleSIOcantransmitA;
   FProcessor.CFlash.PortBase := $10;
   FProcessor.Reset(True);
   ReadMonitorImage;
@@ -750,15 +752,16 @@ begin
   frmTerminal.SIOBpct := FProcessor.SIO.ChannelB.BufPercent;
 end;
 
+function TfrmBox80.HandleSIOcantransmitA: boolean;
+begin
+  Result := frmTerminal.HasScreenCapacity;
+end;
+
 function TfrmBox80.HandleSIOtransmitA(_b: byte): boolean;
 begin
   Result := frmTerminal.HasScreenCapacity;
   if Result then
-    frmTerminal.WriteChar(Chr(_b))
-  {
-  FTerminal.WriteChar(Chr(_b));
-  FTimerClicks := 0;
-  }
+    frmTerminal.WriteChar(Chr(_b));
 end;
 
 procedure TfrmBox80.ProcStateChange(_ps: TProcessorState);
