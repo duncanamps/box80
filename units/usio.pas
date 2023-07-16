@@ -39,6 +39,7 @@ type
   TSIOCanInterruptFunc = function(): boolean of object;
   TSIOInterruptProc = procedure(_b: byte) of object;
   TSIOTransmitFunc = function(_b: byte): boolean of object;
+  TSIOCanTransmitFunc = function: boolean of object;
 
   TSIOchanneldes = (scdA,scdB); // SIO channel designator
 
@@ -61,6 +62,7 @@ type
       FHasRxData:        boolean;
       FRxData:           byte;
       // SIO transmit items
+      FOnCanTransmit:    TSIOCanTransmitFunc;
       FOnTransmit:       TSIOTransmitFunc;
       FTxData:           byte;
 
@@ -99,6 +101,7 @@ type
       property Control:    byte read GetControl write SetControl;
       property Data:       byte    read GetData    write SetData;
       property HasRxData:  boolean read FHasRxData write SetHasRxData;
+      property OnCanTransmit: TSIOCanTransmitFunc write FOnCanTransmit;
       property OnTransmit: TSIOTransmitFunc  write FOnTransmit;
       property RegRead:    TSIOreadArray    read FRegRead;
       property RegWrite:   TSIOwriteArray  read FRegWrite;
@@ -285,18 +288,12 @@ begin
 end;
 
 function TSIOchannel.GetData: byte;
-var b: byte;
 begin
   {$IFDEF DEBUG_SIO}
   siodebug.LogE('TSIOchannel.GetData()','Enter');
   {$ENDIF}
   Result := FRXdata;
   HasRxData := False;
-  {
-  FCircular.DoCmd(CB_CMD_CONTAINS,b);
-  if b = 0 then
-    SetRXempty;
-  }
   {$IFDEF DEBUG_SIO}
   siodebug.Log('TSIOchannel.GetData()','Result = %d ($%2.2X)',[Result,Result]);
   siodebug.LogX('TSIOchannel.GetData()','Exit');
@@ -371,12 +368,12 @@ end;
 
 procedure TSIOchannel.PumpOutput;
 begin
-  if (not IsTxEmpty) then
-    begin
-      if Assigned(FOnTransmit) then
+  if (not IsTxEmpty) and Assigned(FOnCanTransmit) and FOnCanTransmit() then
+    if Assigned(FOnTransmit) then
+      begin
         FOnTransmit(FTxData);
-      SetTxEmpty;
-    end;
+        SetTxEmpty;
+      end;
 end;
 
 procedure TSIOchannel.ReadFromXml(doc: TXMLDocument; const _prefix: string);

@@ -31,7 +31,7 @@ uses
 const
   MAX_TERMINAL_COLS = 132;
   MAX_TERMINAL_ROWS = 50;
-  MAX_TERM_BUF = 800;
+  MAX_TERM_BUF = 16384;
 
 type
   TAOB = array of byte;

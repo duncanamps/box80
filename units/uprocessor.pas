@@ -114,6 +114,7 @@ type
       run_start_time:         TDateTime;
       run_start_cycles:       int64;
       run_start_instructions: int64;
+      FOnCanTransmitA: TSIOcanTransmitFunc;
       FOnTransmitA: TSIOtransmitFunc;
       FOnStateChange: TStateChangeProc;
       FErrorString: string;
@@ -519,6 +520,7 @@ type
       procedure PushWord(_word: Word); inline;
       procedure SetCPUspeed(_speed: int64);
       procedure SetNegZero; inline;
+      procedure SetOnCanTransmitA(_proc: TSIOCanTransmitFunc);
       procedure SetOnTransmitA(_proc: TSIOtransmitFunc);
       procedure SetPCrelative(_b: byte); inline;
       procedure SetProcessorState(_ps: TProcessorState);
@@ -587,6 +589,7 @@ type
       property ErrorFlag: TErrorFlags read error_flag;
       property ErrorString: string read FErrorString;
       property OnStateChange: TStateChangeProc read FOnStateChange write FOnStateChange;
+      property OnCanTransmitA: TSIOCanTransmitFunc read FOnCanTransmitA write SetOnCanTransmitA;
       property OnTransmitA: TSIOtransmitFunc read FOnTransmitA write SetOnTransmitA;
       property PC: Word read regset.registers[regPC] write regset.registers[regPC];
       property PerfMHz: double read GetPerfMHz;
@@ -2894,6 +2897,12 @@ begin
   pregF^ := pregF^ and NOT_FLAG_NEGATIVE and NOT_FLAG_ZERO;
   if (pregA^ and $80) <> 0 then pregF^ := pregF^ or FLAG_NEGATIVE;
   if pregA^ = 0 then pregF^ := pregF^ or FLAG_ZERO;
+end;
+
+procedure TProcessor.SetOnCanTransmitA(_proc: TSIOCanTransmitFunc);
+begin
+  if Assigned(SIO) then
+    SIO.ChannelA.OnCanTransmit := _proc;
 end;
 
 procedure TProcessor.SetOnTransmitA(_proc: TSIOtransmitFunc);
