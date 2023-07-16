@@ -3137,10 +3137,6 @@ var proc: TExecProc;
 begin
   // Get byte to execute
   opcode := FetchOpcode;
-  {
-  opcode := ramarray[pregPC^];
-  Inc(pregPC^);
-  }
   pregIXY := pregIX;
   proc := inst_ddfd[opcode];
   if proc <> nil then
@@ -3353,7 +3349,7 @@ var _b: PByte;
 begin
   _index := FetchIQPDindex;
   _b := @ramarray[_index];
-  case opcode and $38 of
+  case opcode of
     $70: _b^ := pregB^;
     $71: _b^ := pregC^;
     $72: _b^ := pregD^;
@@ -3371,7 +3367,7 @@ var _b: Byte;
 begin
   _index := FetchIQPDindex;
   _b := ramarray[_index];
-  case opcode and $38 of
+  case opcode of
     $46: pregB^ := _b;
     $4E: pregC^ := _b;
     $56: pregD^ := _b;
@@ -3483,7 +3479,7 @@ begin
   Dec(pregHL^);
   Dec(pregBC^);
   pregF^ := (pregF^ and NOT_FLAG_CARRY and NOT_FLAG_PV) or saved_c; // Restore incoming C flag
-  if pregBC^ = $FFFF then
+  if pregBC^ <> $0000 then
     pregF^ := pregF^ or FLAG_PV;
 end;
 
@@ -3505,7 +3501,7 @@ begin
   Inc(pregHL^);
   Dec(pregBC^);
   pregF^ := (pregF^ and NOT_FLAG_CARRY and NOT_FLAG_PV) or saved_c; // Restore incoming C flag
-  if pregBC^ = $FFFF then
+  if pregBC^ <> $0000 then
     pregF^ := pregF^ or FLAG_PV;
 end;
 
@@ -3686,7 +3682,7 @@ begin
   Dec(pregHL^);
   Dec(pregBC^);
   pregF^ := pregF^ and NOT_FLAG_HALFCARRY and NOT_FLAG_PV and NOT_FLAG_SUBTRACT;
-  if pregBC^ = $FFFF then pregF^ := pregF^ or FLAG_PV;
+  if pregBC^ <> $0000 then pregF^ := pregF^ or FLAG_PV;
   Inc(t_states,16);
 end;
 
@@ -3697,7 +3693,7 @@ begin
   Inc(pregHL^);
   Dec(pregBC^);
   pregF^ := pregF^ and NOT_FLAG_HALFCARRY and NOT_FLAG_PV and NOT_FLAG_SUBTRACT;
-  if pregBC^ = $FFFF then pregF^ := pregF^ or FLAG_PV;
+  if pregBC^ <> $0000 then pregF^ := pregF^ or FLAG_PV;
   Inc(t_states,16);
 end;
 
@@ -3952,7 +3948,6 @@ begin
     proc
   else
     error_flag := error_flag + [efIllegal];
-  proc := inst_ddfd[opcode];
 end;
 
 
