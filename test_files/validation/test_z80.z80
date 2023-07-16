@@ -48,7 +48,7 @@
 // that are not operating correctly.
 //
 
-//BOX80		EQU		1
+BOX80		EQU		1
 
 			IFDEF BOX80
 			ORG		$2000
@@ -118,73 +118,73 @@ done:		jp		0			; warm boot
 
 
 tests:
-;			dw		adc16
-;			dw		add16
-;			dw		add16x
-;			dw		add16y
-;			dw		alu8i
-;			dw		alu8r
+			dw		adc16
+			dw		add16
+			dw		add16x
+			dw		add16y
+			dw		alu8i
+			dw		alu8r
 //	CRASH	dw		alu8rx
-;			dw		alu8x
-// B180CR	dw		bitx
-;			dw		bitz80
-;			dw		cpd1
-;			dw		cpi1
+			dw		alu8x
+			dw		bitx
+			dw		bitz80
+			dw		cpd1
+			dw		cpi1
 			dw		daax	// DM doesn't like mnemonic as an operand
-;			dw		inca
-;			dw		incb
-;			dw		incbc
-;			dw		incc
-;			dw		incd
-;			dw		incde
-;			dw		ince
-;			dw		inch
-;			dw		inchl
-;			dw		incix
-;			dw		inciy
-;			dw		incl
-;			dw		incm
-;			dw		incsp
-;			dw		incx
+			dw		inca
+			dw		incb
+			dw		incbc
+			dw		incc
+			dw		incd
+			dw		incde
+			dw		ince
+			dw		inch
+			dw		inchl
+			dw		incix
+			dw		inciy
+			dw		incl
+			dw		incm
+			dw		incsp
+			dw		incx
 // CRASH	dw		incxh
 // CRASH	dw		incxl
 // CRASH	dw		incyh
 // CRASH 	dw		incyl
-;			dw		ld161
-;			dw		ld162
-;			dw		ld163
-;			dw		ld164
-;			dw		ld165
-;			dw		ld166
-;			dw		ld167
-;			dw		ld168
-;			dw		ld16im
-;			dw		ld16ix
-;			dw		ld8bd
-;			dw		ld8im
-;			dw		ld8imx
-;			dw		ld8ix1
-;			dw		ld8ix2
-;			dw		ld8ix3
+			dw		ld161
+			dw		ld162
+			dw		ld163
+			dw		ld164
+			dw		ld165
+			dw		ld166
+			dw		ld167
+			dw		ld168
+			dw		ld16im
+			dw		ld16ix
+			dw		ld8bd
+			dw		ld8im
+			dw		ld8imx
+			dw		ld8ix1
+			dw		ld8ix2
+			dw		ld8ix3
 // CRASH	dw		ld8ixy
-;			dw		ld8rr
+			dw		ld8rr
 // CRASH	dw		ld8rrx
-;			dw		lda
-;			dw		ldd1
-;			dw		ldd2
-;			dw		ldi1
-;			dw		ldi2
-;			dw		negx	// DM doesn't like mnemonic as an operand
-;			dw		rldx	// DM doesn't like mnemonic as an operand
-;			dw		rot8080
+			dw		lda
+			dw		ldd1
+			dw		ldd2
+			dw		ldi1
+			dw		ldi2
+			dw		negx	// DM doesn't like mnemonic as an operand
+			dw		rldx	// DM doesn't like mnemonic as an operand
+			dw		rot8080
 // CRASH  	dw		rotxy
 // CRASH	dw		rotz80  // CB 30-37 causes crash
-;			dw		srz80
-// B80CR	dw		srzx
-;			dw		st8ix1
-;			dw		st8ix2
-;			dw		st8ix3
-;			dw		stabd
+			dw		srz80
+			dw		srzx
+			dw		st8ix1
+			dw		st8ix2
+			dw		st8ix3
+			dw		stabd
 			dw		0
 
 // Now all the instructions
