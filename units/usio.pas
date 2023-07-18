@@ -370,10 +370,8 @@ procedure TSIOchannel.PumpOutput;
 begin
   if (not IsTxEmpty) and Assigned(FOnCanTransmit) and FOnCanTransmit() then
     if Assigned(FOnTransmit) then
-      begin
-        FOnTransmit(FTxData);
-        SetTxEmpty;
-      end;
+      FOnTransmit(FTxData);
+  SetTxEmpty;
 end;
 
 procedure TSIOchannel.ReadFromXml(doc: TXMLDocument; const _prefix: string);

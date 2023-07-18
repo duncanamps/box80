@@ -101,7 +101,7 @@ procedure TfrmTerminal.FormKeyPress(Sender: TObject; var Key: char);
 begin
   // Form keypress routine
   // Put the key in the simulator SIO and trigger an interrupt
-  if Assigned(FProcessor) then
+   if Assigned(FProcessor) then
     FProcessor.ChannelReceiveA(Ord(key));
 end;
 
